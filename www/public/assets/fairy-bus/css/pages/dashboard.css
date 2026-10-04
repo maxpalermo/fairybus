@@ -345,6 +345,11 @@
     font-weight: 500;
 }
 
+.fb-expiration-expired {
+    color: var(--fb-danger, #ef4444);
+    font-weight: 600;
+}
+
 .fb-stock-item {
     display: flex;
     flex-direction: column;

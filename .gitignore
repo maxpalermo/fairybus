@@ -22,6 +22,7 @@ fata/
 
 # --- File di lavoro / scratch ---
 testo
+testo.dat
 prompt.txt
 import-vehicle.txt
 *.code-workspace

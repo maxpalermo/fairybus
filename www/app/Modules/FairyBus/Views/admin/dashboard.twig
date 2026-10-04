@@ -35,9 +35,7 @@
                         <div>
                             <p class="fb-kpi-title">{{ kpi.title }}</p>
                             <p class="fb-kpi-value">{{ kpi.value }}</p>
-                            <p class="fb-kpi-trend {% if kpi.positive %}fb-kpi-trend-up{% else %}fb-kpi-trend-down{% endif %}">
-                                {% if kpi.positive %}+{% endif %}{{ kpi.trend }}% rispetto al mese scorso
-                            </p>
+                            <p class="fb-kpi-trend">{{ kpi.sub }}</p>
                         </div>
                         <div class="fb-kpi-icon" aria-hidden="true">
                             {% if kpi.icon == 'bus' %}
@@ -46,13 +44,15 @@
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
                             {% elseif kpi.icon == 'calendar' %}
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4"></path><path d="M8 2v4"></path><path d="M3 10h18"></path></svg>
+                            {% elseif kpi.icon == 'fuel' %}
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 22h12"></path><path d="M4 9h10"></path><path d="M14 22V4a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v18"></path><path d="M14 13h2a2 2 0 0 1 2 2v2a2 2 0 0 0 2 2 2 2 0 0 0 2-2V9.83a2 2 0 0 0-.59-1.42L18 5"></path></svg>
                             {% else %}
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
                             {% endif %}
                         </div>
                     </div>
                     <svg class="fb-sparkline" viewBox="0 0 120 40" preserveAspectRatio="none">
-                        <path d="{{ kpi.sparkline }}" fill="none" stroke="{% if kpi.positive %}#22c55e{% else %}#ef4444{% endif %}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                        <path d="{{ kpi.sparkline }}" fill="none" stroke="{{ kpi.color|default('#0ea5e9') }}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
                     </svg>
                 </article>
             {% endfor %}
@@ -63,7 +63,7 @@
                 <div class="fb-card-header">
                     <div>
                         <h2 class="fb-card-title">Andamento</h2>
-                        <p class="fb-card-subtitle">Andamento annuale</p>
+                        <p class="fb-card-subtitle">Ultimi 12 anni</p>
                     </div>
                     <div class="fb-overview-tabs" role="tablist">
                         {% for name, path in overview_paths %}
@@ -91,8 +91,8 @@
             <section class="fb-card fb-expirations-card">
                 <div class="fb-card-header">
                     <div>
-                        <h2 class="fb-card-title">Scadenze imminenti</h2>
-                        <p class="fb-card-subtitle">Prossime 7 giorni</p>
+                        <h2 class="fb-card-title">Scadenze</h2>
+                        <p class="fb-card-subtitle">Imminenti e scadute non eseguite</p>
                     </div>
                 </div>
                 <ul class="fb-expiration-list">
@@ -104,7 +104,7 @@
                             </div>
                             <div class="fb-expiration-meta">
                                 <span class="fb-expiration-type">{{ item.type }}</span>
-                                <span class="fb-expiration-date">{{ item.due|date('d/m/Y') }}</span>
+                                <span class="fb-expiration-date{% if item.expired %} fb-expiration-expired{% endif %}">{{ item.due_label }}</span>
                             </div>
                         </li>
                     {% endfor %}
@@ -132,8 +132,8 @@
                         {% endfor %}
                     </svg>
                     <div class="fb-donut-center">
-                        <span>8</span>
-                        <small>scadenze</small>
+                        <span>{{ expiration_total }}</span>
+                        <small>scadenze aperte</small>
                     </div>
                 </div>
                 <ul class="fb-legend">
@@ -156,7 +156,7 @@
                 </div>
                 <div class="fb-stock-list">
                     {% for part in low_stock_parts %}
-                        {% set pct = (part.qty / part.threshold * 100)|round(1) %}
+                        {% set pct = part.threshold > 0 ? (part.qty / part.threshold * 100)|round(1) : 0 %}
                         <div class="fb-stock-item">
                             <div class="fb-stock-header">
                                 <span class="fb-stock-name">{{ part.name }}</span>

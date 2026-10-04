@@ -98,6 +98,45 @@ Al primo accesso sarai obbligato a cambiare la password.
 
 ## Changelog
 
+### 0.8.3 — 2026-10-04
+- **Dashboard con dati reali** (`Admin\Dashboard`): rimossi tutti i mock — KPI da query su `fb_*` (automezzi attivi + n. con scadenze aperte; scadenze aperte con split scadute/entro 30gg; ricambi sottoscorta su soglie attive; litri erogati nel mese, `direction='out'`), sparkline su serie annuali reali.
+- **Grafico Andamento → ultimi 12 anni**: serie per anno di litri carburante (`fb_refuelling`), manutenzioni e documenti — mostra la storia importata e l'attività corrente.
+- **Lista scadenze**: occorrenze aperte reali ordinate per urgenza (imminenti → scadute recenti → chilometriche "a N km"), date scadute in rosso (`fb-expiration-expired`); **ciambella** = distribuzione reale per etichetta (top 4 + Altro) con totale aperte al centro; **sottoscorta** = 5 ricambi più critici da `fb_stock`/`fb_product` (guardia soglia=0).
+- Nuova icona KPI "fuel" (pompa); i sottotitoli KPI mostrano dati reali invece del finto trend "% vs mese scorso".
+
+### 0.8.2 — 2026-10-03
+- **UI cross-pagina**: nuovo componente riusabile `components/ViewGrid.js` (`viewItem`/`viewGrid`) — scheda informativa a mini-card con icona e tinta dedotte automaticamente dall'etichetta (date, veicoli, partner, km, importi, contatti); migrato su rifornimenti, punti rifornimento, fornitori, documenti, fatture, manutenzioni e calendario.
+- **Fix**: `SearchableSelect`/`table-filter-select` — le option con `value=""` ("— Seleziona —") diventavano il valore dell'input filtro; crash di `bootstrap-table-filter-control` sulle colonne con `filterControl` e `searchable: false`; cache-buster `?v=N` sugli script di pagina (il browser serviva versioni stale).
+
+### 0.8.1 — 2026-10-03
+- **Prodotti**: toolbar KPI tramite nuovo componente `components/KpiGrid.js` su `GET api/products/summary` — card con `sub`, `button` e layout `split` a due valori (card Avvisi: "Prodotti con avvisi attivati" | "Prodotti sottoscorta" + bottone "VEDI SOTTOSCORTA").
+- **Dialog sottoscorta**: elenco dei soli prodotti con giacenza ≤ soglia (checkbox, SKU+alias, nome, prezzo, um, giacenza, avviso, bottone giacenza) e stampa PDF a blocchi da 200 righe (`POST admin/products/print-alerts`, `print/product_alerts.twig`); stampa le righe selezionate, oppure tutte se nessuna è selezionata.
+- **Detail view alias**: "+" sulle righe dei prodotti radice con alias (`detailFilter` di Bootstrap Table) → sotto-tabella replica delle colonne principali (nascoste Alias/Nome/Categoria) con azioni operative; icone `+`/`−` in puro CSS (il font bootstrap-icons non è caricato).
+- **Switch vista esclusivi** "Solo originali" / "Solo alias" sotto la toolbar (filtro client-side sulla copia persistente `allRows`).
+- **UI tabella**: toggle attivo `fb-toggle` verde/rosso cliccabile (`api/toggle` con `fb_product` in whitelist), button-group azioni a icone, dialog anteprima a card.
+- **Form prodotto a tab**: "Info prodotto" / "Codici alias" (visibile solo su prodotto radice in modifica), switch Attivo reale, dialog compatto senza scrollbar.
+
+### 0.8.0 — 2026-10-03
+- **Fusione Prodotti/Giacenze**: `FbProductModel::listAll()` con `LEFT JOIN fb_stock` → `id_stock`, `unit`/`unit_label`, `quantity`, `notification_limit`, `stock_note`, `low_stock` su ogni prodotto (una query, niente N+1).
+- **Nuove colonne prodotti**: um, Giacenza (rossa in grassetto sotto soglia), Avvisi (badge "Sotto X"); righe sotto soglia evidenziate con `fb-stock-low`.
+- **Bottone Giacenza per riga**: dialog (quantità, um, soglia avviso, nota) con upsert `POST api/stocks/product/{id}` — crea la riga `fb_stock` se assente registrando la quantità iniziale in `inputs`. La pagina `/admin/stocks` resta attiva.
+
+### 0.7.5 — 2026-10-03
+- **Menu dinamico**: tabella `fb_menu` e tab "Menu" in Impostazioni con editor ad albero della sidebar (voci, icone, colori, rotte); flag `menu_custom` in `fb_configuration` per attivare/disattivare il menu personalizzato (altrimenti replica del default); API `api/settings/menu`, `menu/save`, `menu/custom`.
+
+### 0.7.4 — 2026-10-02
+- **Statistiche rifornimenti**: nuova pagina `/admin/refuelling-stats` con grafici (litri, costi, consumo km/l, litri per scarico) alimentati da `GET api/refuelling/stats` con filtri data; nuovi endpoint `api/refuelling/last-km` e `vehicle-fuel`.
+- **Tipi documento**: tabella `fb_type_document` (id, name, description; seed 0–3) con CRUD nella tab "Tipi documento" di Impostazioni; colonna Tipo (select filter) in Carichi/Scarichi, campo tipo nel form documento e nella stampa PDF.
+- **Carburante**: `fb_supplier.fuel` (fornitore di carburante) e totali `total_load`/`total_unload`/`amount` su `fb_fuel_type`.
+
+### 0.7.3 — 2026-10-02
+- **Scarico rifornimenti**: colonne km precedenti/attuali/differenza/km-litro via `FbRefuellingModel::decorateConsumption()` — metodo del pieno (`km_diff / litri rifornimento precedente` dello stesso veicolo, mappa costruita in una query dedicata); `km_error` → riga rossa `fb-row-error` su dati non congrui; casella "Differenza" readonly colorata verde/gialla/rossa e blocco salvataggio su km invalidi.
+- **Allineamento km**: `POST api/refuelling/align-km` a blocchi con dialog di progresso — riempie `km_since_last_refuel` ordinando per `refuel_time`+`id`; logica `alignKmChain()` riusata anche dall'import legacy (post-ops: direzione `in` per righe con fornitore + allineamento km).
+
+### 0.7.2 — 2026-10-02
+- **Rifornimenti split per direzione**: pagina Scarico (`/admin/refuelling`, `direction='out'`) e pagina Carico (`/admin/refuelling-load`, `direction='in'`) con form dedicati — carico senza veicolo/km (forzati `NULL`), scarico senza fornitore; colonne condizionali per pagina.
+- **Componente `RefuellingKpis.js`**: toolbar 5 card (Carico, Scarico, Giacenza, Ultimo carico, Ultimo scarico) su `GET api/refuelling/summary`, condivisa dalle due pagine.
+
 ### 0.7.1 — 2026-10-02
 - **Rifornimenti** (nuovo menu, icona pompa): `/admin/refuelling-stations` (Punti di rifornimento: nome, indirizzo, comune/provincia/CAP, coordinate) e `/admin/refuelling` (Gestione carburante: data, automezzo, stazione, fornitore, alimentazione, tipo operazione Scarico/Carico, litri, €/litro, km) con CRUD e stampa PDF lista.
 - **Tabelle nuove** (migrazione `2026-10-02-090000`): `fb_fuel_type` (id fissi = ordinali enum legacy: 0 Benzina … 6 Metano), `fb_refuelling_station`, `fb_refuelling` — tutte con `legacy_id`.
@@ -226,6 +265,6 @@ Al primo accesso sarai obbligato a cambiare la password.
 
 ## Licenza
 
-Academic Free License version 3.0 — vedi `LICENSE.md`.
+Academic Free License version 3.0 — vedi `LICENSE`.
 
 Copyright since 2026 Massimiliano Palermo.

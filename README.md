@@ -73,21 +73,6 @@ docker compose exec fairy-bus curl -s http://localhost/admin/dashboard
 
 ---
 
-## Configurazione database
-
-Le credenziali attese sono:
-
-```dotenv
-database.default.hostname = mariaDB
-database.default.database = clienti_fata
-database.default.username = root
-database.default.password = 4cc3550
-database.default.DBDriver = MySQLi
-```
-
-Se il tuo container MariaDB ha un hostname diverso da `mariaDB`, modifica il file `.env` dentro il container.
-
----
 
 ## Struttura del progetto
 

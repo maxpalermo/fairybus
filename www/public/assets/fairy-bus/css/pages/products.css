@@ -1,0 +1,495 @@
+/* Products page styles - shadcn inspired */
+.fb-page-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+    gap: 1rem;
+}
+
+.fb-page-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 0;
+    color: var(--fb-foreground, #0f172a);
+}
+
+.fb-page-subtitle {
+    font-size: 0.875rem;
+    color: var(--fb-muted-foreground, #64748b);
+    margin: 0.25rem 0 0;
+}
+
+.fb-table-wrap {
+    border: 1px solid var(--fb-border, #e2e8f0);
+    border-radius: 0.5rem;
+    overflow: hidden;
+    background: var(--fb-card, #fff);
+}
+
+.fb-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.fb-table th {
+    background: var(--fb-muted, #f8fafc);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--fb-muted-foreground, #64748b);
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--fb-border, #e2e8f0);
+    font-weight: 600;
+}
+
+.fb-table td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--fb-border, #e2e8f0);
+    font-size: 0.875rem;
+}
+
+.fb-table tr:last-child td {
+    border-bottom: none;
+}
+
+.fb-btn-sm {
+    padding: 0.25rem 0.625rem;
+    font-size: 0.75rem;
+    margin-right: 0.25rem;
+}
+
+.fb-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+}
+
+.fb-form-group {
+    margin-bottom: 0.75rem;
+}
+
+.fb-form-group-full {
+    grid-column: 1 / -1;
+}
+
+.fb-form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    width: 100%;
+}
+
+.fb-form-row-prices {
+    grid-template-columns: 3fr 3fr 1.3fr 1.3fr;
+}
+
+.fb-form-group-active .fb-switch {
+    margin-top: 0.45rem;
+}
+
+.fb-dialog-wide {
+    width: 90%;
+    max-width: 64rem;
+}
+
+/* .fb-searchable-select* spostato in theme.css (condiviso) */
+
+.fb-dialog .fb-searchable-select-dropdown {
+    position: absolute;
+    z-index: 10;
+}
+
+.fb-product-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.fb-product-form .fb-form-group {
+    margin-bottom: 0.35rem;
+}
+
+.fb-product-form .fb-form-actions {
+    margin-top: 0.25rem;
+    padding-top: 0.6rem;
+}
+
+.fb-product-form-main,
+.fb-product-form-codes {
+    min-width: 0;
+    width: 100%;
+}
+
+/* Tab del form: pillola tinta quando attiva */
+.fb-product-tabs {
+    margin-bottom: 0.25rem;
+}
+
+.fb-product-tabs .fb-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 0.875rem;
+    border-radius: 0.375rem 0.375rem 0 0;
+}
+
+.fb-product-tabs .fb-tab svg {
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+}
+
+.fb-product-tabs .fb-tab:hover {
+    color: var(--fb-primary, #3b82f6);
+    background: rgba(59, 130, 246, 0.06);
+}
+
+.fb-product-tabs .fb-tab.active {
+    color: var(--fb-primary, #3b82f6);
+    font-weight: 600;
+    background: rgba(59, 130, 246, 0.08);
+    border-bottom-color: var(--fb-primary, #3b82f6);
+}
+
+/* Blocco prezzi evidenziato */
+.fb-form-row.fb-form-row-prices {
+    background: rgba(59, 130, 246, 0.05);
+    border: 1px solid rgba(59, 130, 246, 0.14);
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.fb-form-row.fb-form-row-prices .fb-form-group {
+    margin-bottom: 0;
+}
+
+/* Blocco aggiunta codice equivalente */
+.fb-alias-add {
+    background: rgba(16, 185, 129, 0.05);
+    border: 1px solid rgba(16, 185, 129, 0.15);
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+}
+
+.fb-alias-note {
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+    background: rgba(59, 130, 246, 0.08);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    color: var(--fb-foreground, #0f172a);
+}
+
+.fb-alias-help {
+    font-size: 0.8125rem;
+    color: var(--fb-muted-foreground, #64748b);
+    background: var(--fb-muted, #f8fafc);
+    padding: 0.625rem 0.75rem;
+    border-radius: 0.375rem;
+    margin-bottom: 1rem;
+}
+
+.fb-alias-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    margin-bottom: 1rem;
+    max-height: 260px;
+    overflow-y: auto;
+}
+
+.fb-alias-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr auto;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border-left: 3px solid var(--fb-primary, #3b82f6);
+    background: var(--fb-muted, #f8fafc);
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+}
+
+.fb-alias-sku {
+    font-weight: 500;
+    color: var(--fb-foreground, #0f172a);
+}
+
+.fb-alias-brand,
+.fb-alias-price {
+    color: var(--fb-muted-foreground, #64748b);
+}
+
+.fb-alias-empty,
+.fb-alias-loading,
+.fb-alias-error {
+    font-size: 0.875rem;
+    color: var(--fb-muted-foreground, #64748b);
+    padding: 0.75rem;
+    text-align: center;
+    background: var(--fb-muted, #f8fafc);
+    border-radius: 0.375rem;
+}
+
+.fb-alias-add-grid {
+    grid-template-columns: 1fr 1fr 1fr auto;
+    align-items: end;
+    gap: 0.5rem;
+}
+
+.fb-alias-add-grid .fb-form-group {
+    margin-bottom: 0;
+}
+
+.fb-alias-add-btn {
+    height: 2.25rem;
+    width: 2.25rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    font-size: 1.25rem;
+    line-height: 1;
+}
+
+@media (max-width: 768px) {
+    .fb-product-form {
+        grid-template-columns: 1fr;
+    }
+
+    .fb-alias-add-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.fb-form-label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--fb-muted-foreground, #64748b);
+    margin-bottom: 0.375rem;
+}
+
+.fb-form-input {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--fb-border, #e2e8f0);
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    background: var(--fb-background, #fff);
+    color: var(--fb-foreground, #0f172a);
+}
+
+.fb-form-input:focus {
+    outline: none;
+    border-color: var(--fb-primary, #3b82f6);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+}
+
+.fb-form-check {
+    display: flex;
+    align-items: center;
+}
+
+.fb-form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--fb-border, #e2e8f0);
+}
+
+.fb-muted {
+    color: var(--fb-muted-foreground, #64748b);
+}
+
+.fb-view-filter {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 0.6rem 1rem;
+    margin-bottom: 0.75rem;
+    background: #fff;
+    border: 1px solid var(--fb-border, #e2e8f0);
+    border-radius: 0.5rem;
+}
+
+.fb-view-filter-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--fb-muted-foreground, #64748b);
+}
+
+.fb-view-filter-label svg {
+    width: 14px;
+    height: 14px;
+}
+
+.fb-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    cursor: pointer;
+    user-select: none;
+}
+
+.fb-switch input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.fb-switch-slider {
+    position: relative;
+    width: 42px;
+    height: 23px;
+    flex-shrink: 0;
+    background: #e2e8f0;
+    border-radius: 9999px;
+    transition: background 0.2s ease;
+}
+
+.fb-switch-slider::before {
+    content: "";
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 17px;
+    height: 17px;
+    background: #fff;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.3);
+    transition: transform 0.2s ease;
+}
+
+.fb-switch input:checked+.fb-switch-slider {
+    background: var(--fb-switch-color, #2563eb);
+}
+
+.fb-switch input:checked+.fb-switch-slider::before {
+    transform: translateX(19px);
+}
+
+.fb-switch input:focus-visible+.fb-switch-slider {
+    outline: 2px solid var(--fb-switch-color, #2563eb);
+    outline-offset: 2px;
+}
+
+.fb-switch-info {
+    --fb-switch-color: #2563eb;
+}
+
+.fb-switch-warning {
+    --fb-switch-color: #d97706;
+}
+
+.fb-switch-success {
+    --fb-switch-color: #16a34a;
+}
+
+.fb-switch-text {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--fb-foreground, #0f172a);
+    transition: color 0.2s ease;
+}
+
+.fb-switch input:checked~.fb-switch-text {
+    font-weight: 700;
+    color: var(--fb-switch-color, #2563eb);
+}
+
+td .detail-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border: 1px solid var(--fb-border, #e2e8f0);
+    border-radius: 5px;
+    color: var(--fb-primary, #2563eb);
+    background: #fff;
+    text-decoration: none;
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+td .detail-icon:hover {
+    background: #eff6ff;
+    border-color: var(--fb-primary, #2563eb);
+}
+
+td .detail-icon i {
+    font-style: normal;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.fb-detail-icon-open::before {
+    content: "+";
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.fb-detail-icon-close::before {
+    content: "\2212";
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.fb-alias-detail {
+    padding: 0.75rem 1rem 1rem;
+    background: var(--fb-muted, #f8fafc);
+    border-left: 3px solid var(--fb-primary, #2563eb);
+    border-radius: 0 0.375rem 0.375rem 0;
+}
+
+.fb-alias-detail .fixed-table-container {
+    border: 1px solid var(--fb-border, #e2e8f0);
+    border-radius: 0.375rem;
+    background: #fff;
+}
+
+.fb-badge {
+    display: inline-block;
+    padding: 0.125rem 0.5rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.fb-badge-success {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.fb-badge-danger {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.fb-badge-info {
+    background: #e0f2fe;
+    color: #0369a1;
+}
+
+.fb-sku-root {
+    font-size: 0.75rem;
+    color: #0369a1;
+    font-weight: 500;
+    margin-top: 0.125rem;
+}

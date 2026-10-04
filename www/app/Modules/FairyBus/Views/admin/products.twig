@@ -1,0 +1,198 @@
+{#
+ * Copyright since 2026 Massimiliano Palermo
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Academic Free License version 3.0
+ * that is bundled with this package in the file LICENSE.md.
+ * It is also available through the world-wide-web at this URL:
+ * https://opensource.org/licenses/AFL-3.0
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to maxx.palermo@gmail.com so we can send you a copy immediately.
+ *
+ * @author    Massimiliano Palermo <maxx.palermo@gmail.com>
+ * @copyright Since 2026 Massimiliano Palermo
+ * @license   https://opensource.org/licenses/AFL-3.0 Academic Free License version 3.0
+#}
+{% extends "admin/layout.twig" %}
+
+{% block page_styles %}
+    <link rel="stylesheet" href="{{ asset('fairy-bus/css/pages/products.css') }}">
+    <link rel="stylesheet" href="{{ asset('fairy-bus/css/pages/stocks.css') }}">
+{% endblock %}
+
+{% block content %}
+    <section class="fb-page">
+        <div class="fb-page-header">
+            <div>
+                <h1 class="fb-page-title">Prodotti</h1>
+                <p class="fb-page-subtitle">Gestisci i prodotti di magazzino con alias e categorie.</p>
+            </div>
+            <div class="fb-page-actions">
+                <span class="fb-muted fb-selected-count" id="products-selected-count">0 selezionati</span>
+                <button type="button" class="fb-btn-icon fb-btn-icon-warning" data-action="print-products" title="Stampa PDF (righe selezionate, max 500)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                </button>
+                <button type="button" class="fb-btn-icon fb-btn-icon-success" data-action="new-product" title="Nuovo prodotto">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                </button>
+            </div>
+        </div>
+
+        <div class="fb-kpi-grid" id="products-kpis">
+            <article class="fb-kpi fb-kpi-secondary"><span class="fb-kpi-label">Prodotti</span><span class="fb-kpi-value">…</span></article>
+            <article class="fb-kpi fb-kpi-secondary"><span class="fb-kpi-label">Attivi</span><span class="fb-kpi-value">…</span></article>
+            <article class="fb-kpi fb-kpi-secondary"><span class="fb-kpi-label">Non attivi</span><span class="fb-kpi-value">…</span></article>
+            <article class="fb-kpi fb-kpi-secondary"><span class="fb-kpi-label">Codici equivalenti</span><span class="fb-kpi-value">…</span></article>
+            <article class="fb-kpi fb-kpi-secondary"><span class="fb-kpi-label">Senza categoria</span><span class="fb-kpi-value">…</span></article>
+        </div>
+
+        <div class="fb-view-filter" role="group" aria-label="Filtro vista prodotti">
+            <span class="fb-view-filter-label">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+                Vista
+            </span>
+            <label class="fb-switch fb-switch-info">
+                <input type="checkbox" id="products-only-originals">
+                <span class="fb-switch-slider"></span>
+                <span class="fb-switch-text">Solo originali</span>
+            </label>
+            <label class="fb-switch fb-switch-warning">
+                <input type="checkbox" id="products-only-aliases">
+                <span class="fb-switch-slider"></span>
+                <span class="fb-switch-text">Solo alias</span>
+            </label>
+        </div>
+
+        <div class="fb-table-wrap">
+            <table id="products-table" class="fb-table"></table>
+        </div>
+    </section>
+
+    <template id="tpl-product-form">
+        <form class="fb-form fb-product-form" data-form="product">
+            <input type="hidden" name="id_product" value="">
+            <input type="hidden" name="id_alias" value="">
+            <div class="fb-product-form">
+                <div class="fb-form-tabs fb-product-tabs" role="tablist">
+                    <button type="button" class="fb-tab active" data-tab="info" role="tab" aria-selected="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.29 7 12 12 20.71 7"/><line x1="12" y1="22" x2="12" y2="12"/></svg>
+                        Info prodotto
+                    </button>
+                    <button type="button" class="fb-tab" data-tab="alias" role="tab" aria-selected="false" data-tab-alias>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                        Codici alias
+                    </button>
+                </div>
+                <div class="fb-product-form-main fb-tab-panel active" data-panel="info">
+                    <div class="fb-form-grid">
+                        <div class="fb-form-group">
+                            <label class="fb-form-label" for="product_sku">Codice</label>
+                            <input type="text" id="product_sku" name="sku" class="fb-form-input" maxlength="255">
+                        </div>
+                        <div class="fb-form-group">
+                            <label class="fb-form-label" for="product_name">Nome</label>
+                            <input type="text" id="product_name" name="name" class="fb-form-input" required maxlength="255">
+                        </div>
+                        <div class="fb-form-group">
+                            <label class="fb-form-label" for="product_brand">Marca</label>
+                            <select id="product_brand" name="id_brand" class="fb-form-input" data-table="brand">
+                                <option value="">—</option>
+                            </select>
+                        </div>
+                        <div class="fb-form-group">
+                            <label class="fb-form-label" for="product_category">Categoria</label>
+                            <select id="product_category" name="id_category" class="fb-form-input" data-table="category">
+                                <option value="">—</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="fb-form-row fb-form-row-prices">
+                        <div class="fb-form-group">
+                            <label class="fb-form-label" for="product_price">Prezzo (€)</label>
+                            <input type="number" id="product_price" name="price" class="fb-form-input" step="0.000001" min="0" value="0">
+                        </div>
+                        <div class="fb-form-group">
+                            <label class="fb-form-label" for="product_wholesale">Prezzo d'acquisto (€)</label>
+                            <input type="number" id="product_wholesale" name="wholesale_price" class="fb-form-input" step="0.000001" min="0" value="0">
+                        </div>
+                        <div class="fb-form-group fb-form-group-vat">
+                            <label class="fb-form-label" for="product_tax">IVA (%)</label>
+                            <input type="number" id="product_tax" name="tax_rate" class="fb-form-input" step="0.01" min="0" max="100" value="0">
+                        </div>
+                        <div class="fb-form-group fb-form-group-active">
+                            <label class="fb-form-label">Stato</label>
+                            <label class="fb-switch fb-switch-success">
+                                <input type="checkbox" name="active" value="1" checked>
+                                <span class="fb-switch-slider"></span>
+                                <span class="fb-switch-text">Attivo</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="fb-product-form-codes fb-tab-panel" data-panel="alias" data-section="aliases">
+                    <div class="fb-alias-help">Aggiungi codice e marca di un prodotto equivalente e premi il tasto “+” per confermare.</div>
+                    <div class="fb-alias-list" data-alias-list></div>
+                    <div class="fb-alias-add">
+                        <div class="fb-form-grid fb-alias-add-grid">
+                            <div class="fb-form-group">
+                                <input type="text" data-alias-field="sku" class="fb-form-input" placeholder="Codice">
+                            </div>
+                            <div class="fb-form-group">
+                                <select data-alias-field="id_brand" class="fb-form-input" data-table="brand">
+                                    <option value="">Marca</option>
+                                </select>
+                            </div>
+                            <div class="fb-form-group">
+                                <input type="number" data-alias-field="price" class="fb-form-input" step="0.000001" min="0" placeholder="Prezzo">
+                            </div>
+                            <button type="button" class="fb-btn fb-btn-primary fb-alias-add-btn" data-action="add-alias" title="Aggiungi codice equivalente">+</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="fb-form-actions">
+                    <button type="submit" class="fb-btn fb-btn-primary">Salva</button>
+                    <button type="button" class="fb-btn fb-btn-secondary" data-action="close">Annulla</button>
+                </div>
+            </div>
+        </form>
+    </template>
+
+    <template id="tpl-product-stock-form">
+        <form class="fb-form" data-form="product-stock">
+            <input type="hidden" name="id_stock" value="">
+            <div class="fb-stock-product" data-field="product-label"></div>
+            <div class="fb-form-grid">
+                <div class="fb-form-group">
+                    <label class="fb-form-label" for="pstock_quantity">Quantità</label>
+                    <input type="number" id="pstock_quantity" name="quantity" class="fb-form-input" step="0.001" min="0" value="0">
+                </div>
+                <div class="fb-form-group">
+                    <label class="fb-form-label" for="pstock_unit">Unità di misura</label>
+                    <select id="pstock_unit" name="unit" class="fb-form-input">
+                        <option value="0">Pezzi</option>
+                        <option value="1">Metri</option>
+                        <option value="2">Litri</option>
+                    </select>
+                </div>
+                <div class="fb-form-group">
+                    <label class="fb-form-label" for="pstock_limit">Soglia di avviso</label>
+                    <input type="number" id="pstock_limit" name="notification_limit" class="fb-form-input" step="0.001" min="0" placeholder="Vuoto = nessun avviso">
+                </div>
+                <div class="fb-form-group">
+                    <label class="fb-form-label" for="pstock_note">Nota</label>
+                    <input type="text" id="pstock_note" name="note" class="fb-form-input" maxlength="255">
+                </div>
+            </div>
+            <div class="fb-form-actions">
+                <button type="submit" class="fb-btn fb-btn-primary">Salva</button>
+                <button type="button" class="fb-btn fb-btn-secondary" data-action="close">Annulla</button>
+            </div>
+        </form>
+    </template>
+{% endblock %}
+
+{% block page_scripts %}
+    <script type="module" src="{{ asset('fairy-bus/js/pages/products.js') }}?v=4"></script>
+{% endblock %}

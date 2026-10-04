@@ -1,0 +1,334 @@
+/* TableSelect — select Chosen + pulsante "+" per creazione valore al volo */
+
+.fb-table-select {
+    display: flex;
+    align-items: stretch;
+    gap: 0.375rem;
+    width: 100%;
+}
+
+.fb-table-select .fb-table-select-field {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.fb-table-select .chosen-container {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 0.8125rem;
+}
+
+.fb-table-select-add {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    min-width: 2.25rem;
+    border: 1px solid var(--fb-input, #cbd5e1);
+    border-radius: var(--fb-radius, 0.5rem);
+    background-color: var(--fb-background, #fff);
+    color: var(--fb-primary, #3b82f6);
+    cursor: pointer;
+    transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, transform 150ms ease, box-shadow 150ms ease;
+}
+
+.fb-table-select-add svg {
+    transition: transform 200ms ease;
+}
+
+.fb-table-select-add:hover {
+    background-color: var(--fb-primary, #3b82f6);
+    border-color: var(--fb-primary, #3b82f6);
+    color: var(--fb-primary-foreground, #fff);
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.35);
+}
+
+.fb-table-select-add:hover svg {
+    transform: rotate(90deg);
+}
+
+.fb-table-select-add:active {
+    transform: scale(0.94);
+}
+
+/* ---------------------------------------------------------------- */
+/* Chosen restyle — coerente con .fb-form-input                     */
+/* ---------------------------------------------------------------- */
+
+.fb-table-select .chosen-container-single .chosen-single {
+    height: 2.25rem;
+    padding: 0 2rem 0 0.75rem;
+    border: 1px solid var(--fb-input, #cbd5e1);
+    border-radius: var(--fb-radius, 0.5rem);
+    background: var(--fb-background, #fff);
+    color: var(--fb-foreground, #0f172a);
+    font-size: 0.8125rem;
+    line-height: 2.125rem;
+    box-shadow: none;
+    background-image: none;
+    background-clip: padding-box;
+    transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.fb-table-select .chosen-container-single .chosen-single span {
+    margin-right: 0;
+    color: inherit;
+}
+
+.fb-table-select .chosen-container-single .chosen-default {
+    color: var(--fb-muted-foreground, #64748b);
+}
+
+.fb-table-select .chosen-container-active .chosen-single,
+.fb-table-select .chosen-container-active.chosen-with-drop .chosen-single {
+    border: 1px solid var(--fb-ring, #3b82f6);
+    border-radius: var(--fb-radius, 0.5rem);
+    background: var(--fb-background, #fff);
+    background-image: none;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.fb-table-select .chosen-container-active.chosen-with-drop .chosen-single {
+    border-bottom-left-radius: var(--fb-radius, 0.5rem);
+    border-bottom-right-radius: var(--fb-radius, 0.5rem);
+}
+
+/* Freccia custom (lo sprite PNG di Chosen non è presente) */
+.fb-table-select .chosen-single div {
+    right: 0;
+    width: 2rem;
+}
+
+.fb-table-select .chosen-single div b {
+    display: none;
+}
+
+.fb-table-select .chosen-single div::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    right: 0.625rem;
+    width: 0.45rem;
+    height: 0.45rem;
+    margin-top: -0.375rem;
+    border-right: 1.5px solid var(--fb-muted-foreground, #64748b);
+    border-bottom: 1.5px solid var(--fb-muted-foreground, #64748b);
+    transform: rotate(45deg);
+    transition: transform 150ms ease;
+}
+
+.fb-table-select .chosen-container-active.chosen-with-drop .chosen-single div::after {
+    transform: rotate(225deg);
+    margin-top: -0.125rem;
+}
+
+/* Dropdown */
+.fb-table-select .chosen-container .chosen-drop {
+    width: 100%;
+    margin-top: 0.25rem;
+    border: 1px solid var(--fb-border, #e2e8f0);
+    border-radius: var(--fb-radius, 0.5rem);
+    background: var(--fb-card, #fff);
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+    overflow: hidden;
+}
+
+/* Campo ricerca dentro il dropdown */
+.fb-table-select .chosen-container-single .chosen-search {
+    padding: 0.375rem;
+}
+
+.fb-table-select .chosen-container-single .chosen-search input[type="text"] {
+    width: 100%;
+    height: 2rem;
+    margin: 0;
+    padding: 0 0.5rem;
+    border: 1px solid var(--fb-input, #cbd5e1);
+    border-radius: 0.375rem;
+    background: var(--fb-background, #fff);
+    background-image: none;
+    color: var(--fb-foreground, #0f172a);
+    font-size: 0.8125rem;
+    outline: none;
+}
+
+.fb-table-select .chosen-container-single .chosen-search input[type="text"]:focus {
+    border-color: var(--fb-ring, #3b82f6);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+/* Lista risultati */
+.fb-table-select .chosen-container .chosen-results {
+    margin: 0;
+    padding: 0.25rem;
+    max-height: 15rem;
+    color: var(--fb-foreground, #0f172a);
+    font-size: 0.8125rem;
+}
+
+.fb-table-select .chosen-container .chosen-results li {
+    padding: 0.4375rem 0.5rem;
+    border-radius: 0.375rem;
+    line-height: 1.25;
+}
+
+.fb-table-select .chosen-container .chosen-results li.highlighted {
+    background: var(--fb-primary, #3b82f6);
+    background-image: none;
+    color: var(--fb-primary-foreground, #fff);
+}
+
+.fb-table-select .chosen-container .chosen-results li.no-results {
+    background: var(--fb-muted, #f1f5f9);
+    color: var(--fb-muted-foreground, #64748b);
+}
+
+.fb-table-select .chosen-disabled {
+    opacity: 0.55 !important;
+}
+
+.fb-table-select .chosen-disabled .chosen-single {
+    cursor: not-allowed;
+    background: var(--fb-muted, #f1f5f9);
+}
+
+/* ---------------------------------------------------------------- */
+/* Modale inserimento nuovo valore — <dialog> (top layer, sempre    */
+/* sopra agli altri dialog aperti)                                  */
+/* ---------------------------------------------------------------- */
+
+dialog.fb-ts-modal-overlay {
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    border: none;
+    background: rgba(15, 23, 42, 0.45);
+    overflow: hidden;
+}
+
+dialog.fb-ts-modal-overlay[open] {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fb-ts-fade 150ms ease;
+}
+
+dialog.fb-ts-modal-overlay::backdrop {
+    background: transparent;
+}
+
+@keyframes fb-ts-fade {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.fb-ts-modal {
+    width: min(24rem, calc(100vw - 2rem));
+    background: var(--fb-card, #fff);
+    border: 1px solid var(--fb-border, #e2e8f0);
+    border-radius: 0.75rem;
+    box-shadow: 0 20px 50px rgba(15, 23, 42, 0.25);
+    animation: fb-ts-pop 180ms cubic-bezier(0.2, 0.9, 0.3, 1.2);
+    overflow: hidden;
+}
+
+@keyframes fb-ts-pop {
+    from {
+        opacity: 0;
+        transform: scale(0.95) translateY(0.5rem);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.fb-ts-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.875rem 1rem;
+    border-bottom: 1px solid var(--fb-border, #e2e8f0);
+}
+
+.fb-ts-modal-title {
+    margin: 0;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--fb-foreground, #0f172a);
+}
+
+.fb-ts-modal-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    border: none;
+    border-radius: 0.375rem;
+    background: transparent;
+    color: var(--fb-muted-foreground, #64748b);
+    cursor: pointer;
+    transition: background-color 150ms ease, color 150ms ease;
+}
+
+.fb-ts-modal-close:hover {
+    background: var(--fb-muted, #f1f5f9);
+    color: var(--fb-foreground, #0f172a);
+}
+
+.fb-ts-modal-body {
+    padding: 1rem;
+}
+
+.fb-ts-modal-label {
+    display: block;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--fb-foreground, #0f172a);
+    margin-bottom: 0.375rem;
+}
+
+.fb-ts-input {
+    width: 100%;
+    height: 2.25rem;
+    padding: 0 0.75rem;
+    border: 1px solid var(--fb-input, #cbd5e1);
+    border-radius: var(--fb-radius, 0.5rem);
+    background: var(--fb-background, #fff);
+    color: var(--fb-foreground, #0f172a);
+    font-size: 0.875rem;
+    outline: none;
+    transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.fb-ts-input:focus {
+    border-color: var(--fb-ring, #3b82f6);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.fb-ts-modal-error {
+    margin-top: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.375rem;
+    background: #fee2e2;
+    color: #991b1b;
+    font-size: 0.8125rem;
+}
+
+.fb-ts-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem 1rem;
+}

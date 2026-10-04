@@ -1,0 +1,132 @@
+{#
+ * Copyright since 2026 Massimiliano Palermo
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Academic Free License version 3.0
+ * that is bundled with this package in the file LICENSE.md.
+ * It is also available through the world-wide-web at this URL:
+ * https://opensource.org/licenses/AFL-3.0
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to maxx.palermo@gmail.com so we can send you a copy immediately.
+ *
+ * @author    Massimiliano Palermo <maxx.palermo@gmail.com>
+ * @copyright Since 2026 Massimiliano Palermo
+ * @license   https://opensource.org/licenses/AFL-3.0 Academic Free License version 3.0
+#}
+{% extends "admin/layout.twig" %}
+
+{% block page_styles %}
+    <link rel="stylesheet" href="{{ asset('fairy-bus/css/pages/dashboard.css') }}">
+    <link rel="stylesheet" href="{{ asset('fairy-bus/css/pages/refuelling-stats.css') }}">
+{% endblock %}
+
+{% block content %}
+    <section class="fb-dashboard fb-stats-page">
+        <header class="fb-dashboard-header">
+            <h1>Statistiche rifornimenti</h1>
+            <p class="fb-dashboard-subtitle">Carichi, scarichi, giacenze e consumi per tipo di carburante.</p>
+        </header>
+
+        <div class="fb-card">
+            <div class="fb-stats-filters">
+                <div class="fb-form-group">
+                    <label class="fb-form-label" for="flt-supplier">Fornitore</label>
+                    <select id="flt-supplier" class="fb-form-input"></select>
+                </div>
+                <div class="fb-form-group">
+                    <label class="fb-form-label" for="flt-vehicle">Automezzo</label>
+                    <select id="flt-vehicle" class="fb-form-input"></select>
+                </div>
+                <div class="fb-form-group">
+                    <label class="fb-form-label" for="flt-fuel">Tipo carburante</label>
+                    <select id="flt-fuel" class="fb-form-input"></select>
+                </div>
+                <div class="fb-form-group">
+                    <label class="fb-form-label" for="flt-direction">Operazione</label>
+                    <select id="flt-direction" class="fb-form-input">
+                        <option value="">Tutte</option>
+                        <option value="in">Carichi</option>
+                        <option value="out">Scarichi</option>
+                    </select>
+                </div>
+                <div class="fb-form-group">
+                    <label class="fb-form-label" for="flt-from">Dal</label>
+                    <input type="date" id="flt-from" class="fb-form-input">
+                </div>
+                <div class="fb-form-group">
+                    <label class="fb-form-label" for="flt-to">Al</label>
+                    <input type="date" id="flt-to" class="fb-form-input">
+                </div>
+                <div class="fb-form-group fb-stats-filter-actions">
+                    <button type="button" class="fb-btn fb-btn-primary" id="flt-apply">Applica</button>
+                    <button type="button" class="fb-btn fb-btn-secondary" id="flt-reset">Azzera</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="fb-kpi-grid" id="stats-kpis"></div>
+
+        <div class="fb-stats-charts">
+            <section class="fb-card">
+                <div class="fb-card-header">
+                    <div>
+                        <h2 class="fb-card-title">Andamento carburante</h2>
+                        <p class="fb-card-subtitle">Litri caricati / scaricati per mese</p>
+                    </div>
+                </div>
+                <div class="fb-chart-wrap" id="chart-liters"></div>
+            </section>
+            <section class="fb-card">
+                <div class="fb-card-header">
+                    <div>
+                        <h2 class="fb-card-title">Costi</h2>
+                        <p class="fb-card-subtitle">Costo totale per mese</p>
+                    </div>
+                </div>
+                <div class="fb-chart-wrap" id="chart-costs"></div>
+            </section>
+            <section class="fb-card">
+                <div class="fb-card-header">
+                    <div>
+                        <h2 class="fb-card-title">Consumo medio</h2>
+                        <p class="fb-card-subtitle">Km/l medi per mese (scarichi)</p>
+                    </div>
+                </div>
+                <div class="fb-chart-wrap" id="chart-consumption"></div>
+            </section>
+            <section class="fb-card">
+                <div class="fb-card-header">
+                    <div>
+                        <h2 class="fb-card-title">Consumo per scarico</h2>
+                        <p class="fb-card-subtitle">Km/l di ogni scarico: (km attuali − km ultimo rifornimento) / litri</p>
+                    </div>
+                </div>
+                <div class="fb-chart-wrap" id="chart-per-unload"></div>
+            </section>
+        </div>
+
+        <div class="fb-card">
+            <div class="fb-card-header">
+                <div>
+                    <h2 class="fb-card-title">Movimenti</h2>
+                    <p class="fb-card-subtitle">Elenco dei carichi/scarichi filtrati</p>
+                </div>
+                <div class="fb-page-actions">
+                    <span class="fb-muted fb-selected-count" id="stats-selected-count">0 selezionati</span>
+                    <button type="button" class="fb-btn-icon fb-btn-icon-warning" data-action="print-stats" title="Stampa PDF (righe selezionate, max 500)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="fb-table-wrap">
+                <table id="refuelling-stats-table" class="fb-table"></table>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+
+{% block page_scripts %}
+    <script type="module" src="{{ asset('fairy-bus/js/pages/refuelling-stats.js') }}?v=1"></script>
+{% endblock %}

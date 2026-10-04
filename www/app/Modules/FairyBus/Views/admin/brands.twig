@@ -1,0 +1,59 @@
+{#
+ * Copyright since 2026 Massimiliano Palermo
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Academic Free License version 3.0
+ * that is bundled with this package in the file LICENSE.md.
+ * It is also available through the world-wide-web at this URL:
+ * https://opensource.org/licenses/AFL-3.0
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to maxx.palermo@gmail.com so we can send you a copy immediately.
+ *
+ * @author    Massimiliano Palermo <maxx.palermo@gmail.com>
+ * @copyright Since 2026 Massimiliano Palermo
+ * @license   https://opensource.org/licenses/AFL-3.0 Academic Free License version 3.0
+#}
+{% extends "admin/layout.twig" %}
+
+{% block page_styles %}
+    <link rel="stylesheet" href="{{ asset('fairy-bus/css/pages/brands.css') }}">
+{% endblock %}
+
+{% block content %}
+    <section class="fb-page">
+        <div class="fb-page-header">
+            <div>
+                <h1 class="fb-page-title">Marche</h1>
+            </div>
+            <div class="fb-page-actions">
+                <span class="fb-muted fb-selected-count" id="brands-selected-count">0 selezionati</span>
+                <button type="button" class="fb-btn fb-btn-secondary" data-action="print-brands">Stampa PDF</button>
+                <button type="button" class="fb-btn fb-btn-secondary" data-action="new-brand">Nuova marca</button>
+            </div>
+        </div>
+
+        <div class="fb-table-wrap">
+            <table id="brands-table" class="fb-table"></table>
+        </div>
+    </section>
+
+    <template id="tpl-brand-form">
+        <form class="fb-form" data-form="brand">
+            <input type="hidden" name="id_brand" value="">
+            <div class="fb-form-group">
+                <label class="fb-form-label" for="brand_name">Nome marca</label>
+                <input type="text" id="brand_name" name="name" class="fb-form-input" required maxlength="255">
+            </div>
+            <div class="fb-form-actions">
+                <button type="submit" class="fb-btn fb-btn-primary">Salva</button>
+                <button type="button" class="fb-btn fb-btn-secondary" data-action="close">Annulla</button>
+            </div>
+        </form>
+    </template>
+{% endblock %}
+
+{% block page_scripts %}
+    <script type="module" src="{{ asset('fairy-bus/js/pages/brands.js') }}"></script>
+{% endblock %}

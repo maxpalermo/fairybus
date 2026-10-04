@@ -1,0 +1,72 @@
+{#
+ * Copyright since 2026 Massimiliano Palermo
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Academic Free License version 3.0
+ * that is bundled with this package in the file LICENSE.md.
+ * It is also available through the world-wide-web at this URL:
+ * https://opensource.org/licenses/AFL-3.0
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to maxx.palermo@gmail.com so we can send you a copy immediately.
+ *
+ * @author    Massimiliano Palermo <maxx.palermo@gmail.com>
+ * @copyright Since 2026 Massimiliano Palermo
+ * @license   https://opensource.org/licenses/AFL-3.0 Academic Free License version 3.0
+#}
+{% extends "admin/layout.twig" %}
+
+{% block page_styles %}
+    <link rel="stylesheet" href="{{ asset('fairy-bus/css/pages/vehicles.css') }}?v=4">
+{% endblock %}
+
+{% block content %}
+    <section class="fb-page">
+        <div class="fb-detail-header">
+            <h1 class="fb-page-title">Veicolo <span id="vehicle-plate"></span></h1>
+            <div class="fb-toolbar">
+                <a href="{{ base_url('admin/vehicles') }}" class="fb-btn fb-btn-secondary">Torna all'elenco</a>
+                <button type="button" class="fb-btn fb-btn-primary" data-action="edit-vehicle">Modifica</button>
+            </div>
+        </div>
+
+        <div class="fb-tabs fb-form-tabs" role="tablist">
+            <button type="button" class="fb-tab active" data-tab="info" role="tab" aria-selected="true">Informazioni</button>
+            <button type="button" class="fb-tab" data-tab="images" role="tab" aria-selected="false">Immagini</button>
+            <button type="button" class="fb-tab" data-tab="documents" role="tab" aria-selected="false">Documenti</button>
+            <button type="button" class="fb-tab" data-tab="expirations" role="tab" aria-selected="false">Scadenze</button>
+            <button type="button" class="fb-tab" data-tab="repairs" role="tab" aria-selected="false">Riparazioni</button>
+        </div>
+
+        <div class="fb-tab-panel active" data-panel="info" role="tabpanel">
+            <div id="vehicle-detail-info" class="fb-detail-grid"></div>
+            <h2 class="fb-card-title">Caratteristiche</h2>
+            <div id="vehicle-detail-features" class="fb-detail-features-grid"></div>
+        </div>
+
+        <div class="fb-tab-panel" data-panel="images" role="tabpanel">
+            <div id="vehicle-detail-images" class="fb-upload-grid"></div>
+        </div>
+
+        <div class="fb-tab-panel" data-panel="documents" role="tabpanel">
+            <ul id="vehicle-detail-documents" class="fb-document-list"></ul>
+        </div>
+
+        <div class="fb-tab-panel" data-panel="expirations" role="tabpanel">
+            <p class="fb-muted">Gestione scadenze in fase di sviluppo.</p>
+        </div>
+
+        <div class="fb-tab-panel" data-panel="repairs" role="tabpanel">
+            <p class="fb-muted">Gestione riparazioni in fase di sviluppo.</p>
+        </div>
+    </section>
+
+{% endblock %}
+
+{% block page_scripts %}
+    <script>
+        window.FB.idVehicle = {{ id_vehicle|json_encode|raw }};
+    </script>
+    <script type="module" src="{{ asset('fairy-bus/js/pages/vehicle_detail.js') }}"></script>
+{% endblock %}

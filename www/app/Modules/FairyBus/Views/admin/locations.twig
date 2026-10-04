@@ -1,0 +1,76 @@
+{#
+ * Copyright since 2026 Massimiliano Palermo
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Academic Free License version 3.0
+ * that is bundled with this package in the file LICENSE.md.
+ * It is also available through the world-wide-web at this URL:
+ * https://opensource.org/licenses/AFL-3.0
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to maxx.palermo@gmail.com so we can send you a copy immediately.
+ *
+ * @author    Massimiliano Palermo <maxx.palermo@gmail.com>
+ * @copyright Since 2026 Massimiliano Palermo
+ * @license   https://opensource.org/licenses/AFL-3.0 Academic Free License version 3.0
+#}
+{% extends "admin/layout.twig" %}
+
+{% block page_styles %}
+    <link rel="stylesheet" href="{{ asset('fairy-bus/css/pages/locations.css') }}">
+{% endblock %}
+
+{% block content %}
+    <section class="fb-page">
+        <div class="fb-page-header">
+            <div>
+                <h1 class="fb-page-title">Nazioni, Province e Città</h1>
+                <p class="fb-page-subtitle">Consulta e gestisce gli indirizzi geografici.</p>
+            </div>
+        </div>
+
+        <div class="fb-tabs">
+            <button type="button" class="fb-tab active" data-tab="countries">Nazioni</button>
+            <button type="button" class="fb-tab" data-tab="states">Province</button>
+            <button type="button" class="fb-tab" data-tab="cities">Città</button>
+        </div>
+
+        <div class="fb-tab-panels">
+            <div class="fb-tab-panel active" data-panel="countries">
+                <div class="fb-table-wrap">
+                    <table id="countries-table" class="fb-table"></table>
+                </div>
+            </div>
+
+            <div class="fb-tab-panel" data-panel="states">
+                <div class="fb-filter-bar">
+                    <label class="fb-form-label" for="state-country-filter">Nazione</label>
+                    <select id="state-country-filter" class="fb-form-input">
+                        <option value="">Tutte</option>
+                    </select>
+                </div>
+                <div class="fb-table-wrap">
+                    <table id="states-table" class="fb-table"></table>
+                </div>
+            </div>
+
+            <div class="fb-tab-panel" data-panel="cities">
+                <div class="fb-filter-bar">
+                    <label class="fb-form-label" for="city-state-filter">Provincia</label>
+                    <select id="city-state-filter" class="fb-form-input">
+                        <option value="">Tutte</option>
+                    </select>
+                    <input type="text" id="city-search" class="fb-form-input" placeholder="Cerca per città o CAP...">
+                </div>
+                <div class="fb-table-wrap">
+                    <table id="cities-table" class="fb-table"></table>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+
+{% block page_scripts %}
+    <script type="module" src="{{ asset('fairy-bus/js/pages/locations.js') }}"></script>
+{% endblock %}

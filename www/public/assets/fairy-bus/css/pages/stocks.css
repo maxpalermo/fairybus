@@ -1,0 +1,44 @@
+/*
+ * Pagina Giacenze
+ * Copyright since 2026 Massimiliano Palermo
+ * https://opensource.org/licenses/AFL-3.0 Academic Free License version 3.0
+ */
+
+.fb-page-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+    gap: 1rem;
+}
+
+.fb-page-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 0;
+    color: var(--fb-foreground, #0f172a);
+}
+
+.fb-page-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.fb-stock-low {
+    background: color-mix(in srgb, var(--fb-destructive, #dc2626) 4%, transparent);
+}
+
+.fb-stock-low-qty {
+    color: var(--fb-destructive, #dc2626);
+}
+
+.fb-stock-product {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--fb-foreground, #0f172a);
+    padding: 0.5rem 0.75rem;
+    margin-bottom: 1rem;
+    background: var(--fb-muted, #f4f4f5);
+    border-radius: 0.375rem;
+}

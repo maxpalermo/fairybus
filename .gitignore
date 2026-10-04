@@ -1,0 +1,38 @@
+# --- Segreti e configurazione locale ---
+**/.env
+**/.env.*
+!**/env
+docker-compose.override.yml
+
+# --- Dipendenze e runtime (rigenerabili) ---
+www/vendor/
+www/writable/
+node_modules/
+
+# --- Dump database, export e archivi ---
+*.sql
+*.gz
+*.bz2
+*.zip
+*.tar
+export/
+
+# --- Copia nidificata del progetto ---
+fata/
+
+# --- File di lavoro / scratch ---
+testo
+prompt.txt
+import-vehicle.txt
+*.code-workspace
+
+# --- Log e file temporanei editor ---
+*.log
+*.swp
+*~
+
+# --- OS / IDE ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

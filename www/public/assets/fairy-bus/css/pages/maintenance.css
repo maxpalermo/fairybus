@@ -1,0 +1,45 @@
+/* Maintenance page */
+
+.fb-maintenance-form {
+    min-width: 640px;
+    max-width: 900px;
+}
+
+.fb-form-grid-3 {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+.fb-details-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8125rem;
+    margin-bottom: 0.75rem;
+}
+
+.fb-details-table th,
+.fb-details-table td {
+    padding: 0.375rem 0.5rem;
+    border-bottom: 1px solid var(--fb-border, #e2e8f0);
+    text-align: left;
+}
+
+.fb-details-table .num {
+    text-align: right;
+}
+
+.fb-detail-add {
+    display: grid;
+    grid-template-columns: 1fr 5.5rem 6.5rem 6rem 5.5rem auto;
+    gap: 0.5rem;
+    align-items: center;
+    margin-top: 0.5rem;
+}
+
+.fb-invoice-add {
+    grid-template-columns: 1fr auto;
+}
+
+.fb-detail-hint {
+    font-size: 0.75rem;
+    margin-top: 0.5rem;
+}

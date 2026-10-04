@@ -1,0 +1,120 @@
+{#
+ * Copyright since 2026 Massimiliano Palermo
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Academic Free License version 3.0
+ * that is bundled with this package in the file LICENSE.md.
+ * It is also available through the world-wide-web at this URL:
+ * https://opensource.org/licenses/AFL-3.0
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to maxx.palermo@gmail.com so we can send you a copy immediately.
+ *
+ * @author    Massimiliano Palermo <maxx.palermo@gmail.com>
+ * @copyright Since 2026 Massimiliano Palermo
+ * @license   https://opensource.org/licenses/AFL-3.0 Academic Free License version 3.0
+#
+ # Stampa della singola fattura con DDT collegati e righe dettaglio.
+#}
+{% extends "print/layout.twig" %}
+
+{% block content %}
+    <table class="data" style="margin-bottom: 14pt;">
+        <tbody>
+            <tr>
+                <td style="width: 18%;" class="muted">Fornitore</td>
+                <td><strong>{{ invoice.supplier_name|default(invoice.customer_name)|default('—') }}</strong></td>
+                <td style="width: 12%;" class="muted">Numero</td>
+                <td>{{ invoice.number|default('—') }}</td>
+            </tr>
+            <tr>
+                <td class="muted">Data</td>
+                <td>{{ invoice.date ? invoice.date|date('d/m/Y') : '—' }}</td>
+                <td class="muted">N. DDT</td>
+                <td>{{ invoice.documents|length }}</td>
+            </tr>
+            {% set fees = (invoice.transport_fee|default(0)) + (invoice.collection_fee|default(0)) + (invoice.deposit|default(0)) %}
+            {% if fees != 0 %}
+                <tr>
+                    <td class="muted">Spese trasporto</td>
+                    <td>€ {{ invoice.transport_fee|default(0)|number_format(2, ',', '.') }}</td>
+                    <td class="muted">Incasso / Acconto</td>
+                    <td>€ {{ invoice.collection_fee|default(0)|number_format(2, ',', '.') }} / € {{ invoice.deposit|default(0)|number_format(2, ',', '.') }}</td>
+                </tr>
+            {% endif %}
+            {% if invoice.note %}
+                <tr>
+                    <td class="muted">Nota</td>
+                    <td colspan="3">{{ invoice.note }}</td>
+                </tr>
+            {% endif %}
+        </tbody>
+    </table>
+
+    {% set grandTotal = 0 %}
+    {% for doc in invoice.documents %}
+        <h3 style="margin: 10pt 0 4pt;">DDT {{ doc.number|default(doc.id_document) }} del {{ doc.date ? doc.date|date('d/m/Y') : '—' }}</h3>
+        <table class="data">
+            <thead>
+                <tr>
+                    <th style="width: 8%;" class="num">Q.tà</th>
+                    <th style="width: 15%;">Codice</th>
+                    <th>Articolo</th>
+                    <th style="width: 11%;" class="num">Prezzo</th>
+                    <th style="width: 9%;" class="num">Sconto</th>
+                    <th style="width: 12%;" class="num">Importo</th>
+                    <th style="width: 10%;">I.v.a.</th>
+                    <th style="width: 12%;" class="num">Totale</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% set docTotal = 0 %}
+                {% for row in doc.details %}
+                    {% set importo = row.quantity * row.price * (1 + (row.discount|default(0)) / 100) %}
+                    {% set vat = row.vat_rate is not null ? row.vat_rate : 0 %}
+                    {% set rowTotal = importo * (1 + vat / 100) %}
+                    {% set docTotal = docTotal + rowTotal %}
+                    <tr>
+                        <td class="num">{{ row.quantity|number_format(3, ',', '.')|trim('0', 'right')|trim(',', 'right') ?: '0' }}</td>
+                        <td>{{ row.sku|default('—') }}</td>
+                        <td>{{ row.product_name|default('—') }}</td>
+                        <td class="num">€ {{ row.price|number_format(2, ',', '.') }}</td>
+                        <td class="num">{{ row.discount|number_format(0) }}%</td>
+                        <td class="num">€ {{ importo|number_format(2, ',', '.') }}</td>
+                        <td>{% if row.vat_code %}Aliquota {{ row.vat_code }}%{% elseif row.vat_rate is not null %}{{ row.vat_rate }}%{% else %}—{% endif %}</td>
+                        <td class="num">€ {{ rowTotal|number_format(2, ',', '.') }}</td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="8" class="center muted">Nessun movimento.</td></tr>
+                {% endfor %}
+                {% set grandTotal = grandTotal + docTotal %}
+            </tbody>
+            {% if doc.details|length > 0 %}
+                <tfoot>
+                    <tr>
+                        <td colspan="7" class="muted" style="text-align: right; border-top: 1.5pt solid #18181b;">Totale DDT</td>
+                        <td class="num" style="border-top: 1.5pt solid #18181b;"><strong>€ {{ docTotal|number_format(2, ',', '.') }}</strong></td>
+                    </tr>
+                </tfoot>
+            {% endif %}
+        </table>
+    {% else %}
+        <p class="muted">Nessun DDT collegato.</p>
+    {% endfor %}
+
+    {% if invoice.documents|length > 0 %}
+        <table class="data" style="margin-top: 12pt;">
+            <tbody>
+                <tr>
+                    <td class="muted"><strong>Totale fattura</strong></td>
+                    <td class="num" style="width: 15%;"><strong>€ {{ grandTotal|number_format(2, ',', '.') }}</strong></td>
+                </tr>
+            </tbody>
+        </table>
+    {% endif %}
+{% endblock %}
+
+{% block footer %}
+    <span>{{ app_name|default('Fairy Bus') }} — {{ title|default('Fattura') }} — DDT: {{ invoice.documents|length }}</span>
+{% endblock %}

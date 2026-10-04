@@ -1,0 +1,157 @@
+{#
+ * Copyright since 2026 Massimiliano Palermo
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Academic Free License version 3.0
+ * that is bundled with this package in the file LICENSE.md.
+ * It is also available through the world-wide-web at this URL:
+ * https://opensource.org/licenses/AFL-3.0
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to maxx.palermo@gmail.com so we can send you a copy immediately.
+ *
+ * @author    Massimiliano Palermo <maxx.palermo@gmail.com>
+ * @copyright Since 2026 Massimiliano Palermo
+ * @license   https://opensource.org/licenses/AFL-3.0 Academic Free License version 3.0
+#}
+{% extends "admin/layout.twig" %}
+
+{% block page_styles %}
+    <link rel="stylesheet" href="{{ asset('fairy-bus/css/pages/refuelling.css') }}">
+{% endblock %}
+
+{% block content %}
+    <section class="fb-page">
+        <div class="fb-page-header">
+            <div>
+                <h1 class="fb-page-title">{{ heading|default('Gestione carburante') }}</h1>
+                <p class="fb-page-subtitle">{{ subtitle|default('Registro dei rifornimenti di carburante dei veicoli.') }}</p>
+            </div>
+            <div class="fb-page-actions">
+                <span class="fb-muted fb-selected-count" id="refuelling-selected-count">0 selezionati</span>
+                {% if direction|default('out') != 'in' %}
+                    <button type="button" class="fb-btn-icon fb-btn-icon-info" data-action="align-km" title="Allinea KM: ricalcola i km del rifornimento precedente per ogni scarico">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15l4-6"/><path d="M4 16a8 8 0 1 1 16 0"/><line x1="12" y1="15" x2="12.01" y2="15"/></svg>
+                    </button>
+                {% endif %}
+                <button type="button" class="fb-btn-icon fb-btn-icon-warning" data-action="print-refuelling" title="Stampa PDF (righe selezionate, max 500)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                </button>
+                <button type="button" class="fb-btn-icon fb-btn-icon-success" data-action="new-refuelling" title="Nuovo rifornimento">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                </button>
+            </div>
+        </div>
+
+        <div class="fb-kpi-grid" id="refuelling-kpis">
+            <article class="fb-kpi fb-kpi-secondary"><span class="fb-kpi-label">Carico totale</span><span class="fb-kpi-value">…</span></article>
+            <article class="fb-kpi fb-kpi-secondary"><span class="fb-kpi-label">Scarico totale</span><span class="fb-kpi-value">…</span></article>
+            <article class="fb-kpi fb-kpi-secondary"><span class="fb-kpi-label">Giacenza</span><span class="fb-kpi-value">…</span></article>
+            <article class="fb-kpi fb-kpi-secondary"><span class="fb-kpi-label">Ultimo carico</span><span class="fb-kpi-value">…</span></article>
+            <article class="fb-kpi fb-kpi-secondary"><span class="fb-kpi-label">Ultimo scarico</span><span class="fb-kpi-value">…</span></article>
+        </div>
+
+        <div class="fb-table-wrap">
+            <table id="refuelling-table" class="fb-table" data-direction="{{ direction|default('out') }}"></table>
+        </div>
+    </section>
+
+    <template id="tpl-refuelling-form">
+        <form class="fb-form fb-refuelling-form" data-form="refuelling">
+            <input type="hidden" name="id_refuelling" value="">
+
+            {% if direction|default('out') == 'in' %}
+                <input type="hidden" name="direction" value="in">
+                <div class="fb-form-grid fb-form-grid-3">
+                    <div class="fb-form-group">
+                        <label class="fb-form-label" for="rf_station">Stazione*</label>
+                        <select id="rf_station" name="id_station" class="fb-form-input" data-field="station" required></select>
+                    </div>
+                    <div class="fb-form-group">
+                        <label class="fb-form-label" for="rf_time">Data*</label>
+                        <input type="datetime-local" id="rf_time" name="refuel_time" class="fb-form-input" required>
+                    </div>
+                    <div class="fb-form-group">
+                        <label class="fb-form-label" for="rf_fuel">Alimentazione*</label>
+                        <select id="rf_fuel" name="id_fuel_type" class="fb-form-input" data-field="fuel-type" required></select>
+                    </div>
+                </div>
+                <div class="fb-form-grid fb-form-grid-3">
+                    <div class="fb-form-group">
+                        <label class="fb-form-label" for="rf_supplier">Fornitore</label>
+                        <select id="rf_supplier" name="id_supplier" class="fb-form-input" data-field="supplier"></select>
+                    </div>
+                    <div class="fb-form-group">
+                        <label class="fb-form-label" for="rf_liters">Quantità (litri)*</label>
+                        <input type="number" id="rf_liters" name="liters" class="fb-form-input" min="0.01" step="0.01" required>
+                    </div>
+                    <div class="fb-form-group">
+                        <label class="fb-form-label" for="rf_price">Prezzo al litro (€)</label>
+                        <input type="number" id="rf_price" name="price_per_liter" class="fb-form-input" min="0" step="0.0001">
+                    </div>
+                </div>
+                <div class="fb-form-group">
+                    <label class="fb-form-label" for="rf_note">Nota</label>
+                    <input type="text" id="rf_note" name="note" class="fb-form-input" maxlength="255">
+                </div>
+            {% else %}
+                <input type="hidden" name="direction" value="out">
+                <div class="fb-form-grid fb-form-grid-3">
+                    <div class="fb-form-group">
+                        <label class="fb-form-label" for="rf_station">Stazione*</label>
+                        <select id="rf_station" name="id_station" class="fb-form-input" data-field="station" required></select>
+                    </div>
+                    <div class="fb-form-group">
+                        <label class="fb-form-label" for="rf_time">Data*</label>
+                        <input type="datetime-local" id="rf_time" name="refuel_time" class="fb-form-input" required>
+                    </div>
+                    <div class="fb-form-group">
+                        <label class="fb-form-label" for="rf_fuel">Alimentazione*</label>
+                        <select id="rf_fuel" name="id_fuel_type" class="fb-form-input" data-field="fuel-type" required></select>
+                    </div>
+                </div>
+                <div class="fb-form-grid fb-form-grid-3">
+                    <div class="fb-form-group">
+                        <label class="fb-form-label" for="rf_vehicle">Automezzo*</label>
+                        <select id="rf_vehicle" name="id_vehicle" class="fb-form-input" data-field="vehicle" required></select>
+                    </div>
+                    <div class="fb-form-group">
+                        <label class="fb-form-label" for="rf_liters">Quantità (litri)*</label>
+                        <input type="number" id="rf_liters" name="liters" class="fb-form-input" min="0.01" step="0.01" required>
+                    </div>
+                    <div class="fb-form-group">
+                        <label class="fb-form-label" for="rf_price">Prezzo al litro (€)</label>
+                        <input type="number" id="rf_price" name="price_per_liter" class="fb-form-input" min="0" step="0.0001">
+                    </div>
+                </div>
+                <div class="fb-form-grid fb-form-grid-3">
+                    <div class="fb-form-group">
+                        <label class="fb-form-label" for="rf_km_last">Km ultimo rifornimento</label>
+                        <input type="number" id="rf_km_last" name="km_since_last_refuel" class="fb-form-input" min="0" step="1">
+                    </div>
+                    <div class="fb-form-group">
+                        <label class="fb-form-label" for="rf_km">Km attuali*</label>
+                        <input type="number" id="rf_km" name="km_at_refuel" class="fb-form-input" min="0" step="1" required>
+                    </div>
+                    <div class="fb-form-group">
+                        <label class="fb-form-label" for="rf_km_diff">Differenza</label>
+                        <input type="number" id="rf_km_diff" name="km_diff" class="fb-form-input fb-km-diff" readonly tabindex="-1">
+                    </div>
+                </div>
+                <div class="fb-form-group">
+                    <label class="fb-form-label" for="rf_note">Nota</label>
+                    <input type="text" id="rf_note" name="note" class="fb-form-input" maxlength="255">
+                </div>
+            {% endif %}
+
+            <div class="fb-form-actions">
+                <button type="submit" class="fb-btn fb-btn-primary">Salva</button>
+            </div>
+        </form>
+    </template>
+{% endblock %}
+
+{% block page_scripts %}
+    <script type="module" src="{{ asset('fairy-bus/js/pages/refuelling.js') }}"></script>
+{% endblock %}

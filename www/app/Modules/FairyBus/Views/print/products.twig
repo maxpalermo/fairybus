@@ -1,0 +1,56 @@
+{#
+ * Copyright since 2026 Massimiliano Palermo
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Academic Free License version 3.0
+ * that is bundled with this package in the file LICENSE.md.
+ * It is also available through the world-wide-web at this URL:
+ * https://opensource.org/licenses/AFL-3.0
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to maxx.palermo@gmail.com so we can send you a copy immediately.
+ *
+ * @author    Massimiliano Palermo <maxx.palermo@gmail.com>
+ * @copyright Since 2026 Massimiliano Palermo
+ * @license   https://opensource.org/licenses/AFL-3.0 Academic Free License version 3.0
+#}
+{% extends "print/layout.twig" %}
+
+{% block content %}
+    <table class="data">
+        <thead>
+            <tr>
+                <th style="width: 13%;">SKU</th>
+                <th>Nome</th>
+                <th style="width: 14%;">Marca</th>
+                <th style="width: 14%;">Categoria</th>
+                <th style="width: 9%;" class="num">Prezzo</th>
+                <th style="width: 6%;" class="center">IVA</th>
+                <th style="width: 7%;" class="center">Attivo</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in rows %}
+                <tr>
+                    <td>{{ row.sku|default('—') }}</td>
+                    <td>
+                        {{ row.name|default('—') }}
+                        {% if row.alias_sku %}<br><span class="muted">Alias di: {{ row.alias_sku }}</span>{% endif %}
+                    </td>
+                    <td class="muted">{{ row.brand_name|default('—') }}</td>
+                    <td class="muted">{{ row.category_name|default('—') }}</td>
+                    <td class="num">{% if row.price is not null %}€ {{ row.price|number_format(2, ',', '.') }}{% else %}—{% endif %}</td>
+                    <td class="center">{% if row.tax_rate is not null %}{{ row.tax_rate|number_format(0) }}%{% else %}—{% endif %}</td>
+                    <td class="center{% if row.active != 1 %} low{% endif %}">{% if row.active == 1 %}Sì{% else %}No{% endif %}</td>
+                </tr>
+            {% else %}
+                <tr><td colspan="7" class="center muted">Nessun prodotto presente.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}
+
+{% block footer %}
+    <span>{{ app_name|default('Fairy Bus') }} — {{ title|default('Documento') }} — Elementi: {{ rows|length }}</span>
+{% endblock %}

@@ -1,0 +1,75 @@
+/* Native <dialog> in shadcn style */
+
+.fb-dialog {
+    border: 1px solid var(--fb-border);
+    border-radius: var(--fb-radius);
+    background-color: var(--fb-background);
+    color: var(--fb-foreground);
+    padding: 0;
+    min-width: 22rem;
+    max-width: calc(100vw - 2rem);
+    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+}
+
+.fb-dialog::backdrop {
+    background-color: rgb(0 0 0 / 0.4);
+    backdrop-filter: blur(2px);
+}
+
+.fb-dialog-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--fb-border);
+}
+
+.fb-dialog-title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.25;
+}
+
+.fb-dialog-close {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0.25rem;
+    color: var(--fb-muted-foreground);
+    border-radius: var(--fb-radius);
+}
+
+.fb-dialog-close:hover {
+    background-color: var(--fb-muted);
+    color: var(--fb-foreground);
+}
+
+.fb-dialog-body {
+    padding: 1rem 1.25rem;
+    font-size: 0.875rem;
+    color: var(--fb-muted-foreground);
+}
+
+.fb-dialog-sm {
+    width: min(26rem, calc(100vw - 2rem));
+    max-width: 26rem;
+}
+
+.fb-dialog-medium {
+    width: min(56rem, calc(100vw - 2rem));
+    max-width: 56rem;
+}
+
+.fb-dialog-wide {
+    width: min(85rem, calc(100vw - 2rem));
+    max-width: 85rem;
+}
+
+.fb-dialog-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    padding: 1rem 1.25rem;
+    border-top: 1px solid var(--fb-border);
+}

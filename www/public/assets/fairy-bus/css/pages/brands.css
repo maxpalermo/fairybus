@@ -1,0 +1,48 @@
+/* Brands page */
+
+.fb-page {
+    padding: 1.5rem;
+}
+
+.fb-page-title {
+    margin: 0 0 1rem;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--fb-foreground);
+}
+
+.fb-toolbar {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.fb-table-wrap {
+    overflow-x: auto;
+}
+
+.fb-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8125rem;
+}
+
+.fb-table th,
+.fb-table td {
+    text-align: left;
+    padding: 0.5rem;
+    border-bottom: 1px solid var(--fb-border);
+    color: var(--fb-foreground);
+}
+
+.fb-table td .fb-btn {
+    margin-right: 0.25rem;
+    margin-bottom: 0.25rem;
+}
+
+.fb-form-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+    margin-top: 1rem;
+}

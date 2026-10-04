@@ -1,0 +1,142 @@
+{#
+ * Copyright since 2026 Massimiliano Palermo
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Academic Free License version 3.0
+ * that is bundled with this package in the file LICENSE.md.
+ * It is also available through the world-wide-web at this URL:
+ * https://opensource.org/licenses/AFL-3.0
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to maxx.palermo@gmail.com so we can send you a copy immediately.
+ *
+ * @author    Massimiliano Palermo <maxx.palermo@gmail.com>
+ * @copyright Since 2026 Massimiliano Palermo
+ * @license   https://opensource.org/licenses/AFL-3.0 Academic Free License version 3.0
+#}
+{% extends "admin/layout.twig" %}
+
+{% block page_styles %}
+    <link rel="stylesheet" href="{{ asset('fairy-bus/css/pages/vehicles.css') }}?v=4">
+{% endblock %}
+
+{% block content %}
+    <section class="fb-page">
+        <div class="fb-page-header">
+            <div>
+                <h1 class="fb-page-title">Veicoli</h1>
+            </div>
+            <div class="fb-page-actions">
+                <span class="fb-muted fb-selected-count" id="vehicles-selected-count">0 selezionati</span>
+                <button type="button" class="fb-btn fb-btn-secondary" data-action="print-vehicles">Stampa PDF</button>
+                <button type="button" class="fb-btn fb-btn-primary" data-action="new-vehicle">Nuovo veicolo</button>
+            </div>
+        </div>
+
+        <div class="fb-table-wrap">
+            <table id="vehicles-table" class="fb-table"></table>
+        </div>
+    </section>
+
+    <template id="tpl-vehicle-form">
+        <form class="fb-form" data-form="vehicle">
+            <input type="hidden" name="id_vehicle" value="">
+
+            <div class="fb-tabs fb-form-tabs" role="tablist">
+                <button type="button" class="fb-tab active" data-tab="info" role="tab" aria-selected="true">Informazioni</button>
+                <button type="button" class="fb-tab" data-tab="features" role="tab" aria-selected="false">Caratteristiche</button>
+                <button type="button" class="fb-tab" data-tab="images" role="tab" aria-selected="false">Immagini</button>
+                <button type="button" class="fb-tab" data-tab="documents" role="tab" aria-selected="false">Documenti</button>
+                <button type="button" class="fb-tab" data-tab="expirations" role="tab" aria-selected="false">Scadenze</button>
+                <button type="button" class="fb-tab" data-tab="repairs" role="tab" aria-selected="false">Riparazioni</button>
+            </div>
+
+            <div class="fb-tab-panel active" data-panel="info" role="tabpanel">
+                <div class="fb-form-grid">
+                    <div class="fb-form-group">
+                        <label class="fb-form-label" for="vehicle_plate">Targa</label>
+                        <input type="text" id="vehicle_plate" name="plate" class="fb-form-input" required maxlength="50">
+                    </div>
+                    <div class="fb-form-group">
+                        <label class="fb-form-label" for="vehicle_brand">Marca</label>
+                        <select id="vehicle_brand" name="id_brand" class="fb-form-input">
+                            <option value="">—</option>
+                        </select>
+                    </div>
+                    <div class="fb-form-group">
+                        <label class="fb-form-label" for="vehicle_status">Stato</label>
+                        <select id="vehicle_status" name="status" class="fb-form-input" required></select>
+                    </div>
+                    <div class="fb-form-group">
+                        <label class="fb-form-label" for="vehicle_chassis">Numero telaio</label>
+                        <input type="text" id="vehicle_chassis" name="chassis_number" class="fb-form-input" maxlength="255">
+                    </div>
+                    <div class="fb-form-group">
+                        <label class="fb-form-label" for="vehicle_km">KM attuali</label>
+                        <input type="number" id="vehicle_km" name="current_km" class="fb-form-input" min="0">
+                    </div>
+                    <div class="fb-form-group">
+                        <label class="fb-form-label" for="vehicle_start">Data inizio</label>
+                        <input type="date" id="vehicle_start" name="start_date" class="fb-form-input">
+                    </div>
+                    <div class="fb-form-group">
+                        <label class="fb-form-label" for="vehicle_end">Data fine</label>
+                        <input type="date" id="vehicle_end" name="end_date" class="fb-form-input">
+                    </div>
+                </div>
+
+                <div class="fb-form-group">
+                    <label class="fb-form-label" for="vehicle_description">Descrizione (classe veicolo)</label>
+                    <textarea id="vehicle_description" name="description" class="fb-form-input" rows="2"></textarea>
+                </div>
+
+                <div class="fb-form-group">
+                    <label class="fb-form-label" for="vehicle_note">Note</label>
+                    <textarea id="vehicle_note" name="note" class="fb-form-input" rows="2"></textarea>
+                </div>
+            </div>
+
+            <div class="fb-tab-panel" data-panel="features" role="tabpanel">
+                <div id="vehicle-features" class="fb-features-grid"></div>
+            </div>
+
+            <div class="fb-tab-panel" data-panel="images" role="tabpanel">
+                <div class="fb-form-group">
+                    <label class="fb-form-label">Carica immagini</label>
+                    <input type="file" name="image_upload" class="fb-form-input" accept="image/*" multiple>
+                </div>
+                <div class="fb-upload-grid" id="vehicle-images-list"></div>
+            </div>
+
+            <div class="fb-tab-panel" data-panel="documents" role="tabpanel">
+                <div class="fb-form-group">
+                    <label class="fb-form-label" for="document_description">Descrizione documento</label>
+                    <input type="text" id="document_description" name="document_description" class="fb-form-input" maxlength="255" placeholder="Es. libretto di circolazione, certificato di proprietà...">
+                </div>
+                <div class="fb-form-group">
+                    <label class="fb-form-label">Carica documento</label>
+                    <input type="file" name="document_upload" class="fb-form-input">
+                </div>
+                <ul class="fb-document-list" id="vehicle-documents-list"></ul>
+            </div>
+
+            <div class="fb-tab-panel" data-panel="expirations" role="tabpanel">
+                <p class="fb-muted">Gestione scadenze in fase di sviluppo.</p>
+            </div>
+
+            <div class="fb-tab-panel" data-panel="repairs" role="tabpanel">
+                <p class="fb-muted">Gestione riparazioni in fase di sviluppo.</p>
+            </div>
+
+            <div class="fb-form-actions">
+                <button type="submit" class="fb-btn fb-btn-primary">Salva veicolo</button>
+                <button type="button" class="fb-btn fb-btn-secondary" data-action="close">Annulla</button>
+            </div>
+        </form>
+    </template>
+{% endblock %}
+
+{% block page_scripts %}
+    <script type="module" src="{{ asset('fairy-bus/js/pages/vehicles.js') }}"></script>
+{% endblock %}

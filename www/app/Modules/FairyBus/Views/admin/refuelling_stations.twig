@@ -1,0 +1,107 @@
+{#
+ * Copyright since 2026 Massimiliano Palermo
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Academic Free License version 3.0
+ * that is bundled with this package in the file LICENSE.md.
+ * It is also available through the world-wide-web at this URL:
+ * https://opensource.org/licenses/AFL-3.0
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to maxx.palermo@gmail.com so we can send you a copy immediately.
+ *
+ * @author    Massimiliano Palermo <maxx.palermo@gmail.com>
+ * @copyright Since 2026 Massimiliano Palermo
+ * @license   https://opensource.org/licenses/AFL-3.0 Academic Free License version 3.0
+#}
+{% extends "admin/layout.twig" %}
+
+{% block page_styles %}
+    <link rel="stylesheet" href="{{ asset('fairy-bus/css/pages/refuelling.css') }}">
+{% endblock %}
+
+{% block content %}
+    <section class="fb-page">
+        <div class="fb-page-header">
+            <div>
+                <h1 class="fb-page-title">Punti di rifornimento</h1>
+                <p class="fb-page-subtitle">Stazioni e punti da cui viene prelevato il carburante.</p>
+            </div>
+            <div class="fb-page-actions">
+                <span class="fb-muted fb-selected-count" id="stations-selected-count">0 selezionati</span>
+                <button type="button" class="fb-btn-icon fb-btn-icon-warning" data-action="print-stations" title="Stampa PDF (righe selezionate, max 500)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                </button>
+                <button type="button" class="fb-btn-icon fb-btn-icon-success" data-action="new-station" title="Nuovo punto di rifornimento">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                </button>
+            </div>
+        </div>
+
+        <div class="fb-table-wrap">
+            <table id="stations-table" class="fb-table"></table>
+        </div>
+    </section>
+
+    <template id="tpl-station-form">
+        <form class="fb-form fb-station-form" data-form="station">
+            <input type="hidden" name="id_refuelling_station" value="">
+
+            <div class="fb-form-group">
+                <label class="fb-form-label" for="st_name">Nome*</label>
+                <input type="text" id="st_name" name="name" class="fb-form-input" maxlength="255" required>
+            </div>
+            <div class="fb-form-grid">
+                <div class="fb-form-group">
+                    <label class="fb-form-label" for="st_street">Indirizzo</label>
+                    <input type="text" id="st_street" name="street" class="fb-form-input" maxlength="255">
+                </div>
+                <div class="fb-form-group">
+                    <label class="fb-form-label" for="st_suburb">Quartiere</label>
+                    <input type="text" id="st_suburb" name="suburb" class="fb-form-input" maxlength="255">
+                </div>
+            </div>
+            <div class="fb-form-grid fb-form-grid-3">
+                <div class="fb-form-group">
+                    <label class="fb-form-label" for="st_town">Comune</label>
+                    <input type="text" id="st_town" name="town" class="fb-form-input" maxlength="255">
+                </div>
+                <div class="fb-form-group">
+                    <label class="fb-form-label" for="st_province">Provincia</label>
+                    <input type="text" id="st_province" name="province" class="fb-form-input" maxlength="4">
+                </div>
+                <div class="fb-form-group">
+                    <label class="fb-form-label" for="st_post_code">CAP</label>
+                    <input type="text" id="st_post_code" name="post_code" class="fb-form-input" maxlength="16">
+                </div>
+            </div>
+            <div class="fb-form-grid fb-form-grid-3">
+                <div class="fb-form-group">
+                    <label class="fb-form-label" for="st_lat">Latitudine</label>
+                    <input type="number" id="st_lat" name="lat" class="fb-form-input" step="0.0000001">
+                </div>
+                <div class="fb-form-group">
+                    <label class="fb-form-label" for="st_lon">Longitudine</label>
+                    <input type="number" id="st_lon" name="lon" class="fb-form-input" step="0.0000001">
+                </div>
+                <div class="fb-form-group">
+                    <label class="fb-form-label" for="st_epsg">EPSG</label>
+                    <input type="number" id="st_epsg" name="epsg_code" class="fb-form-input" step="1">
+                </div>
+            </div>
+            <div class="fb-form-group">
+                <label class="fb-form-label" for="st_note">Nota</label>
+                <input type="text" id="st_note" name="note" class="fb-form-input" maxlength="255">
+            </div>
+
+            <div class="fb-form-actions">
+                <button type="submit" class="fb-btn fb-btn-primary">Salva</button>
+            </div>
+        </form>
+    </template>
+{% endblock %}
+
+{% block page_scripts %}
+    <script type="module" src="{{ asset('fairy-bus/js/pages/refuelling_stations.js') }}"></script>
+{% endblock %}

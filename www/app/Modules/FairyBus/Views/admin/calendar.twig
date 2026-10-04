@@ -1,0 +1,78 @@
+{#
+ * Copyright since 2026 Massimiliano Palermo
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Academic Free License version 3.0
+ * that is bundled with this package in the file LICENSE.md.
+ * It is also available through the world-wide-web at this URL:
+ * https://opensource.org/licenses/AFL-3.0
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to maxx.palermo@gmail.com so we can send you a copy immediately.
+ *
+ * @author    Massimiliano Palermo <maxx.palermo@gmail.com>
+ * @copyright Since 2026 Massimiliano Palermo
+ * @license   https://opensource.org/licenses/AFL-3.0 Academic Free License version 3.0
+#}
+{% extends "admin/layout.twig" %}
+
+{% block page_styles %}
+    <link rel="stylesheet" href="{{ asset('fairy-bus/css/pages/calendar.css') }}">
+{% endblock %}
+
+{% block content %}
+    <section class="fb-page">
+        <div class="fb-page-header">
+            <div>
+                <h1 class="fb-page-title">Calendario scadenze</h1>
+                <p class="fb-page-subtitle">Avvisi, calendario mensile e scadenze chilometriche dei veicoli.</p>
+            </div>
+            <div class="fb-page-actions" data-field="cal-actions">
+                <button type="button" class="fb-btn-icon" data-action="cal-prev" title="Mese precedente">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                </button>
+                <button type="button" class="fb-btn fb-btn-secondary fb-btn-sm" data-action="cal-today">Oggi</button>
+                <button type="button" class="fb-btn-icon" data-action="cal-next" title="Mese successivo">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </button>
+            </div>
+        </div>
+
+        <div class="fb-tabs fb-form-tabs fb-page-tabs" role="tablist">
+            <button type="button" class="fb-tab active" data-tab="avvisi" role="tab" aria-selected="true">
+                Avvisi <span class="fb-picker-count" data-field="alerts-badge">0</span>
+            </button>
+            <button type="button" class="fb-tab" data-tab="calendario" role="tab" aria-selected="false">Calendario</button>
+            <button type="button" class="fb-tab" data-tab="km" role="tab" aria-selected="false">Scadenze chilometriche</button>
+        </div>
+
+        <div class="fb-tab-panel active" data-panel="avvisi" role="tabpanel">
+            <div class="fb-alerts-panel">
+                <div class="fb-alerts-list fb-alerts-open" data-field="alerts-list">
+                    <div class="fb-alert-item fb-muted">Caricamento…</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="fb-tab-panel" data-panel="calendario" role="tabpanel">
+            <div class="fb-calendar-card">
+                <div class="fb-calendar-head">
+                    <h2 class="fb-calendar-month" data-field="month-title">—</h2>
+                </div>
+                <div class="fb-calendar-grid" data-field="grid"></div>
+            </div>
+        </div>
+
+        <div class="fb-tab-panel" data-panel="km" role="tabpanel">
+            <div class="fb-table-wrap">
+                <table id="km-table" class="fb-table"></table>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+
+{% block page_scripts %}
+
+    <script type="module" src="{{ asset('fairy-bus/js/pages/calendar.js') }}"></script>
+{% endblock %}

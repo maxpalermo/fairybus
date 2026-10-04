@@ -1,0 +1,10 @@
+src/vendor/
+src/writable/cache/
+src/writable/logs/
+src/writable/session/
+src/writable/uploads/
+src/env
+src/.env
+.idea/
+.vscode/
+*.log

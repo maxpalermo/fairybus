@@ -1,0 +1,55 @@
+{#
+ * Copyright since 2026 Massimiliano Palermo
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Academic Free License version 3.0
+ * that is bundled with this package in the file LICENSE.md.
+ * It is also available through the world-wide-web at this URL:
+ * https://opensource.org/licenses/AFL-3.0
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to maxx.palermo@gmail.com so we can send you a copy immediately.
+ *
+ * @author    Massimiliano Palermo <maxx.palermo@gmail.com>
+ * @copyright Since 2026 Massimiliano Palermo
+ * @license   https://opensource.org/licenses/AFL-3.0 Academic Free License version 3.0
+#}
+{% extends "print/layout.twig" %}
+
+{% block content %}
+<table>
+    <thead>
+        <tr>
+            <th>Data</th>
+            <th>Automezzo</th>
+            <th>Stazione</th>
+            <th>Alimentazione</th>
+            <th>Operazione</th>
+            <th class="text-right">Litri</th>
+            <th class="text-right">€/litro</th>
+            <th class="text-right">Km</th>
+            <th class="text-right">Km da ultimo</th>
+            <th>Fornitore</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for row in rows %}
+        <tr>
+            <td>{{ row.refuel_time ? row.refuel_time|date('d/m/Y H:i') : '—' }}</td>
+            <td>{{ row.vehicle_plate ?: '—' }}</td>
+            <td>{{ row.station_name ?: '—' }}</td>
+            <td>{{ row.fuel_type_name ?: '—' }}</td>
+            <td class="text-center">{{ row.direction == 'in' ? 'Carico' : 'Scarico' }}</td>
+            <td class="text-right">{{ row.liters|number_format(2, ',', '.') }}</td>
+            <td class="text-right">{{ row.price_per_liter > 0 ? row.price_per_liter|number_format(4, ',', '.') : '—' }}</td>
+            <td class="text-right">{{ row.km_at_refuel ? row.km_at_refuel|number_format(0, ',', '.') : '—' }}</td>
+            <td class="text-right">{{ row.km_since_last_refuel ? row.km_since_last_refuel|number_format(0, ',', '.') : '—' }}</td>
+            <td>{{ row.supplier_name ?: '—' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="10" class="text-center">Nessun elemento</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

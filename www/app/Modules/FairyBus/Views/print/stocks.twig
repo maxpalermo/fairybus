@@ -1,0 +1,56 @@
+{#
+ * Copyright since 2026 Massimiliano Palermo
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Academic Free License version 3.0
+ * that is bundled with this package in the file LICENSE.md.
+ * It is also available through the world-wide-web at this URL:
+ * https://opensource.org/licenses/AFL-3.0
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to maxx.palermo@gmail.com so we can send you a copy immediately.
+ *
+ * @author    Massimiliano Palermo <maxx.palermo@gmail.com>
+ * @copyright Since 2026 Massimiliano Palermo
+ * @license   https://opensource.org/licenses/AFL-3.0 Academic Free License version 3.0
+#}
+{% extends "print/layout.twig" %}
+
+{% block content %}
+    <table class="data">
+        <thead>
+            <tr>
+                <th style="width: 14%;">Codice</th>
+                <th>Articolo</th>
+                <th style="width: 16%;">Marca</th>
+                <th style="width: 8%;" class="center">um</th>
+                <th style="width: 9%;" class="num">Q.tà</th>
+                <th style="width: 9%;" class="num">Soglia</th>
+                <th style="width: 12%;" class="center">Stato</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in rows %}
+                <tr>
+                    <td>{{ row.sku|default('—') }}</td>
+                    <td>{{ row.product_name|default('—') }}</td>
+                    <td class="muted">{{ row.brand_name|default('—') }}</td>
+                    <td class="center">{{ row.unit_label }}</td>
+                    <td class="num{% if row.low_stock %} low{% endif %}">{{ row.quantity|number_format(3, ',', '.') }}</td>
+                    <td class="num">{% if row.notification_limit is not null %}{{ row.notification_limit|number_format(3, ',', '.') }}{% else %}—{% endif %}</td>
+                    <td class="center{% if row.low_stock %} low{% endif %}">{% if row.low_stock %}Sotto scorta{% else %}OK{% endif %}</td>
+                </tr>
+            {% else %}
+                <tr><td colspan="7" class="center muted">Nessuna giacenza presente.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}
+
+{% block footer %}
+    <span>
+        {{ app_name|default('Fairy Bus') }} — {{ title|default('Documento') }}
+        — Articoli: {{ rows|length }}{% if low_count is defined and low_count > 0 %}, sotto soglia: <strong class="low">{{ low_count }}</strong>{% endif %}
+    </span>
+{% endblock %}

@@ -1,0 +1,129 @@
+{#
+ * Copyright since 2026 Massimiliano Palermo
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Academic Free License version 3.0
+ * that is bundled with this package in the file LICENSE.md.
+ * It is also available through the world-wide-web at this URL:
+ * https://opensource.org/licenses/AFL-3.0
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to maxx.palermo@gmail.com so we can send you a copy immediately.
+ *
+ * @author    Massimiliano Palermo <maxx.palermo@gmail.com>
+ * @copyright Since 2026 Massimiliano Palermo
+ * @license   https://opensource.org/licenses/AFL-3.0 Academic Free License version 3.0
+#}
+{% extends "admin/layout.twig" %}
+
+{% block page_styles %}
+    <link rel="stylesheet" href="{{ asset('fairy-bus/css/pages/suppliers.css') }}">
+{% endblock %}
+
+{% block content %}
+    <section class="fb-page">
+        <div class="fb-page-header">
+            <div>
+                <h1 class="fb-page-title">Fornitori</h1>
+                <p class="fb-page-subtitle">Elenco fornitori importati e gestiti.</p>
+            </div>
+            <div class="fb-page-actions">
+                <span class="fb-muted fb-selected-count" id="suppliers-selected-count">0 selezionati</span>
+                <button type="button" class="fb-btn fb-btn-secondary" data-action="print-suppliers">Stampa PDF</button>
+                <button type="button" class="fb-btn-icon fb-btn-icon-success" data-action="new-supplier" title="Nuovo fornitore">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                </button>
+            </div>
+        </div>
+
+        <div class="fb-table-wrap">
+            <table id="suppliers-table" class="fb-table"></table>
+        </div>
+    </section>
+
+    <template id="tpl-supplier-form">
+        <form class="fb-form fb-supplier-form" data-form="supplier">
+            <input type="hidden" name="id_supplier" value="">
+
+            <div class="fb-form-group">
+                <label class="fb-form-label" for="sup_company">Ragione sociale*</label>
+                <input type="text" id="sup_company" name="company" class="fb-form-input" maxlength="255" required>
+            </div>
+            <div class="fb-form-grid">
+                <div class="fb-form-group">
+                    <label class="fb-form-label" for="sup_vat">P. IVA / CF</label>
+                    <input type="text" id="sup_vat" name="vat_number" class="fb-form-input" maxlength="64">
+                </div>
+                <div class="fb-form-group">
+                    <label class="fb-form-label" for="sup_contact">Referente</label>
+                    <input type="text" id="sup_contact" name="contact_name" class="fb-form-input" maxlength="255">
+                </div>
+            </div>
+            <div class="fb-form-grid">
+                <div class="fb-form-group">
+                    <label class="fb-form-label" for="sup_email">Email</label>
+                    <input type="email" id="sup_email" name="email" class="fb-form-input" maxlength="255">
+                </div>
+                <div class="fb-form-group">
+                    <label class="fb-form-label" for="sup_pec">PEC</label>
+                    <input type="email" id="sup_pec" name="pec" class="fb-form-input" maxlength="255">
+                </div>
+            </div>
+            <div class="fb-form-grid">
+                <div class="fb-form-group">
+                    <label class="fb-form-label" for="sup_address1">Indirizzo</label>
+                    <input type="text" id="sup_address1" name="address1" class="fb-form-input" maxlength="255">
+                </div>
+                <div class="fb-form-group">
+                    <label class="fb-form-label" for="sup_address2">Indirizzo 2</label>
+                    <input type="text" id="sup_address2" name="address2" class="fb-form-input" maxlength="255">
+                </div>
+            </div>
+            <div class="fb-form-grid fb-form-grid-3">
+                <div class="fb-form-group">
+                    <label class="fb-form-label" for="sup_city">Città</label>
+                    <input type="text" id="sup_city" name="city" class="fb-form-input" maxlength="255">
+                </div>
+                <div class="fb-form-group">
+                    <label class="fb-form-label" for="sup_postcode">CAP</label>
+                    <input type="text" id="sup_postcode" name="postcode" class="fb-form-input" maxlength="16">
+                </div>
+                <div class="fb-form-group">
+                    <label class="fb-form-label" for="sup_phone">Telefono</label>
+                    <input type="text" id="sup_phone" name="phone_number" class="fb-form-input" maxlength="64">
+                </div>
+            </div>
+            <div class="fb-form-grid">
+                <div class="fb-form-group">
+                    <label class="fb-form-label" for="sup_mobile">Cellulare</label>
+                    <input type="text" id="sup_mobile" name="mobile_number" class="fb-form-input" maxlength="64">
+                </div>
+            </div>
+            <div class="fb-form-grid">
+                <div class="fb-form-group fb-form-check">
+                    <label class="fb-switch-label">
+                        <input type="checkbox" name="fuel" value="1">
+                        <span class="fb-switch-slider"></span>
+                        <span class="fb-feature-label">Fornitore di carburante</span>
+                    </label>
+                </div>
+                <div class="fb-form-group fb-form-check">
+                    <label class="fb-switch-label">
+                        <input type="checkbox" name="active" value="1" checked>
+                        <span class="fb-switch-slider"></span>
+                        <span class="fb-feature-label">Attivo</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="fb-form-actions">
+                <button type="submit" class="fb-btn fb-btn-primary">Salva</button>
+            </div>
+        </form>
+    </template>
+{% endblock %}
+
+{% block page_scripts %}
+    <script type="module" src="{{ asset('fairy-bus/js/pages/suppliers.js') }}"></script>
+{% endblock %}

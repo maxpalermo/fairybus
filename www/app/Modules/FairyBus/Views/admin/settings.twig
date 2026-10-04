@@ -1,0 +1,446 @@
+{#
+ * Copyright since 2026 Massimiliano Palermo
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Academic Free License version 3.0
+ * that is bundled with this package in the file LICENSE.md.
+ * It is also available through the world-wide-web at this URL:
+ * https://opensource.org/licenses/AFL-3.0
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to maxx.palermo@gmail.com so we can send you a copy immediately.
+ *
+ * @author    Massimiliano Palermo <maxx.palermo@gmail.com>
+ * @copyright Since 2026 Massimiliano Palermo
+ * @license   https://opensource.org/licenses/AFL-3.0 Academic Free License version 3.0
+#}
+{% extends "admin/layout.twig" %}
+
+{% block page_styles %}
+    <link rel="stylesheet" href="{{ asset('fairy-bus/css/pages/settings.css') }}?v=3">
+{% endblock %}
+
+{% block content %}
+    <section class="fb-page">
+        
+        <div class="fb-tabs" role="tablist">
+            <button class="fb-tab active" data-tab="users" role="tab" aria-selected="true" aria-controls="panel-users">Utenti</button>
+            <button class="fb-tab" data-tab="permissions" role="tab" aria-selected="false" aria-controls="panel-permissions">Permessi</button>
+            <button class="fb-tab" data-tab="password" role="tab" aria-selected="false" aria-controls="panel-password">Password</button>
+            <button class="fb-tab" data-tab="imports" role="tab" aria-selected="false" aria-controls="panel-imports">Importazioni</button>
+            <button class="fb-tab" data-tab="interface" role="tab" aria-selected="false" aria-controls="panel-interface">Interfaccia</button>
+            <button class="fb-tab" data-tab="doctypes" role="tab" aria-selected="false" aria-controls="panel-doctypes">Tipi documento</button>
+            <button class="fb-tab" data-tab="menu" role="tab" aria-selected="false" aria-controls="panel-menu">Menu</button>
+        </div>
+
+        <div class="fb-tab-panel active" id="panel-users" role="tabpanel" aria-labelledby="tab-users">
+            <div class="fb-toolbar">
+                <button type="button" class="fb-btn fb-btn-primary" data-action="new-user">Nuovo utente</button>
+            </div>
+            <div class="fb-table-wrap">
+                <table
+                    id="users-table"
+                    class="fb-table"
+                >
+                    <thead>
+                        <tr>
+                            <th data-field="id" data-sortable="true">#</th>
+                            <th data-field="full_name" data-sortable="true">Nome</th>
+                            <th data-field="email" data-sortable="true">Email</th>
+                            <th data-field="active" data-formatter="formatUserActive">Attivo</th>
+                            <th data-field="roles" data-formatter="formatUserRoles">Ruoli</th>
+                            <th data-field="id" data-formatter="formatUserActions" data-events="userActionsEvents">Azioni</th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+        </div>
+
+        <div class="fb-tab-panel" id="panel-permissions" role="tabpanel" aria-labelledby="tab-permissions">
+            <div class="fb-import-sections">
+                <div class="fb-import-card">
+                    <div class="fb-import-card-header">
+                        <div>
+                            <h3 class="fb-import-card-title">Ruoli</h3>
+                            <p class="fb-import-card-help">Configura i permessi assegnati a ciascun ruolo. Il ruolo Amministratore non è modificabile.</p>
+                        </div>
+                        <button type="button" class="fb-btn fb-btn-primary fb-btn-sm" data-action="new-role">Nuovo ruolo</button>
+                    </div>
+                    <div class="fb-table-wrap">
+                        <table id="roles-table" class="fb-table">
+                            <thead>
+                                <tr>
+                                    <th>Ruolo</th>
+                                    <th>Permessi</th>
+                                    <th>Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="fb-import-card">
+                    <h3 class="fb-import-card-title">Permessi utenti</h3>
+                    <p class="fb-import-card-help">Permessi diretti assegnati ai singoli utenti.</p>
+                    <div class="fb-table-wrap">
+                        <table id="permissions-table" class="fb-table">
+                            <thead>
+                                <tr>
+                                    <th>Utente</th>
+                                    <th>Ruoli</th>
+                                    <th>Permessi effettivi</th>
+                                    <th>Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="fb-tab-panel" id="panel-password" role="tabpanel" aria-labelledby="tab-password">
+            <div class="fb-login-card" style="max-width: 24rem; margin: 0 auto;">
+                <form class="fb-form" id="own-password-form">
+                    <div class="fb-form-group">
+                        <label class="fb-form-label" for="current_password">Password attuale</label>
+                        <div class="fb-input-group">
+                            <input type="password" id="current_password" name="current_password" class="fb-form-input" required>
+                            <button type="button" class="fb-input-toggle" data-toggle-password="current_password" aria-label="Mostra password">
+                                <svg class="icon-eye" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                </svg>
+                                <svg class="icon-eye-off" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
+                                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-3.72.72L3 3"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="fb-form-group">
+                        <label class="fb-form-label" for="new_password">Nuova password</label>
+                        <div class="fb-input-group">
+                            <input type="password" id="new_password" name="new_password" class="fb-form-input" required minlength="6">
+                            <button type="button" class="fb-input-toggle" data-toggle-password="new_password" aria-label="Mostra password">
+                                <svg class="icon-eye" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                </svg>
+                                <svg class="icon-eye-off" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
+                                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-3.72.72L3 3"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="fb-form-group">
+                        <label class="fb-form-label" for="confirm_password">Conferma nuova password</label>
+                        <div class="fb-input-group">
+                            <input type="password" id="confirm_password" name="confirm_password" class="fb-form-input" required minlength="6">
+                            <button type="button" class="fb-input-toggle" data-toggle-password="confirm_password" aria-label="Mostra password">
+                                <svg class="icon-eye" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                </svg>
+                                <svg class="icon-eye-off" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
+                                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-3.72.72L3 3"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="password-message" class="fb-alert" style="display: none;"></div>
+                    <button type="submit" class="fb-btn fb-btn-primary fb-login-submit">Aggiorna password</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="fb-tab-panel" id="panel-imports" role="tabpanel" aria-labelledby="tab-imports">
+            <div class="fb-import-sections">
+                <div class="fb-import-card">
+                    <h3 class="fb-import-card-title">Importazioni guidate</h3>
+                    <p class="fb-import-card-help">Importa i dati dalle tabelle legacy nelle nuove tabelle del sistema.</p>
+                    <div class="fb-import-grid">
+                        <button type="button" class="fb-import-tile" data-action="import-brands">
+                            <span class="fb-import-tile-icon">
+                                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"></path><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"></circle></svg>
+                            </span>
+                            <span class="fb-import-tile-label">Marche</span>
+                            <span class="fb-import-tile-source">da vehicle</span>
+                        </button>
+                        <button type="button" class="fb-import-tile" data-action="import-vehicles">
+                            <span class="fb-import-tile-icon">
+                                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 17h4V5H2v12h3"></path><path d="M20 17h2v-3.34a4 4 0 0 0-1.17-2.83L19 9h-5"></path><path d="M14 17h1"></path><circle cx="7.5" cy="17.5" r="2.5"></circle><circle cx="17.5" cy="17.5" r="2.5"></circle></svg>
+                            </span>
+                            <span class="fb-import-tile-label">Veicoli</span>
+                            <span class="fb-import-tile-source">da vehicle</span>
+                        </button>
+                        <button type="button" class="fb-import-tile" data-action="import-categories">
+                            <span class="fb-import-tile-icon">
+                                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect></svg>
+                            </span>
+                            <span class="fb-import-tile-label">Categorie</span>
+                            <span class="fb-import-tile-source">da category</span>
+                        </button>
+                        <button type="button" class="fb-import-tile" data-action="import-products">
+                            <span class="fb-import-tile-icon">
+                                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"></path><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path><path d="m3.3 7 8.7 5 8.7-5"></path><path d="M12 22V12"></path></svg>
+                            </span>
+                            <span class="fb-import-tile-label">Prodotti</span>
+                            <span class="fb-import-tile-source">da product</span>
+                        </button>
+                        <button type="button" class="fb-import-tile" data-action="import-stocks">
+                            <span class="fb-import-tile-icon">
+                                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path><path d="m3.3 7 8.7 5 8.7-5"></path><path d="M12 22V12"></path><path d="m17 5.5-7 4"></path></svg>
+                            </span>
+                            <span class="fb-import-tile-label">Giacenze</span>
+                            <span class="fb-import-tile-source">da inventory</span>
+                        </button>
+                        <button type="button" class="fb-import-tile" data-action="import-suppliers">
+                            <span class="fb-import-tile-icon">
+                                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                            </span>
+                            <span class="fb-import-tile-label">Fornitori</span>
+                            <span class="fb-import-tile-source">da business_partner</span>
+                        </button>
+                        <button type="button" class="fb-import-tile" data-action="import-customers">
+                            <span class="fb-import-tile-icon">
+                                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                            </span>
+                            <span class="fb-import-tile-label">Clienti</span>
+                            <span class="fb-import-tile-source">da business_partner</span>
+                        </button>
+                        <button type="button" class="fb-import-tile" data-action="import-documents">
+                            <span class="fb-import-tile-icon">
+                                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                            </span>
+                            <span class="fb-import-tile-label">Documenti</span>
+                            <span class="fb-import-tile-source">da trade, invoice e movement</span>
+                        </button>
+                        <button type="button" class="fb-import-tile" data-action="import-maintenance">
+                            <span class="fb-import-tile-icon">
+                                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
+                            </span>
+                            <span class="fb-import-tile-label">Manutenzioni</span>
+                            <span class="fb-import-tile-source">da maintenance, trade, movement e scadenze</span>
+                        </button>
+                        <button type="button" class="fb-import-tile" data-action="import-refuelling">
+                            <span class="fb-import-tile-icon">
+                                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="22" x2="15" y2="22"></line><line x1="4" y1="9" x2="14" y2="9"></line><path d="M14 22V4a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v18"></path><path d="M14 13h2a2 2 0 0 1 2 2v2a2 2 0 0 0 2 2 2 2 0 0 0 2-2V9.83a2 2 0 0 0-.59-1.42L18 5"></path></svg>
+                            </span>
+                            <span class="fb-import-tile-label">Rifornimenti</span>
+                            <span class="fb-import-tile-source">da refuelling e refuelling_station</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="fb-import-card">
+                    <h3 class="fb-import-card-title">Tabelle legacy disponibili</h3>
+                    <div class="fb-table-wrap">
+                        <table id="imports-table" class="fb-table">
+                            <thead>
+                                <tr>
+                                    <th>Tabella</th>
+                                    <th>Record</th>
+                                    <th>Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="fb-tab-panel" id="panel-interface" role="tabpanel" aria-labelledby="tab-interface">
+            <div class="fb-import-sections">
+                <div class="fb-import-card">
+                    <h3 class="fb-import-card-title">Visualizzazione toast</h3>
+                    <p class="fb-import-card-help">Impostazioni globali delle notifiche toast, applicate a tutte le pagine salvo override specifici.</p>
+                    <form class="fb-form" id="toast-prefs-form" style="max-width: 28rem;">
+                        <div class="fb-form-group">
+                            <label class="fb-form-label" for="toast_position">Posizione</label>
+                            <select id="toast_position" name="position" class="fb-form-input" required>
+                                <option value="top-left"{{ toast_settings.position == 'top-left' ? ' selected' }}>In alto a sinistra</option>
+                                <option value="top-center"{{ toast_settings.position == 'top-center' ? ' selected' }}>In alto al centro</option>
+                                <option value="top-right"{{ toast_settings.position == 'top-right' ? ' selected' }}>In alto a destra</option>
+                                <option value="center"{{ toast_settings.position == 'center' ? ' selected' }}>Centro pagina</option>
+                                <option value="bottom-left"{{ toast_settings.position == 'bottom-left' ? ' selected' }}>In basso a sinistra</option>
+                                <option value="bottom-center"{{ toast_settings.position == 'bottom-center' ? ' selected' }}>In basso al centro</option>
+                                <option value="bottom-right"{{ toast_settings.position == 'bottom-right' ? ' selected' }}>In basso a destra</option>
+                            </select>
+                        </div>
+                        <div class="fb-form-group">
+                            <label class="fb-form-label" for="toast_duration">Tempo di comparsa (secondi)</label>
+                            <input type="number" id="toast_duration" name="duration" class="fb-form-input" min="1" max="120" step="1" value="{{ toast_settings.duration }}" required>
+                        </div>
+                        <div class="fb-form-group">
+                            <label class="fb-form-label" for="toast_style">Stile</label>
+                            <select id="toast_style" name="style" class="fb-form-input" required>
+                                <option value="default"{{ toast_settings.style == 'default' ? ' selected' }}>Default (box)</option>
+                                <option value="banner"{{ toast_settings.style == 'banner' ? ' selected' }}>Banner a tutta larghezza</option>
+                            </select>
+                        </div>
+                        <div class="fb-form-actions" style="justify-content: flex-start;">
+                            <button type="submit" class="fb-btn fb-btn-primary">Salva</button>
+                            <button type="button" class="fb-btn fb-btn-secondary" data-action="preview-toast">Anteprima</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="fb-tab-panel" id="panel-doctypes" role="tabpanel" aria-labelledby="tab-doctypes">
+            <div class="fb-import-sections">
+                <div class="fb-import-card">
+                    <div class="fb-import-card-header">
+                        <div>
+                            <h3 class="fb-import-card-title">Tipi di documento</h3>
+                            <p class="fb-import-card-help">Tipologie assegnabili a documenti e righe dettaglio (campo <code>type</code>). Il tipo "Default" non è eliminabile e un tipo in uso non può essere rimosso.</p>
+                        </div>
+                        <button type="button" class="fb-btn fb-btn-primary fb-btn-sm" data-action="new-doctype">Nuovo tipo</button>
+                    </div>
+                    <div class="fb-table-wrap">
+                        <table id="doctypes-table" class="fb-table"></table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="fb-tab-panel" id="panel-menu" role="tabpanel" aria-labelledby="tab-menu">
+            <div class="fb-import-sections">
+                <div class="fb-import-card">
+                    <div class="fb-menu-toolbar">
+                        <div>
+                            <h3 class="fb-import-card-title">Struttura del menu</h3>
+                            <p class="fb-import-card-help">Trascina le voci per riordinarle, spostarle tra i menu o trasformarle in sottomenu. Le voci con sottomenu non hanno route. Una voce principale con figli non può diventare sottomenu.</p>
+                        </div>
+                        <label class="fb-switch-label fb-menu-custom-switch">
+                            <input type="checkbox" id="menu-custom-switch" value="1">
+                            <span class="fb-switch-slider"></span>
+                            <span class="fb-feature-label">Usa il menu custom</span>
+                        </label>
+                    </div>
+                    <div class="fb-menu-actions">
+                        <button type="button" class="fb-btn fb-btn-primary" data-action="menu-add-root">Nuova voce</button>
+                        <button type="button" class="fb-btn fb-btn-secondary" data-action="menu-save">Salva struttura</button>
+                        <button type="button" class="fb-btn fb-btn-secondary" data-action="menu-reset">Ripristina predefinito</button>
+                    </div>
+                    <div id="menu-replica-note" class="fb-alert fb-alert-info" style="display:none;">
+                        fb_menu è vuota: stai modificando una copia del menu predefinito. Salva per creare il menu custom.
+                    </div>
+                    <div id="menu-tree" class="fb-menu-tree"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <template id="tpl-user-form">
+        <form class="fb-form" data-form="user">
+            <input type="hidden" name="id" value="">
+            <div class="fb-form-group">
+                <label class="fb-form-label" for="first_name">Nome</label>
+                <input type="text" id="first_name" name="first_name" class="fb-form-input" required>
+            </div>
+            <div class="fb-form-group">
+                <label class="fb-form-label" for="last_name">Cognome</label>
+                <input type="text" id="last_name" name="last_name" class="fb-form-input" required>
+            </div>
+            <div class="fb-form-group">
+                <label class="fb-form-label" for="email">Email</label>
+                <input type="email" id="email" name="email" class="fb-form-input" required>
+            </div>
+            <div class="fb-form-group">
+                <label class="fb-form-label" for="user_roles">Ruoli</label>
+                <select id="user_roles" name="role_ids[]" class="fb-form-input" multiple></select>
+            </div>
+            <div class="fb-form-group" data-field="password">
+                <label class="fb-form-label" for="password">Password</label>
+                <div class="fb-input-group">
+                    <input type="password" id="password" name="password" class="fb-form-input" minlength="6">
+                    <button type="button" class="fb-input-toggle" data-toggle-password="password" aria-label="Mostra password">
+                        <svg class="icon-eye" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                        <svg class="icon-eye-off" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
+                            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-3.72.72L3 3"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div class="fb-form-actions">
+                <button type="submit" class="fb-btn fb-btn-primary">Salva</button>
+                <button type="button" class="fb-btn fb-btn-secondary" data-action="close">Annulla</button>
+            </div>
+        </form>
+    </template>
+
+    <template id="tpl-role-form">
+        <form class="fb-form" data-form="role">
+            <div class="fb-form-group">
+                <label class="fb-form-label" for="role_name">Nome ruolo</label>
+                <input type="text" id="role_name" name="name" class="fb-form-input" required maxlength="100">
+            </div>
+            <div class="fb-form-group">
+                <label class="fb-form-label" for="role_description">Descrizione</label>
+                <input type="text" id="role_description" name="description" class="fb-form-input" maxlength="255">
+            </div>
+            <div class="fb-form-actions">
+                <button type="submit" class="fb-btn fb-btn-primary">Salva</button>
+                <button type="button" class="fb-btn fb-btn-secondary" data-action="close">Annulla</button>
+            </div>
+        </form>
+    </template>
+
+    <template id="tpl-role-permission-form">
+        <form class="fb-form" data-form="role-permissions">
+            <input type="hidden" name="role_id" value="">
+            <div class="fb-form-group">
+                <strong class="fb-role-name"></strong>
+            </div>
+            <div class="fb-form-group fb-permission-list"></div>
+            <div class="fb-form-actions">
+                <button type="submit" class="fb-btn fb-btn-primary">Salva permessi</button>
+                <button type="button" class="fb-btn fb-btn-secondary" data-action="close">Annulla</button>
+            </div>
+        </form>
+    </template>
+
+    <template id="tpl-permission-form">
+        <form class="fb-form" data-form="permissions">
+            <input type="hidden" name="user_id" value="">
+            <div class="fb-form-group">
+                <strong class="fb-user-name"></strong>
+            </div>
+            <div class="fb-form-group fb-permission-list"></div>
+            <div class="fb-form-actions">
+                <button type="submit" class="fb-btn fb-btn-primary">Salva permessi</button>
+                <button type="button" class="fb-btn fb-btn-secondary" data-action="close">Annulla</button>
+            </div>
+        </form>
+    </template>
+
+    <template id="tpl-doctype-form">
+        <form class="fb-form" data-form="doctype">
+            <input type="hidden" name="id" value="">
+            <div class="fb-form-group">
+                <label class="fb-form-label" for="doctype_name">Nome</label>
+                <input type="text" id="doctype_name" name="name" class="fb-form-input" maxlength="64" required>
+            </div>
+            <div class="fb-form-group">
+                <label class="fb-form-label" for="doctype_description">Descrizione</label>
+                <input type="text" id="doctype_description" name="description" class="fb-form-input" maxlength="255">
+            </div>
+            <div class="fb-form-actions">
+                <button type="submit" class="fb-btn fb-btn-primary">Salva</button>
+                <button type="button" class="fb-btn fb-btn-secondary" data-action="close">Annulla</button>
+            </div>
+        </form>
+    </template>
+{% endblock %}
+
+{% block page_scripts %}
+    <script type="module" src="{{ asset('fairy-bus/js/pages/settings.js') }}?v=7"></script>
+    <script type="module" src="{{ asset('fairy-bus/js/pages/settings-menu.js') }}?v=2"></script>
+{% endblock %}

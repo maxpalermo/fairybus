@@ -98,6 +98,97 @@ Al primo accesso sarai obbligato a cambiare la password.
 
 ## Changelog
 
+### 0.9.11 — 2026-10-07
+- **Ricambi per prezzo d'acquisto (lotti per prezzo)**: switch "Cerca per prezzo d'acquisto" sul titolo della scheda Ricambi (default ON, persistente in `localStorage`). ON: il TableSelect articolo espone il prodotto **una riga per lotto residuo** (`api/products/options?lots=1` → `buildLotProducts`/`priceLots` — i carichi si sommano per prezzo, gli scarichi si sottraggono al prezzo registrato sul movimento; residuo senza storico → lotto all'ultimo prezzo); colonne Codice/Articolo/**Prezzo acq.**/Giacenza per-lotto; selezione → autofill prezzo col prezzo del lotto. OFF: comportamento precedente (giacenza totale + ultimo prezzo d'acquisto). Nessuna allocazione FIFO: lo scarico lo sceglie l'utente.
+- **Lotti negativi**: uno scarico a un prezzo mai caricato produce una voce negativa — visibile nella scheda giacenza come chip rosso ("Scaricato a un prezzo mai caricato"), esclusa dal picker ricambi (solo `qty > 0`).
+- **`TableSelect`**: `_select(value, item)` passa l'item cliccato (necessario con `value` duplicati tra lotti); nuovo `setItems()` che preserva `search`/`data` custom.
+- **Giacenza picker aggiornata live**: `adjustStockCaches()` scala/ripristina la giacenza nelle cache locali dopo ogni aggiunta/eliminazione ricambio sul lotto stesso-prezzo (senza match crea una voce nuova, anche negativa); il dropdown riaperto mostra subito la quantità aggiornata.
+- **Form prodotto**: campo "Unità di misura" come prima casella della riga prezzi (ordine UM→IVA→Acquisto→Vendita, salvato su `fb_stock` via `FbStockModel::setUnit()`), switch "Attivo" spostato sulla barra tab, sezione informativa colorata con prezzi ivati live (`data-price-preview`). `api/products` create/update accettano `unit`. Le select UM dei form giacenza (`products.twig`, `stocks.twig`) elencano tutte le 9 unità da `FbStockModel::UNIT_LABELS` via `unit_labels`.
+- **Ultimo prezzo d'acquisto**: `Documents::addDetail` su carico aggiorna `fb_product.wholesale_price` col prezzo riga al netto dello sconto (se > 0).
+- **Scheda "Giacenza per prezzo d'acquisto"** nella pagina Giacenza: nel detail view di ogni riga, sopra la tabella movimenti, card colorata con un chip per lotto residuo (q.tà × prezzo, colori a rotazione, rosso se negativo) e totale pezzi+valore a destra. Nuovo endpoint `GET api/products/{id}/lots` che riusa `priceLots()` (condivisa con `buildLotProducts`).
+- **IVA senza "Aliquota" ovunque**: `vatLabel()` in `maintenance.js`/`documents.js`/`invoices.js` formatta `22,00%` (fallback testo grezzo per codici non numerici); stessa correzione nei template di stampa `document.twig`/`invoice.twig`.
+- **Simbolo € non separabile**: `\u00A0`/`&nbsp;` tra valore e € in tutti i formatter JS, nei template di stampa e nei placeholder KPI — il segno non va mai a capo da solo.
+- **Dialog scadenziario impilati**: la scheda info occorrenza resta aperta sotto "Esecuzione"/"Rinnova" (modal nativi in pila) e si aggiorna live dopo il salvataggio (`renderInfo` + `onSaved` in `openDoneDialog`); anche il dialog "Scadenze del giorno" non si chiude più al click sulla riga.
+
+### 0.9.10 — 2026-10-07
+- **Manutenzione — stampa dettagli**: nuova icona azzurra in toolbar → `POST admin/maintenance/print-details` (`Maintenance::printDetails` + template `print/maintenance_details.twig`): una scheda completa per ogni manutenzione selezionata (veicolo/data/km/fatture/nota, lavoro eseguito, ricambi con totali) su pagina dedicata; se selezionati >1 documenti, pagina finale "Riepilogo ricambi utilizzati" aggregata per articolo (q.tà, prezzo medio ponderato, imponibile, totale ivato, totale generale). Page-break gestiti con `page-break-after` su tutti i doc tranne l'ultimo + `page-break-before` sul riepilogo (il break finale forzato faceva perdere il contenuto in Dompdf).
+- **Q.tà con unità di misura e sempre positive**: `fb_stock.unit` esposto ai ricambi via subquery in `FbMaintenanceDetailModel::listByMaintenance` (nuova mappa `FbStockModel::UNIT_ABBRS` + `unitAbbr()` → pz/lt/mt/cm/mm/ml/kg/g/mq); la colonna IVA mostra solo il valore (`22,00%`, niente "Aliquota"); quantità e importi sempre `|abs` in stampa e nel riepilogo.
+- **Switch "Forza download PDF"**: toggle nella toolbar manutenzione (persistente in `localStorage`); `PrintHelper` invia `download=1` → `AdminController::pdfResponse` risponde `Content-Disposition: attachment` invece di `inline`. Stili `.fb-switch` promossi da `calendar.css` a `theme.css` (ora globali); helper `PrintHelper.bindForceDownloadSwitch()` riusabile su ogni pagina.
+
+### 0.9.9 — 2026-10-07
+- **Pagina Veicoli allineata al nuovo stile**: sottotitolo, bottoni icona in toolbar (stampa ambra, nuovo verde), azioni riga a icone colorate (dettagli/modifica/elimina), colonna KM formattata, colonna **Stato come toggle check/times cliccabile** (verde attivo / rosso ritirato, con conferma alla disattivazione) e filtro select con etichette italiane; righe ritirate evidenziate in grigio corsivo. Nuovo endpoint `POST api/vehicles/{id}/status` (aggiorna solo lo stato, senza toccare features/altri campi) e nuova variante `.fb-btn-icon-secondary` nel tema.
+- **Veicoli ritirati esclusi dalle liste operative**: `v.status != 'retired'` nei join di `FbExpirationOccurrenceModel` (lista, avvisi, per-id), `FbExpirationModel::listAll` e `FbMaintenanceModel::listAll`; `api/vehicles?active=1` per i select operativi; filtri frontend di scadenziario/manutenzioni/rifornimenti aggiornati da `v.active` (campo inesistente) a `status !== 'retired'`. In Statistiche rifornimenti i veicoli ritirati restano selezionabili per consultare lo storico.
+
+### 0.9.8 — 2026-10-07
+- **Tab "Storico scadenziario"** in `/admin/calendar`: una riga per coppia veicolo+voce con colonna Km attuali, detail view con le occorrenze ordinate per scadenza discendente e colonna azioni solo nel dettaglio; filtro `id_expiration` su `api/expirations/occurrences`.
+- **Dialog "Rinnova" scadenza**: dalla scheda info dell'occorrenza — mostra targa/data odierna/km attuali readonly, banner con voce + intervallo (`interval_value`/`interval_unit` del tag, ora esposti dalle API) e nuova scadenza calcolata (oggi+intervallo o km+intervallo); campo editabile data/km precompilato, avviso se inferiore ad oggi/km attuali (salvataggio comunque consentito), vuoto = valori calcolati. Nuovo endpoint `POST api/expirations/occurrences` (`createOccurrence`, `state=0`).
+- **Rifiniture scadenziario**: celle "mancanti" vuote per le occorrenze eseguite (`state=4`); ordinamento default Targa asc → Voce asc → Scadenza desc su tutte le tabelle e in SQL dello storico; lista "Scadenze del giorno" del calendario ridisegnata a card (targa stile plate EU, voce+scadenza impilate, badge stato).
+
+### 0.9.7 — 2026-10-07
+- **Scadenze nascoste**: colonna `hidden` su `fb_expiration` (migration `AddHiddenToFbExpiration`); colonna azioni con icone colorate su tutte le tabelle del calendario — modifica occorrenza (dialog compatta con data o km), elimina occorrenza, **nascondi/mostra scadenza** (per coppia veicolo+voce via `POST api/expirations/hide|unhide`). Switch "Vedi scadenze nascoste" sincronizzato sulle tre tabelle (`?include_hidden=1`); righe nascoste evidenziate in viola con bottone "Ripristina". Gli avvisi (`listAlerts`) escludono sempre le nascoste.
+
+### 0.9.6 — 2026-10-06
+- **Esecuzione scadenza con km**: "Segna come eseguita" apre un dialog con Data esecuzione (default oggi) e Km attuali (default `vehicle.current_km`). `updateOccurrence` con `state=4` + `done_km` registra la lettura in `fb_vehicle_km` (`reason_class='Expiration'`, `reason_id=id_expiration_occurrence`) e aggiorna `fb_vehicle.current_km` se superiore.
+
+### 0.9.5 — 2026-10-06
+- **Soglie avvisi scadenze configurabili**: `fb_configuration.expiration_alert_days` (default 30) e `expiration_alert_km` (default 2000), modificabili in Impostazioni → Generali → card "Avvisi scadenze". `api/settings/config` li espone e li salva; il calendario li usa per badge "In scadenza" e per la query `api/expirations/alerts`.
+
+### 0.9.4 — 2026-10-06
+- **Tab "Scadenze per veicolo"** in `/admin/calendar`: tabella veicoli (Targa, Veicolo, Km attuali — filtri su targa e nome) con `detailView`: il "+" espande una tabella di dettaglio con tutte le scadenze del veicolo (checkbox, Tipo km/data, Voce, Scadenza a km, Km attuali, Km mancanti, Data scadenza, Giorni mancanti, Stato — filtri su tutte le colonne). Nuovo filtro `id_vehicle` su `api/expirations/occurrences`. La stampa seleziona le righe di tutte le tabelle dettaglio aperte.
+
+### 0.9.3 — 2026-10-06
+- **Scadenziario riorganizzato**: tab Calendario spostato in coda (Avvisi → Periodiche → Chilometriche → Calendario); checkbox di selezione in entrambe le tabelle; bottoni **Stampa** (righe selezionate della tabella attiva → `admin/calendar/print` PDF), **Legenda** (dialog con significato degli stati) e **Nuova scadenza** (dialog con veicolo autocomplete, voce, tipo data/km → `POST api/expirations` crea scadenza + occorrenza).
+
+### 0.9.2 — 2026-10-06
+- **Tab "Scadenze periodiche"** in `/admin/calendar`: tabella a date (Veicolo, Voce, Scadenza, Giorni mancanti colorati, Stato) via `api/expirations/occurrences?date_only=1` — esclude le occorrenze km e quelle senza data. Click riga → stesso dialog "Segna come eseguita" delle altre viste.
+
+### 0.9.1 — 2026-10-05
+- **Manuale completo su tutte le pagine** (40 pagine): Dashboard, Anagrafiche (Clienti/Fornitori/Locations), Documenti (Carichi/Scarichi/Fatture), Rifornimenti (Stazioni/Carico/Gestione/Statistiche), Magazzino, Officina, Impostazioni — ogni rotta mappata nella sezione giusta.
+- **Screenshot automatici nel manuale**: `tools/screenshot-manuale.js` (Playwright, `npm i` in `tools/`) cattura 32 schermate reali — liste, schede di creazione, overlay "salva prima", ricerca articolo con alias — in `public/assets/fairy-bus/manuale/img/`.
+- `build-manuale.php` supporta `![didascalia](img/x.png)` → figure con bordo e didascalia nel PDF. Workflow completo: screenshot + rebuild PDF.
+
+### 0.9.0 — 2026-10-05
+- **Manuale d'uso** (`manuale.md` → `public/manuale.pdf`): sorgente Markdown con marker `<!-- route: admin/xxx -->`; `php tools/build-manuale.php` genera il PDF (copertina + indice con numeri di pagina, ogni sezione su pagina nuova) e il manifest `assets/fairy-bus/manuale-pages.json` (route → pagina).
+- **Bottone "?" in ogni pagina** (header): apre il manuale in una nuova scheda alla sezione della pagina corrente (`manuale.pdf#page=N`); pagine non documentate aprono l'introduzione. `help_url` calcolato in `AdminController::renderAdmin`.
+- Contenuto iniziale: introduzione e convenzioni UI, sezioni Magazzino (Categorie/Prodotti/Giacenze), Officina (Veicoli/Marche/Caratteristiche/Manutenzione/Voci di scadenza/Calendario), Impostazioni con le tab.
+
+### 0.8.12 — 2026-10-05
+- **Tabella ricambi ristrutturata** (12 colonne): Q.tà, Codice, Articolo, Prezzo, Sconto, Importo, Ore, €/h, Manodopera, IVA, Totale. La riga di inserimento è allineata alle colonne con Importo/Manodopera/Totale readonly calcolati live; il pulsante Aggiungi scrive subito nel DB (scarico giacenza incluso). Dialog form allargato a `fb-dialog-wide`; bottoni Salva/Annulla nascosti nei tab Ricambi/Fatture.
+- `FbMaintenanceDetailModel::listByMaintenance` ora include ore/€h/manodopera della riga manodopera collegata (`id_maintenance_detail`).
+
+### 0.8.11 — 2026-10-05
+- **Configurazione globale `hourly_cost`** (`fb_configuration`): nuovo endpoint `api/settings/config` (GET/POST) e tab **Generali** in Impostazioni con il campo "Costo orario manodopera (€/h)".
+- Il campo **Costo €/h** dei ricambi manutenzione è precompilato dal default globale; se inserisci un valore diverso (o non ancora configurato) viene salvato automaticamente in configurazione al momento dell'aggiunta del ricambio.
+
+### 0.8.10 — 2026-10-05
+- **Nuovo componente `TableSelect`**: autocomplete con dropdown a tabella HTML — colonne configurabili (`{title, width, align, render(item)}`), larghezza libera oltre l'input (`position:fixed`, clampato alla viewport, apertura verso l'alto se serve), navigazione ↑↓/Enter/Esc con riga attiva evidenziata, scroll verticale, `maxRows` configurabile (default 25) con riga "altri risultati…", `<tr data-value>` con id selezionabile.
+- **Tutti i picker articolo** usano `TableSelect` (Carichi, Scarichi, Ricambi manutenzione): colonne Codice (alias blu + codice radice sotto), Articolo, Giacenza (badge verde >0 / giallo 0 / rosso <0); ricerca a famiglia su radice+alias. `api/products/options` espone `stock_qty` anche per gli alias.
+
+### 0.8.9 — 2026-10-05
+- **Ricerca articoli a famiglia**: `api/products/options` espone anche `alias_products`; negli autocomplete (carichi, scarichi, ricambi manutenzione) cercando un codice qualsiasi compaiono il prodotto radice e tutti i suoi alias (marcati `↳`, selezionabili — hanno giacenza propria).
+- `SearchableSelect`: rendering limitato a 400 voci con hint "digita per restringere" (lista prodotti ~7.200 voci).
+- Fix overlay "Salva prima la manutenzione" che restava visibile (CSS `display:flex` vs attributo `hidden`).
+
+### 0.8.7 — 2026-10-05
+- **Riga km nel tab Informazioni**: Data — Ultimi km registrati (readonly, da `fb_vehicle.current_km`) — Km attuali — Differenza (readonly, live: verde se positiva, rossa se negativa + avviso e conferma al salvataggio); i km salvati aggiornano `current_km` come prima.
+- **Manodopera per ricambio**: nuova colonna `fb_maintenance_task.id_maintenance_detail`; nella riga di inserimento ricambi campi Tot ore / Costo €/h / Manodopera (readonly = ore × costo); il task generale (`id_maintenance_detail=0`) conserva solo la descrizione; eliminando un ricambio si elimina anche la sua manodopera.
+- **Box "Totale ore di lavorazione"** nel tab Informazioni (ore + manodopera totale di tutti i task, live ad ogni aggiunta/rimozione); rimosse le caselle Ore/Manodopera/Prezzo orario dal tab; dialog Visualizza e PDF con totale manodopera.
+
+### 0.8.6 — 2026-10-05
+- **Manutenzione → Ricambi allineato ai movimenti Carico/Scarico**: stesso dialog `fb-dialog-medium`, `SearchableSelect` articolo (cerca per codice, alias, nome), autofill IVA prodotto con fallback sull'ultima aliquota, focus automatico su Q.tà, stessa griglia `fb-detail-add`.
+- **Scarico/ricarico magazzino**: aggiungere un ricambio chiama `unloadStock` (−giacenza), eliminarlo `loadStock` (rientro) — righe legacy escluse; sync `tax_rate` prodotto anche da manutenzione.
+- **Valori sempre positivi**: quantità, importi e KPI ricambi mostrati in valore assoluto (le righe legacy importate con segno negativo non appaiono più come −12,33 € / −1 pz).
+
+### 0.8.5 — 2026-10-05
+- **`FbStockModel`: API semantica dei movimenti** — `moveStock(id_product, 'in'|'out', qty)`, `loadStock`, `unloadStock`, `setStock` (imposta la giacenza senza toccare i contatori); rimosso `adjustStock`, tutti i call-site convertiti (carichi/scarichi e ricambi manutenzione, insert e storno).
+- **Dialog movimenti**: larghezza `fb-dialog-medium`; selezione articolo → focus automatico su Q.tà; IVA precaricata dal prodotto con fallback sull'ultima aliquota usata nel documento; `SearchableSelect` con dropdown `position: fixed` (mai più tagliato dai dialog) e riposizionamento su scroll/resize.
+- **Select-on-focus globale**: `core/select-on-focus.js` nel layout — al focus ogni campo di testo/numero seleziona tutto il contenuto, in tutta l'app e nei dialog dinamici.
+
+### 0.8.4 — 2026-10-05
+- **Movimenti carico/scarico**: dialog allargato (`fb-dialog-wide`, niente scroll orizzontale); select articolo sostituita da **SearchableSelect** — autocomplete con ricerca per codice, nome e codici alias; alla selezione l'aliquota IVA del prodotto viene precaricata nella riga.
+- **Sync IVA prodotto**: se il prodotto non ha `tax_rate` impostata e nel movimento viene inserita, `addDetail` la riporta sull'anagrafica prodotto.
+- `api/products/options` espone `tax_rate` e `alias_skus`; `SearchableSelect` esteso con `data-search`, `value` e `clear()`.
+
 ### 0.8.3 — 2026-10-04
 - **Dashboard con dati reali** (`Admin\Dashboard`): rimossi tutti i mock — KPI da query su `fb_*` (automezzi attivi + n. con scadenze aperte; scadenze aperte con split scadute/entro 30gg; ricambi sottoscorta su soglie attive; litri erogati nel mese, `direction='out'`), sparkline su serie annuali reali.
 - **Grafico Andamento → ultimi 12 anni**: serie per anno di litri carburante (`fb_refuelling`), manutenzioni e documenti — mostra la storia importata e l'attività corrente.

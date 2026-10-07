@@ -24,9 +24,9 @@
         <meta name="csrf-token" content="{{ csrf.value }}">
         <title>{{ page_title }} — {{ app_name }}</title>
         <link rel="icon" type="image/png" href="{{ asset('fairy-bus/img/favicon.png') }}">
-        <link rel="stylesheet" href="{{ asset('fairy-bus/css/theme.css') }}">
-        <link rel="stylesheet" href="{{ asset('fairy-bus/css/layout.css') }}?v=2">
-        <link rel="stylesheet" href="{{ asset('fairy-bus/css/components/dialog.css') }}">
+        <link rel="stylesheet" href="{{ asset('fairy-bus/css/theme.css') }}?v=10">
+        <link rel="stylesheet" href="{{ asset('fairy-bus/css/layout.css') }}?v=3">
+        <link rel="stylesheet" href="{{ asset('fairy-bus/css/components/dialog.css') }}?v=1">
         <link rel="stylesheet" href="{{ asset('fairy-bus/css/components/toast.css') }}">
         <link rel="stylesheet" href="{{ asset('fairy-bus/css/components/chosen-override.css') }}">
         <link rel="stylesheet" href="{{ asset('fairy-bus/css/components/table-select.css') }}">
@@ -95,6 +95,9 @@
                     {{ page_title }}
                 </div>
                 <div class="fb-header-right">
+                    <a href="{{ help_url }}" target="_blank" rel="noopener" class="fb-help-btn" title="Manuale d'uso — apre la sezione di questa pagina">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                    </a>
                     <span class="fb-user-chip">
                         <span>{{ user.name }}</span>
                         <span>·</span>
@@ -143,11 +146,12 @@
         <link rel="stylesheet" href="{{ asset('fairy-bus/vendors/chosen/chosen.min.css') }}">
         <script src="{{ asset('fairy-bus/vendors/bootstrap-table/bootstrap-table.min.js') }}" defer></script>
         <script src="{{ asset('fairy-bus/vendors/bootstrap-table/bootstrap-table-filter-control.min.js') }}" defer></script>
-        <script src="{{ asset('fairy-bus/js/core/filter-patterns.js') }}" defer></script>
+        <script src="{{ asset('fairy-bus/js/core/filter-patterns.js') }}?v=3" defer></script>
         <script src="{{ asset('fairy-bus/js/components/table-filter-select.js') }}" defer></script>
+        <script src="{{ asset('fairy-bus/js/core/select-on-focus.js') }}?v=1" defer></script>
         <script type="module" src="{{ asset('fairy-bus/js/core/toggle-field.js') }}"></script>
         <link rel="stylesheet" href="{{ asset('fairy-bus/vendors/bootstrap-table/bootstrap-table.min.css') }}">
-        <link rel="stylesheet" href="{{ asset('fairy-bus/css/components/table.css') }}?v=10">
+        <link rel="stylesheet" href="{{ asset('fairy-bus/css/components/table.css') }}?v=13">
         <script>
             document.addEventListener("DOMContentLoaded", function () {
                 document.querySelectorAll(".fb-nav-toggle").forEach(function (toggle) {

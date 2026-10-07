@@ -30,11 +30,11 @@ class AddIdCustomerToFbAddressTable extends Migration
     {
         $this->forge->addColumn('fb_address', [
             'id_customer' => [
-                'type'       => 'INT',
+                'type' => 'INT',
                 'constraint' => 11,
-                'unsigned'   => true,
-                'null'       => true,
-                'after'      => 'id_supplier',
+                'unsigned' => true,
+                'null' => true,
+                'after' => 'id_supplier',
             ],
         ]);
         $this->forge->addKey('id_customer', false, false, 'idx_address_customer');
@@ -42,6 +42,8 @@ class AddIdCustomerToFbAddressTable extends Migration
 
     public function down(): void
     {
-        $this->forge->dropColumn('fb_address', 'id_customer');
+        if ($this->db->fieldExists('id_customer', 'fb_address')) {
+            $this->forge->dropColumn('fb_address', 'id_customer');
+        }
     }
 }

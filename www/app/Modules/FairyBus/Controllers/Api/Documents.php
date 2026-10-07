@@ -122,7 +122,8 @@ class Documents extends AdminController
         $direction = $this->stockDirection($document ?? []);
         foreach ($detailModel->listByDocument($id) as $detail) {
             if (empty($detail['legacy_id'])) {
-                $stock->adjustStock((int) ($detail['id_product'] ?? 0), -$direction * (float) $detail['quantity']);
+                // Storno: eliminare un carico scarica, eliminare uno scarico carica
+                $stock->moveStock((int) ($detail['id_product'] ?? 0), $direction > 0 ? 'out' : 'in', (float) $detail['quantity']);
             }
         }
 
@@ -262,7 +263,26 @@ class Documents extends AdminController
 
         // Riga creata manualmente: carico = +giacenza, scarico = -giacenza
         $direction = $this->stockDirection($document);
-        (new \FairyBus\Models\FbStockModel())->adjustStock((int) $row['id_product'], $direction * (float) $row['quantity']);
+        (new \FairyBus\Models\FbStockModel())->moveStock((int) $row['id_product'], $direction > 0 ? 'in' : 'out', (float) $row['quantity']);
+
+        $productModel = new \FairyBus\Models\FbProductModel();
+        $product = $productModel->find((int) $row['id_product']);
+
+        // Se il prodotto non ha un'aliquota IVA e nel movimento ne è stata
+        // inserita una, la riporta sull'anagrafica del prodotto.
+        $vatInput = $this->request->getPost('vat_rate');
+        if ($vatInput !== null && $vatInput !== '' && $product !== null && (float) ($product['tax_rate'] ?? 0) <= 0) {
+            $productModel->update((int) $row['id_product'], ['tax_rate' => (float) $vatInput]);
+        }
+
+        // Su ogni carico il prezzo d'acquisto del prodotto è allineato
+        // all'ultimo prezzo di carico (al netto dello sconto riga).
+        if ($direction > 0 && $product !== null) {
+            $netPrice = (float) $row['price'] * (1 - (float) ($row['discount'] ?? 0) / 100);
+            if ($netPrice > 0) {
+                $productModel->update((int) $row['id_product'], ['wholesale_price' => $netPrice]);
+            }
+        }
 
         return $this->jsonResponse(['success' => true, 'detail' => $row]);
     }
@@ -285,7 +305,8 @@ class Documents extends AdminController
         if (empty($detail['legacy_id'])) {
             $document = (new \FairyBus\Models\FbDocumentModel())->find((int) $detail['id_document']);
             $direction = $this->stockDirection($document ?? []);
-            (new \FairyBus\Models\FbStockModel())->adjustStock((int) ($detail['id_product'] ?? 0), -$direction * (float) $detail['quantity']);
+            // Storno: eliminare una riga di carico scarica, di scarico carica
+            (new \FairyBus\Models\FbStockModel())->moveStock((int) ($detail['id_product'] ?? 0), $direction > 0 ? 'out' : 'in', (float) $detail['quantity']);
         }
 
         return $this->jsonResponse(['success' => true]);

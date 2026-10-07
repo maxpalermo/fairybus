@@ -50,7 +50,25 @@ abstract class AdminController extends BaseController
             'user' => $this->getCurrentUser(),
             'csrf' => $csrf,
             'toast_prefs' => $this->getToastPrefs(),
+            'help_url' => $this->helpUrl(),
         ])));
+    }
+
+    /**
+     * URL del manuale utente che punta alla sezione della pagina corrente.
+     * La mappa route => pagina PDF viene rigenerata da tools/build-manuale.php.
+     */
+    protected function helpUrl(): string
+    {
+        $map = [];
+        $manifest = FCPATH . 'assets/fairy-bus/manuale-pages.json';
+        if (is_file($manifest)) {
+            $decoded = json_decode((string) file_get_contents($manifest), true);
+            $map = $decoded['routes'] ?? [];
+        }
+        $page = $map[uri_string()] ?? $map['*'] ?? null;
+
+        return base_url('manuale.pdf' . ($page !== null ? '#page=' . $page : ''));
     }
 
     /**
@@ -214,10 +232,11 @@ abstract class AdminController extends BaseController
     protected function pdfResponse(string $pdf, string $name): ResponseInterface
     {
         $filename = PdfHelper::filename($name . '_' . date('Ymd_His'));
+        $disposition = (string) $this->request->getPost('download') === '1' ? 'attachment' : 'inline';
 
         return $this->response
             ->setContentType('application/pdf')
-            ->setHeader('Content-Disposition', 'inline; filename="' . $filename . '"')
+            ->setHeader('Content-Disposition', $disposition . '; filename="' . $filename . '"')
             ->setBody($pdf);
     }
 

@@ -18,7 +18,7 @@
 {% extends "admin/layout.twig" %}
 
 {% block page_styles %}
-    <link rel="stylesheet" href="{{ asset('fairy-bus/css/pages/maintenance.css') }}">
+    <link rel="stylesheet" href="{{ asset('fairy-bus/css/pages/maintenance.css?v=7') }}">
 {% endblock %}
 
 {% block content %}
@@ -29,9 +29,17 @@
                 <p class="fb-page-subtitle">Interventi di manutenzione e tagliandi sui veicoli.</p>
             </div>
             <div class="fb-page-actions">
+                <label class="fb-switch" title="Se attivo, il PDF viene scaricato invece di aperto in anteprima">
+                    <input type="checkbox" id="force-pdf-download">
+                    <span class="fb-switch-slider"></span>
+                    <span class="fb-switch-text">Forza download PDF</span>
+                </label>
                 <span class="fb-muted fb-selected-count" id="maintenance-selected-count">0 selezionati</span>
                 <button type="button" class="fb-btn-icon fb-btn-icon-warning" data-action="print-maintenance" title="Stampa PDF (righe selezionate, max 500)">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                </button>
+                <button type="button" class="fb-btn-icon fb-btn-icon-info" data-action="print-details" title="Stampa dettagli (scheda completa per ogni manutenzione + riepilogo ricambi)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
                 </button>
                 <button type="button" class="fb-btn-icon fb-btn-icon-success" data-action="new-maintenance" title="Nuova manutenzione">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
@@ -52,6 +60,11 @@
                 <button type="button" class="fb-tab active" data-tab="info" role="tab" aria-selected="true">Informazioni</button>
                 <button type="button" class="fb-tab" data-tab="ricambi" role="tab" aria-selected="false">Ricambi</button>
                 <button type="button" class="fb-tab" data-tab="fatture" role="tab" aria-selected="false">Fatture</button>
+                <label class="fb-switch fb-switch-info" style="margin-left: auto;" title="ON: il codice articolo mostra la giacenza divisa per prezzo d'acquisto (lotti residui); OFF: giacenza totale per prodotto">
+                    <input type="checkbox" id="mnt-price-search" checked>
+                    <span class="fb-switch-slider"></span>
+                    <span class="fb-switch-text">Cerca per prezzo d'acquisto</span>
+                </label>
             </div>
 
             <div class="fb-tab-panel active" data-panel="info" role="tabpanel">
@@ -59,44 +72,49 @@
                     <label class="fb-form-label" for="mnt_vehicle">Veicolo</label>
                     <select id="mnt_vehicle" name="id_vehicle" class="fb-form-input" data-field="vehicle" required></select>
                 </div>
-                <div class="fb-form-grid">
+                <div class="fb-form-grid fb-form-grid-4">
                     <div class="fb-form-group">
                         <label class="fb-form-label" for="mnt_date">Data</label>
                         <input type="date" id="mnt_date" name="date" class="fb-form-input">
                     </div>
                     <div class="fb-form-group">
-                        <label class="fb-form-label" for="mnt_km">Km veicolo</label>
+                        <label class="fb-form-label" for="mnt_km_last">Ultimi km registrati</label>
+                        <input type="text" id="mnt_km_last" class="fb-form-input" data-field="km-last" value="—" readonly>
+                    </div>
+                    <div class="fb-form-group">
+                        <label class="fb-form-label" for="mnt_km">Km attuali</label>
                         <input type="number" id="mnt_km" name="km" class="fb-form-input" min="0" step="1" placeholder="Aggiorna i km dell'automezzo">
                     </div>
+                    <div class="fb-form-group">
+                        <label class="fb-form-label" for="mnt_km_diff">Differenza</label>
+                        <input type="text" id="mnt_km_diff" class="fb-form-input fb-km-diff" data-field="km-diff" value="—" readonly>
+                    </div>
                 </div>
+                <p class="fb-km-warn" data-field="km-warn" hidden>Attenzione: i km attuali sono inferiori agli ultimi registrati.</p>
                 <div class="fb-form-group">
                     <label class="fb-form-label" for="mnt_task_desc">Lavoro eseguito</label>
                     <input type="text" id="mnt_task_desc" name="task_description" class="fb-form-input" maxlength="255">
                 </div>
-                <div class="fb-form-grid fb-form-grid-3">
-                    <div class="fb-form-group">
-                        <label class="fb-form-label" for="mnt_hours">Ore</label>
-                        <input type="number" id="mnt_hours" name="hours" class="fb-form-input" min="0" step="1">
-                    </div>
-                    <div class="fb-form-group">
-                        <label class="fb-form-label" for="mnt_manpower">Manodopera</label>
-                        <input type="number" id="mnt_manpower" name="manpower" class="fb-form-input" min="0" step="0.01">
-                    </div>
-                    <div class="fb-form-group">
-                        <label class="fb-form-label" for="mnt_price_hour">Prezzo orario</label>
-                        <input type="number" id="mnt_price_hour" name="price_per_hour" class="fb-form-input" min="0" step="0.01">
-                    </div>
-                </div>
                 <div class="fb-form-group">
                     <label class="fb-form-label" for="mnt_note">Nota</label>
                     <input type="text" id="mnt_note" name="note" class="fb-form-input" maxlength="255">
+                </div>
+                <div class="fb-labor-total" data-field="labor-total">
+                    <div class="fb-labor-cell">
+                        <span class="fb-labor-label">Totale ore di lavorazione</span>
+                        <strong class="fb-labor-value" data-kpi="labor-hours">0 h</strong>
+                    </div>
+                    <div class="fb-labor-cell fb-labor-cell-right">
+                        <span class="fb-labor-label">Manodopera totale</span>
+                        <strong class="fb-labor-value" data-kpi="labor-manpower">0,00&nbsp;€</strong>
+                    </div>
                 </div>
             </div>
 
             <div class="fb-tab-panel" data-panel="ricambi" role="tabpanel">
                 <div class="fb-kpi-grid">
                     <div class="fb-kpi fb-kpi-success">
-                        <span class="fb-kpi-value" data-kpi="total">0,00 €</span>
+                        <span class="fb-kpi-value" data-kpi="total">0,00&nbsp;€</span>
                         <span class="fb-kpi-label">Prezzo totale</span>
                     </div>
                     <div class="fb-kpi fb-kpi-danger">
@@ -113,12 +131,15 @@
                     <table class="fb-table fb-details-table">
                         <thead>
                             <tr>
-                                <th class="num">Q.tà</th>
                                 <th>Codice</th>
                                 <th>Articolo</th>
+                                <th class="num">Q.tà</th>
                                 <th class="num">Prezzo</th>
-                                <th class="num">Sconto/ricarico</th>
+                                <th class="num">Sconto</th>
                                 <th class="num">Importo</th>
+                                <th class="num">Ore</th>
+                                <th class="num">€/h</th>
+                                <th class="num">Manodopera</th>
                                 <th>I.v.a.</th>
                                 <th class="num">Totale</th>
                                 <th></th>
@@ -129,19 +150,72 @@
                 </div>
 
                 <div class="fb-detail-add" data-field="detail-add">
-                    <select class="fb-form-input" data-field="detail-product"></select>
-                    <input type="number" class="fb-form-input" data-field="detail-qty" placeholder="Q.tà" step="0.001" min="0">
-                    <input type="number" class="fb-form-input" data-field="detail-price" placeholder="Prezzo" step="0.0001" min="0">
-                    <input type="number" class="fb-form-input" data-field="detail-discount" placeholder="Sconto %" step="0.01">
-                    <input type="number" class="fb-form-input" data-field="detail-vat" placeholder="IVA %" step="0.01" min="0">
-                    <button type="button" class="fb-btn fb-btn-secondary fb-btn-sm" data-action="add-detail">Aggiungi</button>
+                    <div class="fb-form-field">
+                        <label>Codice / Articolo</label>
+                        <select class="fb-form-input" data-field="detail-product"></select>
+                    </div>
+                    <div class="fb-form-field">
+                        <label>Q.tà</label>
+                        <input type="number" class="fb-form-input" data-field="detail-qty" step="0.001" min="0">
+                    </div>
+                    <div class="fb-form-field">
+                        <label>Prezzo</label>
+                        <div class="fb-price-field">
+                            <input type="number" class="fb-form-input" data-field="detail-price" step="0.0001" min="0">
+                            <button type="button" class="fb-btn-price-search" data-action="search-price" title="Ultimo acquisto per fornitore">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="fb-form-field">
+                        <label>Sconto %</label>
+                        <input type="number" class="fb-form-input" data-field="detail-discount" step="0.01">
+                    </div>
+                    <div class="fb-form-field">
+                        <label>Importo</label>
+                        <input type="text" class="fb-form-input fb-readonly" data-field="detail-importo" readonly>
+                    </div>
+                    <div class="fb-form-field">
+                        <label>Ore</label>
+                        <input type="number" class="fb-form-input" data-field="detail-hours" step="0.5" min="0">
+                    </div>
+                    <div class="fb-form-field">
+                        <label>€/h</label>
+                        <input type="number" class="fb-form-input" data-field="detail-price-hour" step="0.01" min="0">
+                    </div>
+                    <div class="fb-form-field">
+                        <label>Manodopera</label>
+                        <input type="text" class="fb-form-input fb-readonly" data-field="detail-manpower" readonly>
+                    </div>
+                    <div class="fb-form-field">
+                        <label>IVA %</label>
+                        <input type="number" class="fb-form-input" data-field="detail-vat" step="0.01" min="0">
+                    </div>
+                    <div class="fb-form-field">
+                        <label>Totale</label>
+                        <input type="text" class="fb-form-input fb-readonly" data-field="detail-total" readonly>
+                    </div>
+                    <div class="fb-form-field">
+                        <label>&nbsp;</label>
+                        <button type="button" class="fb-btn-add" data-action="add-detail">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                            Aggiungi
+                        </button>
+                    </div>
                 </div>
-                <p class="fb-muted fb-detail-hint" data-field="detail-hint">Salva prima la manutenzione per aggiungere i ricambi. I pezzi aggiunti vengono scaricati dal magazzino.</p>
+                <div class="fb-locked-overlay" data-field="locked-overlay" hidden>
+                    <div class="fb-locked-card">
+                        <span class="fb-locked-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                        </span>
+                        <strong>Salva prima la manutenzione</strong>
+                        <span class="fb-locked-text">per aggiungere i ricambi. I pezzi aggiunti verranno scaricati dal magazzino.</span>
+                    </div>
+                </div>
             </div>
 
             <div class="fb-tab-panel" data-panel="fatture" role="tabpanel">
-                <p class="fb-muted" data-field="invoices-hint">Salva prima la manutenzione per collegare le fatture.</p>
-                <div data-field="invoices-wrap" hidden>
+                <div data-field="invoices-wrap">
                     <div class="fb-details-scroll">
                         <table class="fb-table fb-details-table">
                             <thead>
@@ -160,6 +234,15 @@
                         <button type="button" class="fb-btn fb-btn-secondary fb-btn-sm" data-action="link-invoice">Collega fattura</button>
                     </div>
                 </div>
+                <div class="fb-locked-overlay" data-field="locked-overlay" hidden>
+                    <div class="fb-locked-card">
+                        <span class="fb-locked-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                        </span>
+                        <strong>Salva prima la manutenzione</strong>
+                        <span class="fb-locked-text">per collegare le fatture.</span>
+                    </div>
+                </div>
             </div>
 
             <div class="fb-form-actions">
@@ -171,5 +254,5 @@
 {% endblock %}
 
 {% block page_scripts %}
-    <script type="module" src="{{ asset('fairy-bus/js/pages/maintenance.js') }}"></script>
+    <script type="module" src="{{ asset('fairy-bus/js/pages/maintenance.js?v=24') }}"></script>
 {% endblock %}

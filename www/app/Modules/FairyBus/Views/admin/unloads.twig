@@ -18,7 +18,7 @@
 {% extends "admin/layout.twig" %}
 
 {% block page_styles %}
-    <link rel="stylesheet" href="{{ asset('fairy-bus/css/pages/documents.css') }}">
+    <link rel="stylesheet" href="{{ asset('fairy-bus/css/pages/documents.css') }}?v=2">
 {% endblock %}
 
 {% block content %}
@@ -85,7 +85,7 @@
             <div class="fb-tab-panel" data-panel="movimenti" role="tabpanel">
                 <div class="fb-kpi-grid">
                     <div class="fb-kpi fb-kpi-success">
-                        <span class="fb-kpi-value" data-kpi="total">0,00 €</span>
+                        <span class="fb-kpi-value" data-kpi="total">0,00&nbsp;€</span>
                         <span class="fb-kpi-label">Prezzo totale</span>
                     </div>
                     <div class="fb-kpi fb-kpi-danger">
@@ -118,7 +118,12 @@
                 <div class="fb-detail-add" data-field="detail-add">
                     <select class="fb-form-input" data-field="detail-product"></select>
                     <input type="number" class="fb-form-input" data-field="detail-qty" placeholder="Q.tà" step="0.001" min="0">
-                    <input type="number" class="fb-form-input" data-field="detail-price" placeholder="Prezzo" step="0.0001" min="0">
+                    <div class="fb-price-field">
+                        <input type="number" class="fb-form-input" data-field="detail-price" placeholder="Prezzo" step="0.0001" min="0">
+                        <button type="button" class="fb-btn-price-search" data-action="search-price" title="Ultimo acquisto per fornitore">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                        </button>
+                    </div>
                     <input type="number" class="fb-form-input" data-field="detail-discount" placeholder="Sconto %" step="0.01">
                     <input type="number" class="fb-form-input" data-field="detail-vat" placeholder="IVA %" step="0.01" min="0">
                     <button type="button" class="fb-btn fb-btn-secondary fb-btn-sm" data-action="add-detail">Aggiungi</button>
@@ -135,5 +140,5 @@
 {% endblock %}
 
 {% block page_scripts %}
-    <script type="module" src="{{ asset('fairy-bus/js/pages/documents.js') }}"></script>
+    <script type="module" src="{{ asset('fairy-bus/js/pages/documents.js?v=16') }}"></script>
 {% endblock %}

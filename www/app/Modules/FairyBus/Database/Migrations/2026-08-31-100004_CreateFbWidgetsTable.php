@@ -82,7 +82,7 @@ class CreateFbWidgetsTable extends Migration
 
         $this->forge->addKey('id', true);
         $this->forge->addKey(['user_id', 'position']);
-        $this->forge->createTable('fb_widgets');
+        $this->forge->createTable('fb_widgets', true);
     }
 
     public function down(): void

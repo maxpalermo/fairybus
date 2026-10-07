@@ -264,7 +264,7 @@ function formatAliasCount(value) {
 }
 
 function formatPrice(value) {
-    return Number(value || 0).toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €";
+    return Number(value || 0).toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + "\u00A0€";
 }
 
 function formatActive(value) {
@@ -384,7 +384,8 @@ async function openProductForm(product = null) {
     const form = tpl.content.cloneNode(true).querySelector("form");
     const isEdit = !!product;
     const isAlias = isEdit && product && product.id_alias;
-    const title = isEdit ? (isAlias ? "Modifica alias" : "Modifica prodotto") : "Nuovo prodotto";
+    const productLabel = isEdit ? [product.sku ? `[${product.sku}]` : null, product.name].filter(Boolean).join(" ") : "";
+    const title = isEdit ? `${isAlias ? "Modifica alias" : "Modifica prodotto"} — ${productLabel}` : "Nuovo prodotto";
 
     const brandSelect = form.querySelector('[name="id_brand"]');
     brandSelect.innerHTML = '<option value="">—</option>' + buildOptions(brandOptions, "id_brand", "name", isEdit ? product.id_brand : null);
@@ -407,6 +408,7 @@ async function openProductForm(product = null) {
         form.querySelector('[name="price"]').value = product.price || 0;
         form.querySelector('[name="wholesale_price"]').value = product.wholesale_price || 0;
         form.querySelector('[name="tax_rate"]').value = product.tax_rate || 0;
+        form.querySelector('[name="unit"]').value = String(product.unit ?? 0);
         form.querySelector('[name="active"]').checked = Number(product.active) === 1;
 
         if (isAlias) {
@@ -421,6 +423,26 @@ async function openProductForm(product = null) {
             form.querySelector('[name="name"]').readOnly = true;
         }
     }
+
+    // Anteprima live dei prezzi comprensivi di IVA
+    const preview = form.querySelector("[data-price-preview]");
+    const updatePricePreview = () => {
+        if (!preview) {
+            return;
+        }
+        const vat = Number(form.querySelector('[name="tax_rate"]').value || 0);
+        const buy = Number(form.querySelector('[name="wholesale_price"]').value || 0);
+        const sell = Number(form.querySelector('[name="price"]').value || 0);
+        const fmt = (v) => `${v.toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\u00A0€`;
+        preview.innerHTML = `
+            <span class="fb-pp-label">Prezzi IVA ${vat.toLocaleString("it-IT", { maximumFractionDigits: 2 })}% inclusa</span>
+            <span class="fb-pp-chip fb-pp-buy"><span class="fb-pp-name">Acquisto</span> ${fmt(buy * (1 + vat / 100))}</span>
+            <span class="fb-pp-chip fb-pp-sell"><span class="fb-pp-name">Vendita</span> ${fmt(sell * (1 + vat / 100))}</span>`;
+    };
+    ["tax_rate", "wholesale_price", "price"].forEach((name) => {
+        form.querySelector(`[name="${name}"]`)?.addEventListener("input", updatePricePreview);
+    });
+    updatePricePreview();
 
     const d = document.createElement("dialog");
     if (isAlias) {
@@ -514,8 +536,12 @@ function bindAliasAdd(form, rootId, dialogEl) {
     const btn = form.querySelector('[data-action="add-alias"]');
     if (!btn) return;
 
-    const brandSelect = form.querySelector('[data-alias-field="id_brand"]');
-    brandSelect.innerHTML = '<option value="">Marca</option>' + buildOptions(brandOptions, "id_brand", "name");
+    // La select può essere già stata wrappata da TableSelect: in quel caso
+    // il campo trovato è l'hidden input (valore) e le opzioni arrivano dal manager.
+    const brandField = form.querySelector('[data-alias-field="id_brand"]');
+    if (brandField && brandField.tagName === "SELECT") {
+        brandField.innerHTML = '<option value="">Marca</option>' + buildOptions(brandOptions, "id_brand", "name");
+    }
     tableSelectManager.init(dialogEl);
 
     btn.addEventListener("click", async () => {
@@ -525,7 +551,7 @@ function bindAliasAdd(form, rootId, dialogEl) {
         }
 
         const sku = form.querySelector('[data-alias-field="sku"]').value.trim();
-        const idBrand = form.querySelector('[data-alias-field="id_brand"]').value;
+        const idBrand = form.querySelector('[data-alias-field="id_brand"]')?.value || "";
         const price = form.querySelector('[data-alias-field="price"]').value || 0;
 
         if (!sku) {
@@ -541,7 +567,11 @@ function bindAliasAdd(form, rootId, dialogEl) {
                 wholesale_price: 0,
             });
             form.querySelector('[data-alias-field="sku"]').value = "";
-            form.querySelector('[data-alias-field="id_brand"]').value = "";
+            const bf = form.querySelector('[data-alias-field="id_brand"]');
+            if (bf) {
+                bf.value = "";
+                bf.closest(".fb-tableselect")?._tableSelect?.clear();
+            }
             form.querySelector('[data-alias-field="price"]').value = "";
             await renderAliases(form, rootId);
             await loadOptions();

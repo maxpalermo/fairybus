@@ -40,7 +40,7 @@ class CreateFbTypeDocumentTable extends Migration
                 'description' => ['type' => 'VARCHAR', 'constraint' => 255, 'null' => true],
             ]);
             $this->forge->addKey('id', true);
-            $this->forge->createTable('fb_type_document');
+            $this->forge->createTable('fb_type_document', true);
 
             $this->db->table('fb_type_document')->insertBatch([
                 ['id' => 0, 'name' => 'Default', 'description' => 'Documento generico'],

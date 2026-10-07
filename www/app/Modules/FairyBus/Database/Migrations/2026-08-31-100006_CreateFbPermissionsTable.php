@@ -57,7 +57,7 @@ class CreateFbPermissionsTable extends Migration
 
         $this->forge->addKey('id', true);
         $this->forge->addUniqueKey('name');
-        $this->forge->createTable('fb_permissions');
+        $this->forge->createTable('fb_permissions', true);
     }
 
     public function down(): void

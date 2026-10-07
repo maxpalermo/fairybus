@@ -350,3 +350,185 @@ body .bootstrap-table .fixed-table-pagination .pagination .page-item:not(.active
     opacity: 0.5;
     cursor: wait;
 }
+
+/* PurchasePicker — storico acquisti per fornitore */
+
+.fb-purchase-table-wrap {
+    border: 1px solid var(--fb-border);
+    border-radius: var(--fb-radius);
+    overflow: hidden;
+}
+
+.fb-purchase-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8125rem;
+}
+
+.fb-purchase-table thead th {
+    background-color: var(--fb-muted);
+    color: var(--fb-foreground);
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+    border-bottom: 1px solid var(--fb-border);
+    padding: 0.5rem 0.75rem;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.fb-purchase-table tbody td {
+    padding: 0.625rem 0.75rem;
+    border-top: 1px solid var(--fb-border);
+    color: var(--fb-foreground);
+    vertical-align: middle;
+}
+
+.fb-purchase-table tbody tr:hover td {
+    background-color: var(--fb-muted);
+}
+
+.fb-purchase-table td.num,
+.fb-purchase-table th.num {
+    text-align: right;
+    white-space: nowrap;
+}
+
+.fb-purchase-table td.sup {
+    font-weight: 500;
+}
+
+.fb-purchase-table td.price {
+    font-weight: 600;
+}
+
+.fb-purchase-table td.nowrap {
+    white-space: nowrap;
+}
+
+.fb-btn-select {
+    background: var(--fb-foreground);
+    color: var(--fb-background, #fff);
+    border: none;
+    border-radius: 0.375rem;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.fb-btn-select:hover {
+    background: var(--fb-primary);
+    color: var(--fb-primary-foreground, #fff);
+}
+
+/* Campo prezzo con lente storico acquisti */
+
+.fb-price-field {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+.fb-price-field .fb-form-input {
+    width: 100%;
+    padding-right: 2rem;
+}
+
+.fb-btn-price-search {
+    position: absolute;
+    right: 0.25rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 1.5rem;
+    height: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: transparent;
+    color: var(--fb-muted-foreground);
+    cursor: pointer;
+    border-radius: 0.25rem;
+    padding: 0;
+}
+
+.fb-btn-price-search:hover {
+    background: var(--fb-muted);
+    color: var(--fb-foreground);
+}
+
+/* Bottone "?" sintassi filtri (iniettato da filter-patterns.js) */
+
+.fb-filter-help-btn {
+    float: right;
+    width: 1.5rem;
+    height: 1.5rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 0.5rem;
+    border: 1px solid var(--fb-border, #e4e4e7);
+    border-radius: 50%;
+    background: #fff;
+    color: var(--fb-muted-foreground);
+    cursor: pointer;
+    padding: 0;
+    transition:
+        background 0.15s,
+        color 0.15s,
+        border-color 0.15s;
+}
+
+.fb-filter-help-btn:hover {
+    background: var(--fb-muted);
+    color: var(--fb-foreground);
+    border-color: var(--fb-muted-foreground);
+}
+
+/* Tabella legenda nel dialog sintassi filtri */
+
+.fb-legend-table-wrap {
+    border: 1px solid var(--fb-border, #e4e4e7);
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+
+.fb-legend-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8125rem;
+}
+
+.fb-legend-table th {
+    background: var(--fb-muted);
+    padding: 0.5rem 0.75rem;
+    text-align: left;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--fb-muted-foreground);
+}
+
+.fb-legend-table td {
+    padding: 0.45rem 0.75rem;
+    border-top: 1px solid var(--fb-border, #e4e4e7);
+    vertical-align: middle;
+}
+
+.fb-legend-table tbody tr:hover td {
+    background: var(--fb-muted);
+}
+
+.fb-legend-table code {
+    font-family: ui-monospace, monospace;
+    font-size: 0.8125rem;
+    background: var(--fb-muted);
+    border-radius: 0.25rem;
+    padding: 0.1rem 0.4rem;
+    white-space: nowrap;
+}

@@ -85,7 +85,7 @@ class CreateFbCategoriesTable extends Migration
         $this->forge->addKey('id_category', true);
         $this->forge->addKey('id_parent');
         $this->forge->addKey('active');
-        $this->forge->createTable('fb_category');
+        $this->forge->createTable('fb_category', true);
 
         // Root category
         $this->db->table('fb_category')->insert([

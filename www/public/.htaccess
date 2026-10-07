@@ -47,3 +47,7 @@ Options -Indexes
 # Disable server signature start
 ServerSignature Off
 # Disable server signature end
+
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE application/json application/javascript text/css text/html
+</IfModule>

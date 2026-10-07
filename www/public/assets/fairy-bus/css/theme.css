@@ -175,13 +175,20 @@ a {
     border: 0;
 }
 
-/* Header pagina con azioni e contatore selezione per stampe */
+/* Header pagina con azioni e contatore selezione per stampe.
+   Sticky: resta sempre visibile mentre la tabella scrolla. */
 .fb-page-header {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
     margin-bottom: 1.5rem;
     gap: 1rem;
+    position: sticky;
+    top: 0;
+    z-index: 15;
+    background: var(--fb-background, #fff);
+    padding: 0.75rem 0;
+    box-shadow: 0 1px 0 var(--fb-border, #e4e4e7);
 }
 
 .fb-page-header .fb-page-title {
@@ -218,6 +225,11 @@ a {
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
+}
+
+/* [hidden] deve vincere sui display author-level */
+[hidden] {
+    display: none !important;
 }
 
 .fb-form-label {
@@ -284,12 +296,11 @@ select.fb-form-input {
     box-shadow: 0 0 0 1px var(--fb-ring);
 }
 
+/* fixed = esce dal contenitore: sfugge all'overflow del <dialog> nativo.
+   left/top/bottom/width sono impostati da JS su coordinate viewport. */
 .fb-searchable-select-dropdown {
     display: none;
-    position: absolute;
-    top: calc(100% + 4px);
-    left: 0;
-    right: 0;
+    position: fixed;
     max-height: 240px;
     overflow-y: auto;
     background: var(--fb-background);
@@ -334,6 +345,126 @@ select.fb-form-input {
     font-size: 0.8125rem;
     color: var(--fb-muted-foreground);
     text-align: center;
+}
+
+/* ---------- TableSelect: autocomplete con dropdown a tabella ---------- */
+
+.fb-tableselect {
+    position: relative;
+    width: 100%;
+}
+
+.fb-tableselect-dropdown {
+    position: fixed;
+    z-index: 1070;
+    display: none;
+    overflow-y: auto;
+    max-height: 24rem;
+    background: #fff;
+    border: 1px solid var(--fb-border, #e2e8f0);
+    border-radius: 0.5rem;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+}
+
+.fb-tableselect-dropdown.open {
+    display: block;
+}
+
+.fb-tableselect-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8125rem;
+}
+
+.fb-tableselect-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: #f8fafc;
+    padding: 0.5rem 0.625rem;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--fb-muted-foreground, #64748b);
+    border-bottom: 1px solid var(--fb-border, #e2e8f0);
+    white-space: nowrap;
+}
+
+.fb-tableselect-table td {
+    padding: 0.375rem 0.625rem;
+    border-bottom: 1px solid #f1f5f9;
+    vertical-align: middle;
+    color: var(--fb-foreground);
+}
+
+.fb-tableselect-row {
+    cursor: pointer;
+}
+
+.fb-tableselect-row:hover,
+.fb-tableselect-row.active {
+    background: #eff6ff;
+}
+
+.fb-tableselect-row.selected {
+    background: #dbeafe;
+}
+
+.fb-tableselect-empty td {
+    color: var(--fb-muted-foreground);
+    font-style: italic;
+}
+
+.fb-tableselect-noresults {
+    padding: 0.75rem;
+    font-size: 0.8125rem;
+    color: var(--fb-muted-foreground);
+    text-align: center;
+}
+
+/* Celle di uso comune: codice prodotto + alias e giacenza colorata */
+.fb-ts-code {
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.fb-ts-code-alias {
+    font-weight: 700;
+    color: #1d4ed8;
+    white-space: nowrap;
+}
+
+.fb-ts-code-root {
+    font-size: 0.75rem;
+    color: var(--fb-muted-foreground, #64748b);
+    white-space: nowrap;
+}
+
+.fb-ts-qty {
+    display: inline-block;
+    min-width: 2.75rem;
+    padding: 0.125rem 0.5rem;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 0.75rem;
+    text-align: center;
+}
+
+.fb-ts-qty-pos {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.fb-ts-qty-zero {
+    background: #fef9c3;
+    color: #a16207;
+}
+
+.fb-ts-qty-neg {
+    background: #fee2e2;
+    color: #b91c1c;
 }
 
 /* Avvisi in dialog */
@@ -607,6 +738,10 @@ select.fb-form-input {
     color: #16a34a;
 }
 
+.fb-btn-icon-secondary {
+    color: #64748b;
+}
+
 /* Icone check/times colorate (es. colonna Fattura) */
 .fb-ico {
     display: inline-flex;
@@ -877,4 +1012,70 @@ select.fb-form-input {
     font-size: 0.8125rem;
     color: var(--fb-muted-foreground);
     cursor: pointer;
+}
+
+/* Switch generico */
+.fb-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    cursor: pointer;
+    user-select: none;
+}
+
+.fb-switch input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.fb-switch-slider {
+    position: relative;
+    width: 42px;
+    height: 23px;
+    flex-shrink: 0;
+    background: #e2e8f0;
+    border-radius: 9999px;
+    transition: background 0.2s ease;
+}
+
+.fb-switch-slider::before {
+    content: "";
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 17px;
+    height: 17px;
+    background: #fff;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.3);
+    transition: transform 0.2s ease;
+}
+
+.fb-switch input:checked+.fb-switch-slider {
+    background: var(--fb-switch-color, #2563eb);
+}
+
+.fb-switch input:checked+.fb-switch-slider::before {
+    transform: translateX(19px);
+}
+
+.fb-switch input:focus-visible+.fb-switch-slider {
+    outline: 2px solid var(--fb-switch-color, #2563eb);
+    outline-offset: 2px;
+}
+
+.fb-switch-warning {
+    --fb-switch-color: #d97706;
+}
+
+.fb-switch-info {
+    --fb-switch-color: #0284c7;
+}
+
+.fb-switch-text {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: #475569;
 }

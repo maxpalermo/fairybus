@@ -1,6 +1,8 @@
 import FetchHelper from "../core/FetchHelper.js";
 import DialogHelper from "../core/DialogHelper.js";
 import PrintHelper from "../components/PrintHelper.js";
+import TableSelect from "../components/TableSelect.js?v=2";
+import { openPurchasePicker, loadProductPurchases } from "../components/PurchasePicker.js";
 import { viewItem } from "../components/ViewGrid.js";
 
 const dialog = new DialogHelper();
@@ -8,6 +10,7 @@ let suppliersCache = [];
 let productsCache = [];
 let docTypesCache = null;
 let invoicesCache = null;
+let lastVat = null;
 
 // 'in' = carichi da fornitori (stock +), 'out' = scarichi verso clienti (stock -)
 const DIRECTION = document.getElementById("documents-table")?.dataset.direction === "out" ? "out" : "in";
@@ -29,7 +32,7 @@ function fmtDate(value) {
 }
 
 function fmtMoney(value) {
-    return `${Number(value || 0).toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
+    return `${Number(value || 0).toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\u00A0€`;
 }
 
 function fmtQty(value) {
@@ -170,8 +173,33 @@ function populateTypeSelect(select, selectedId) {
     select.innerHTML = (docTypesCache || []).map((t) => `<option value="${t.id}" ${Number(selectedId ?? 0) === Number(t.id) ? "selected" : ""}>${escapeHtml(t.name)}</option>`).join("");
 }
 
-function populateProductSelect(select) {
-    select.innerHTML = '<option value="">— Articolo —</option>' + productsCache.map((p) => `<option value="${p.id_product}">${escapeHtml(p.label)}</option>`).join("");
+/**
+ * Item per TableSelect: ricerca "a famiglia" — ogni riga (radice o alias)
+ * porta in search i termini di tutta la famiglia, così cercando un codice
+ * alias compaiono radice, alias trovato e fratelli.
+ */
+function buildProductItems() {
+    const byId = new Map(productsCache.map((p) => [Number(p.id_product), p]));
+    const childrenOf = new Map();
+    for (const p of productsCache) {
+        const pid = Number(p.id_alias || 0);
+        if (pid > 0) {
+            if (!childrenOf.has(pid)) {
+                childrenOf.set(pid, []);
+            }
+            childrenOf.get(pid).push(p);
+        }
+    }
+    return productsCache.map((p) => {
+        const pid = Number(p.id_alias || 0);
+        const root = pid > 0 ? byId.get(pid) : p;
+        const members = root ? [root, ...(childrenOf.get(Number(root.id_product)) || [])] : [p];
+        const search = members
+            .map((m) => `${m.sku || ""} ${m.name || ""}`)
+            .join(" ")
+            .toLowerCase();
+        return { value: String(p.id_product), label: p.label, search, data: p };
+    });
 }
 
 function detailTotals(detail) {
@@ -184,10 +212,12 @@ function detailTotals(detail) {
 }
 
 function vatLabel(detail) {
-    if (detail.vat_code) {
-        return escapeHtml(`Aliquota ${detail.vat_code}%`);
+    const vat = detail.vat_code ?? detail.vat_rate;
+    if (vat === null || vat === undefined || vat === "") {
+        return "—";
     }
-    return detail.vat_rate !== null && detail.vat_rate !== undefined ? `${Number(detail.vat_rate)}%` : "—";
+    const num = Number(vat);
+    return isNaN(num) ? escapeHtml(String(vat)) : `${num.toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
 }
 
 function renderDetails(form, details) {
@@ -221,6 +251,10 @@ function renderDetails(form, details) {
     form.querySelector('[data-kpi="total"]').textContent = fmtMoney(total);
     form.querySelector('[data-kpi="qty"]').textContent = fmtQty(qty);
     form.querySelector('[data-kpi="rows"]').textContent = String(details.length);
+
+    // Ultima aliquota usata nel documento: fallback per i prodotti senza IVA
+    const last = details[details.length - 1];
+    lastVat = last && Number(last.vat_rate) > 0 ? Number(last.vat_rate) : lastVat;
 }
 
 async function loadDetails(form, idDocument) {
@@ -267,8 +301,98 @@ function openDocumentForm(doc = null) {
     const title = doc ? `${DOC_LABEL} ${doc.number || ""}` : `Nuovo ${DOC_LABEL.toLowerCase()}`;
 
     populateSupplierSelect(form.querySelector('[data-field="supplier"]'), doc?.[PARTNER_FIELD]);
-    populateProductSelect(form.querySelector('[data-field="detail-product"]'));
+    const productSelEl = form.querySelector('[data-field="detail-product"]');
+    const productById = new Map(productsCache.map((p) => [Number(p.id_product), p]));
     populateTypeSelect(form.querySelector('[data-field="type"]'), doc?.type);
+
+    // Articolo → TableSelect: tabella con codice (+ radice per gli alias),
+    // nome e giacenza colorata; ricerca a famiglia su tutta la gerarchia alias.
+    const vatInput = form.querySelector('[data-field="detail-vat"]');
+    const priceInput = form.querySelector('[data-field="detail-price"]');
+    const qtyInput = form.querySelector('[data-field="detail-qty"]');
+    const discountInput = form.querySelector('[data-field="detail-discount"]');
+    // Carico → prezzo d'acquisto, Scarico → prezzo di vendita
+    const priceField = DIRECTION === "out" ? "price" : "wholesale_price";
+    let purchasesData = null;
+    const productPicker = new TableSelect(productSelEl, {
+        items: buildProductItems(),
+        maxRows: 25,
+        placeholder: "Cerca articolo per codice, alias o nome…",
+        emptyText: "— Articolo —",
+        columns: [
+            {
+                title: "Codice",
+                width: "10rem",
+                render: (item) => {
+                    const p = item.data;
+                    if (Number(p.id_alias || 0) > 0) {
+                        const root = productById.get(Number(p.id_alias));
+                        return `<div class="fb-ts-code-alias">${escapeHtml(p.sku || "—")}</div>` + (root ? `<div class="fb-ts-code-root">${escapeHtml(root.sku || "")}</div>` : "");
+                    }
+                    return `<span class="fb-ts-code">${escapeHtml(p.sku || "—")}</span>`;
+                },
+            },
+            { title: "Articolo", render: (item) => escapeHtml(item.data.name || "—") },
+            {
+                title: "Giacenza",
+                width: "5.5rem",
+                align: "right",
+                render: (item) => {
+                    const q = Number(item.data.stock_qty ?? 0);
+                    const cls = q > 0 ? "pos" : q < 0 ? "neg" : "zero";
+                    return `<span class="fb-ts-qty fb-ts-qty-${cls}">${q.toLocaleString("it-IT")}</span>`;
+                },
+            },
+        ],
+        // Prima il match diretto (il codice/nome cercato), poi il resto
+        // della famiglia e gli altri risultati per giacenza decrescente.
+        sortResults: (items, term) => {
+            const isDirect = (i) => i.data && `${i.data.sku || ""} ${i.data.name || ""}`.toLowerCase().includes(term);
+            const direct = [];
+            const rest = [];
+            items.forEach((i) => (isDirect(i) ? direct : rest).push(i));
+            rest.sort((a, b) => Number(b.data?.stock_qty ?? 0) - Number(a.data?.stock_qty ?? 0));
+            return [...direct, ...rest];
+        },
+        onChange: async (value) => {
+            const p = productsCache.find((pr) => Number(pr.id_product) === Number(value));
+            purchasesData = null;
+            if (!p) {
+                return;
+            }
+            vatInput.value = Number(p.tax_rate) > 0 ? Number(p.tax_rate) : "0.00";
+            qtyInput.focus();
+            // Carico: il prezzo proposto è quello dell'ultimo acquisto effettuato
+            if (DIRECTION === "in") {
+                try {
+                    purchasesData = await loadProductPurchases(p.id_product);
+                    const lastPrice = purchasesData?.last ? Number(purchasesData.last.price) : null;
+                    priceInput.value = Number(lastPrice ?? p[priceField] ?? 0).toFixed(2);
+                } catch (err) {
+                    priceInput.value = Number(p[priceField] ?? 0).toFixed(2);
+                }
+            } else {
+                priceInput.value = Number(p[priceField] ?? 0).toFixed(2);
+            }
+        },
+    });
+
+    // Sui carichi, il focus sul prezzo apre lo storico acquisti per fornitore
+    // La lente accanto al prezzo apre lo storico acquisti per fornitore
+    // (solo sui carichi: nascosta sugli scarichi)
+    const searchBtn = form.querySelector('[data-action="search-price"]');
+    if (DIRECTION !== "in" && searchBtn) {
+        searchBtn.style.display = "none";
+    }
+    searchBtn?.addEventListener("click", () => {
+        if (DIRECTION !== "in" || !productPicker.value) {
+            return;
+        }
+        openPurchasePicker(purchasesData, (row) => {
+            priceInput.value = Number(row.price).toFixed(2);
+            discountInput.focus();
+        });
+    });
 
     if (doc) {
         form.querySelector('[name="id_document"]').value = doc.id_document;
@@ -281,7 +405,7 @@ function openDocumentForm(doc = null) {
     setDetailsEnabled(form, !isNew);
 
     const d = document.createElement("dialog");
-    d.className = "fb-dialog";
+    d.className = "fb-dialog fb-dialog-medium";
     d.innerHTML = `<div class="fb-dialog-header"><h3 class="fb-dialog-title">${escapeHtml(title)}</h3></div><div class="fb-dialog-body"></div>`;
     d.querySelector(".fb-dialog-body").appendChild(form);
     document.body.appendChild(d);
@@ -322,7 +446,7 @@ function openDocumentForm(doc = null) {
             return;
         }
         const data = {
-            id_product: form.querySelector('[data-field="detail-product"]').value,
+            id_product: productPicker.value,
             quantity: form.querySelector('[data-field="detail-qty"]').value,
             price: form.querySelector('[data-field="detail-price"]').value,
             discount: form.querySelector('[data-field="detail-discount"]').value,
@@ -330,6 +454,8 @@ function openDocumentForm(doc = null) {
         };
         try {
             await FetchHelper.post(`${window.FB.baseUrl}api/documents/${idDocument}/details`, data);
+            productPicker.clear();
+            purchasesData = null;
             form.querySelector('[data-field="detail-qty"]').value = "";
             form.querySelector('[data-field="detail-price"]').value = "";
             form.querySelector('[data-field="detail-discount"]').value = "";
@@ -535,7 +661,7 @@ async function loadOptions() {
     try {
         const [partners, products] = await Promise.all([FetchHelper.get(`${window.FB.baseUrl}${partnersUrl}`), FetchHelper.get(`${window.FB.baseUrl}api/products/options`)]);
         suppliersCache = (partners.rows || []).filter((s) => Number(s.active) === 1);
-        productsCache = products.products || [];
+        productsCache = [...(products.products || []), ...(products.alias_products || [])].sort((a, b) => String(a.label).localeCompare(String(b.label), "it"));
     } catch (err) {
         await dialog.error(err);
     }
@@ -554,6 +680,14 @@ function initPage() {
         dialog,
     });
     loadOptions();
+
+    // ?open=<id> — apre direttamente la scheda del documento (link dalle giacenze)
+    const openId = new URLSearchParams(location.search).get("open");
+    if (openId) {
+        FetchHelper.get(`${window.FB.baseUrl}api/documents/${openId}`)
+            .then((res) => res?.document && openDocumentForm(res.document))
+            .catch(() => {});
+    }
 }
 
 if (document.readyState === "loading") {

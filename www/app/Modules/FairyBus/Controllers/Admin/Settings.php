@@ -49,6 +49,9 @@ class Settings extends AdminController
                 'duration' => (int) ($config->get('toast_duration')['value'] ?? 5),
                 'style' => $config->get('toast_style')['value'] ?? 'default',
             ],
+            'hourly_cost' => (float) ($config->get('hourly_cost')['value'] ?? 0),
+            'expiration_alert_days' => (int) ($config->get('expiration_alert_days')['value'] ?? 30),
+            'expiration_alert_km' => (int) ($config->get('expiration_alert_km')['value'] ?? 2000),
         ]);
     }
 }

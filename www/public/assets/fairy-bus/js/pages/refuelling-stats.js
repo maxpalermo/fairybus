@@ -35,7 +35,7 @@ function fmtLiters(value) {
 }
 
 function fmtMoney(value) {
-    return `${Number(value || 0).toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
+    return `${Number(value || 0).toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\u00A0€`;
 }
 
 function directionBadge(value) {

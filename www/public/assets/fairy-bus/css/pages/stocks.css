@@ -42,3 +42,372 @@
     background: var(--fb-muted, #f4f4f5);
     border-radius: 0.375rem;
 }
+
+/* Espansione riga — storico movimenti */
+
+.detail-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.4rem;
+    height: 1.4rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 0.375rem;
+    color: #475569;
+    text-decoration: none;
+}
+
+.detail-icon:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+}
+
+.detail-icon i::before {
+    font-style: normal;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.detail-icon .icon-plus::before,
+.detail-icon .bi-plus::before,
+.detail-icon .glyphicon-plus::before,
+.detail-icon .fa-plus::before {
+    content: "+";
+}
+
+.detail-icon .icon-minus::before,
+.detail-icon .bi-dash::before,
+.detail-icon .glyphicon-minus::before,
+.detail-icon .fa-minus::before {
+    content: "−";
+}
+
+.fb-stock-detail {
+    padding: 0.5rem 0.5rem 0.75rem;
+    background: var(--fb-muted, #f8fafc);
+}
+
+/* Card ultimo/miglior prezzo d'acquisto */
+
+.fb-price-cards {
+    display: flex;
+    gap: 0.625rem;
+    margin-bottom: 0.625rem;
+    flex-wrap: wrap;
+}
+
+.fb-price-card {
+    flex: 1 1 14rem;
+    border-radius: 0.625rem;
+    padding: 0.5rem 0.875rem;
+    border: 1px solid transparent;
+}
+
+.fb-price-card .fb-pc-title {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    opacity: 0.8;
+}
+
+.fb-price-card .fb-pc-price {
+    font-size: 1.25rem;
+    font-weight: 700;
+    line-height: 1.2;
+    margin: 0.125rem 0 0.25rem;
+}
+
+.fb-price-card .fb-pc-detail {
+    font-size: 0.75rem;
+    line-height: 1.3;
+    opacity: 0.85;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.fb-price-last {
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    border-color: #bfdbfe;
+    color: #1e40af;
+}
+
+.fb-price-best {
+    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+    border-color: #bbf7d0;
+    color: #166534;
+}
+
+/* Scheda giacenza per prezzo d'acquisto */
+
+.fb-lots-card {
+    background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%);
+    border: 1px solid #bfdbfe;
+    border-radius: 0.625rem;
+    padding: 0.625rem 0.875rem;
+    margin-bottom: 0.625rem;
+}
+
+.fb-lots-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.fb-lots-title {
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: #1e40af;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.fb-lots-total {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #166534;
+    background: #dcfce7;
+    border: 1px solid #bbf7d0;
+    border-radius: 9999px;
+    padding: 0.125rem 0.625rem;
+}
+
+.fb-lots-body {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.fb-lot-chip {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.375rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    border: 1px solid transparent;
+}
+
+.fb-lot-qty {
+    font-weight: 700;
+}
+
+.fb-lot-sep {
+    opacity: 0.55;
+    font-weight: 400;
+}
+
+.fb-lot-0 {
+    background: #dbeafe;
+    color: #1e40af;
+    border-color: #bfdbfe;
+}
+
+.fb-lot-1 {
+    background: #dcfce7;
+    color: #166534;
+    border-color: #bbf7d0;
+}
+
+.fb-lot-2 {
+    background: #fef3c7;
+    color: #92400e;
+    border-color: #fde68a;
+}
+
+.fb-lot-3 {
+    background: #f3e8ff;
+    color: #6b21a8;
+    border-color: #e9d5ff;
+}
+
+.fb-lot-neg {
+    background: #fee2e2;
+    color: #991b1b;
+    border-color: #fecaca;
+}
+
+.fb-stock-detail .bootstrap-table {
+    background: #fff;
+}
+
+/* Badge movimento */
+
+.fb-badge {
+    display: inline-block;
+    padding: 0.125rem 0.5rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.fb-badge-success {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.fb-badge-danger {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.fb-mov-qty {
+    font-weight: 600;
+}
+
+.fb-mov-in {
+    color: #166534;
+}
+
+.fb-mov-out {
+    color: #991b1b;
+}
+
+/* Icona tipo soggetto (Fornitore/Cliente/Veicolo) */
+
+.fb-subj-ico {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 0.375rem;
+}
+
+.fb-subj-ico svg {
+    width: 0.9rem;
+    height: 0.9rem;
+}
+
+.fb-subj-sup {
+    background: rgba(37, 99, 235, 0.12);
+    color: #1d4ed8;
+}
+
+.fb-subj-cust {
+    background: rgba(124, 58, 237, 0.12);
+    color: #6d28d9;
+}
+
+.fb-subj-veh {
+    background: rgba(217, 119, 6, 0.14);
+    color: #b45309;
+}
+
+/* Icona fonte movimento: documento / manutenzione */
+
+.fb-doc-ico {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.25rem;
+    height: 1.25rem;
+    border-radius: 0.3rem;
+    vertical-align: -0.25rem;
+    margin-right: 0.25rem;
+}
+
+.fb-doc-ico svg {
+    width: 0.8rem;
+    height: 0.8rem;
+}
+
+.fb-doc-doc {
+    background: rgba(37, 99, 235, 0.12);
+    color: #1d4ed8;
+}
+
+.fb-doc-maint {
+    background: rgba(5, 150, 105, 0.14);
+    color: #047857;
+}
+
+/* Link al documento/manutenzione di origine */
+
+.fb-doc-link {
+    color: var(--fb-foreground);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.fb-doc-link:hover {
+    text-decoration: underline;
+    color: var(--fb-primary);
+}
+
+/* Riga movimento cliccabile */
+
+.fb-stock-detail .bootstrap-table .table tbody tr {
+    cursor: pointer;
+}
+
+.fb-stock-detail .bootstrap-table .table tbody tr:hover td {
+    background: rgba(24, 24, 27, 0.05);
+}
+
+.fb-doc-link:hover {
+    text-decoration: none;
+    color: var(--fb-foreground);
+}
+
+/* La tabella dettaglio mantiene fondo bianco; l'hover evidenzia solo la riga */
+
+.fb-stock-detail .bootstrap-table,
+.fb-stock-detail .bootstrap-table .table,
+.fb-stock-detail .bootstrap-table .table tbody td {
+    background: #fff;
+}
+
+.fb-stock-detail .bootstrap-table .table tbody tr:hover td {
+    background: #eef4ff;
+}
+
+/* Isola il dettaglio: nessun hover ereditato dalla riga padre espansa */
+
+.fb-stock-detail .bootstrap-table .table>tbody>tr>td {
+    background: #fff;
+}
+
+.fb-stock-detail .bootstrap-table .table>tbody>tr:hover>td {
+    background: #eef4ff;
+}
+
+/* Il contenitore del detail view resta bianco anche in hover */
+
+#stocks-table .table>tbody>tr.detail-view>td,
+#stocks-table .table>tbody>tr.detail-view:hover>td {
+    background: #fff;
+}
+
+.fb-stock-detail {
+    background: transparent;
+}
+
+/* Nessuna evidenziazione hover nel detail view (né contenitore né righe interne) */
+
+#stocks-table tr.detail-view:hover td,
+#stocks-table tr.detail-view td,
+.fb-stock-detail .bootstrap-table .table tbody tr:hover td,
+.fb-stock-detail .bootstrap-table .table tbody td {
+    background: #fff !important;
+}
+
+/* Hover azzurro solo sulla riga interna effettivamente sotto il mouse */
+
+#stocks-table .bootstrap-table tbody tr:hover td {
+    background: #eef4ff !important;
+}
+
+/* Codice prodotto originale sotto lo SKU alias (come pagina Prodotti) */
+
+.fb-sku-root {
+    font-size: 0.75rem;
+    color: #0369a1;
+    font-weight: 500;
+    margin-top: 0.125rem;
+}

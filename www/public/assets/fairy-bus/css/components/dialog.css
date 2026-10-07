@@ -61,6 +61,11 @@
     max-width: 56rem;
 }
 
+.fb-dialog-large {
+    width: min(74rem, calc(100vw - 2rem));
+    max-width: 74rem;
+}
+
 .fb-dialog-wide {
     width: min(85rem, calc(100vw - 2rem));
     max-width: 85rem;

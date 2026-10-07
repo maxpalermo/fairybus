@@ -30,16 +30,18 @@ class AddDescriptionToFbVehicleDocuments extends Migration
     {
         $this->forge->addColumn('fb_vehicle_document', [
             'description' => [
-                'type'       => 'VARCHAR',
+                'type' => 'VARCHAR',
                 'constraint' => 255,
-                'null'       => true,
-                'after'      => 'document',
+                'null' => true,
+                'after' => 'document',
             ],
         ]);
     }
 
     public function down(): void
     {
-        $this->forge->dropColumn('fb_vehicle_document', 'description');
+        if ($this->db->fieldExists('description', 'fb_vehicle_document')) {
+            $this->forge->dropColumn('fb_vehicle_document', 'description');
+        }
     }
 }

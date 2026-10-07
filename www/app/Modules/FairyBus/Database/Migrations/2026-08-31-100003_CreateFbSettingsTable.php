@@ -68,7 +68,7 @@ class CreateFbSettingsTable extends Migration
 
         $this->forge->addKey('id', true);
         $this->forge->addUniqueKey(['scope', 'key']);
-        $this->forge->createTable('fb_settings');
+        $this->forge->createTable('fb_settings', true);
     }
 
     public function down(): void

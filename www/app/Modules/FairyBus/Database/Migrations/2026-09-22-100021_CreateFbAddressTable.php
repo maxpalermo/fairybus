@@ -95,7 +95,7 @@ class CreateFbAddressTable extends Migration
         $this->forge->addKey('id_supplier');
         $this->forge->addKey('id_country');
         $this->forge->addKey('id_state');
-        $this->forge->createTable('fb_address');
+        $this->forge->createTable('fb_address', true);
     }
 
     public function down(): void

@@ -40,7 +40,7 @@
                     </td>
                     <td class="muted">{{ row.brand_name|default('—') }}</td>
                     <td class="muted">{{ row.category_name|default('—') }}</td>
-                    <td class="num">{% if row.price is not null %}€ {{ row.price|number_format(2, ',', '.') }}{% else %}—{% endif %}</td>
+                    <td class="num">{% if row.price is not null %}&nbsp;{{ row.price|number_format(2, ',', '.') }}{% else %}—{% endif %}</td>
                     <td class="center">{% if row.tax_rate is not null %}{{ row.tax_rate|number_format(0) }}%{% else %}—{% endif %}</td>
                     <td class="center{% if row.active != 1 %} low{% endif %}">{% if row.active == 1 %}Sì{% else %}No{% endif %}</td>
                 </tr>

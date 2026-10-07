@@ -56,6 +56,7 @@ class FbMaintenanceModel extends Model
                 (SELECT COUNT(*) FROM fb_maintenance_invoice mi WHERE mi.id_maintenance = m.id_maintenance) AS invoices_count')
             ->join('fb_vehicle v', 'v.id_vehicle = m.id_vehicle', 'left')
             ->join('fb_brand b', 'b.id_brand = v.id_brand', 'left')
+            ->where("v.status !=", 'retired')
             ->orderBy('m.date', 'DESC')
             ->orderBy('m.id_maintenance', 'DESC');
 

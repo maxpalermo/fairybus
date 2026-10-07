@@ -121,7 +121,7 @@ class Maintenance extends AdminController
         // e' stata aggiunta manualmente (le righe legacy erano gia' conteggiate).
         foreach ((new \FairyBus\Models\FbMaintenanceDetailModel())->listByMaintenance($id) as $detail) {
             if (empty($detail['legacy_id'])) {
-                $stock->adjustStock((int) ($detail['id_product'] ?? 0), (float) $detail['quantity']);
+                $stock->loadStock((int) ($detail['id_product'] ?? 0), (float) $detail['quantity']);
             }
         }
 
@@ -141,9 +141,17 @@ class Maintenance extends AdminController
             return $denied;
         }
 
+        $labor = \Config\Database::connect()->table('fb_maintenance_task')
+            ->selectSum('hours')->selectSum('manpower')
+            ->where('id_maintenance', $id)->get()->getRowArray() ?: [];
+
         return $this->jsonResponse([
             'success' => true,
             'rows' => (new \FairyBus\Models\FbMaintenanceDetailModel())->listByMaintenance($id),
+            'labor' => [
+                'hours' => (float) ($labor['hours'] ?? 0),
+                'manpower' => (float) ($labor['manpower'] ?? 0),
+            ],
         ]);
     }
 
@@ -165,6 +173,8 @@ class Maintenance extends AdminController
             'vat_rate' => 'permit_empty|decimal',
             'lot' => 'permit_empty|max_length[255]',
             'note' => 'permit_empty|max_length[255]',
+            'hours' => 'permit_empty|decimal',
+            'price_per_hour' => 'permit_empty|decimal',
         ];
         if (!$this->validate($rules)) {
             return $this->jsonResponse(['success' => false, 'errors' => $this->validator->getErrors()], 422);
@@ -190,7 +200,41 @@ class Maintenance extends AdminController
             ->get()->getRowArray();
 
         // Ricambio usato in officina: la giacenza scende
-        (new \FairyBus\Models\FbStockModel())->adjustStock((int) $row['id_product'], -(float) $row['quantity']);
+        (new \FairyBus\Models\FbStockModel())->unloadStock((int) $row['id_product'], (float) $row['quantity']);
+
+        // Manodopera associata al ricambio (task con id_maintenance_detail = riga)
+        $hours = (int) (float) ($this->request->getPost('hours') ?: 0);
+        $pricePerHour = (float) ($this->request->getPost('price_per_hour') ?: 0);
+        if ($hours > 0 || $pricePerHour > 0) {
+            (new \FairyBus\Models\FbMaintenanceTaskModel())->insert([
+                'id_maintenance' => $id,
+                'id_maintenance_detail' => $newId,
+                'hours' => $hours,
+                'price_per_hour' => $pricePerHour,
+                'manpower' => $hours * $pricePerHour,
+                'date_add' => date('Y-m-d H:i:s'),
+            ]);
+        }
+
+        // Il costo orario inserito diventa il default globale se non
+        // configurato o diverso da fb_configuration.hourly_cost.
+        if ($pricePerHour > 0) {
+            $config = new \FairyBus\Models\FbConfigurationModel();
+            if ((float) ($config->get('hourly_cost')['value'] ?? 0) !== $pricePerHour) {
+                $config->setValue('hourly_cost', (string) $pricePerHour);
+            }
+        }
+
+        // Se il prodotto non ha un'aliquota IVA e nel movimento ne è stata
+        // inserita una, la riporta sull'anagrafica del prodotto.
+        $vatInput = $this->request->getPost('vat_rate');
+        if ($vatInput !== null && $vatInput !== '') {
+            $productModel = new \FairyBus\Models\FbProductModel();
+            $product = $productModel->find((int) $row['id_product']);
+            if ($product !== null && (float) ($product['tax_rate'] ?? 0) <= 0) {
+                $productModel->update((int) $row['id_product'], ['tax_rate' => (float) $vatInput]);
+            }
+        }
 
         return $this->jsonResponse(['success' => true, 'detail' => $row]);
     }
@@ -208,8 +252,12 @@ class Maintenance extends AdminController
         }
         $model->delete($id);
 
+        // Rimuove anche la manodopera associata a questo ricambio
+        \Config\Database::connect()->table('fb_maintenance_task')
+            ->where('id_maintenance_detail', $id)->delete();
+
         if (empty($detail['legacy_id'])) {
-            (new \FairyBus\Models\FbStockModel())->adjustStock((int) ($detail['id_product'] ?? 0), (float) $detail['quantity']);
+            (new \FairyBus\Models\FbStockModel())->loadStock((int) ($detail['id_product'] ?? 0), (float) $detail['quantity']);
         }
 
         return $this->jsonResponse(['success' => true]);
@@ -257,19 +305,23 @@ class Maintenance extends AdminController
     /* ---------- Helpers ---------- */
 
     /**
-     * Upsert del primo task della manutenzione (il form gestisce un solo blocco ore/costi).
+     * Upsert del task generale della manutenzione (id_maintenance_detail = 0):
+     * il form gestisce solo la descrizione del lavoro, mentre ore/costi
+     * sono associati ai singoli ricambi.
      *
      * @param array<string, mixed> $task
      */
     private function syncTask(int $idMaintenance, array $task): void
     {
         $model = new \FairyBus\Models\FbMaintenanceTaskModel();
-        $existing = $model->where('id_maintenance', $idMaintenance)->orderBy('id_maintenance_task', 'ASC')->first();
+        $existing = $model->where('id_maintenance', $idMaintenance)
+            ->where('id_maintenance_detail', 0)
+            ->orderBy('id_maintenance_task', 'ASC')->first();
 
         if ($existing !== null) {
             $model->update((int) $existing['id_maintenance_task'], $task + ['date_upd' => date('Y-m-d H:i:s')]);
-        } elseif ($task['hours'] > 0 || $task['manpower'] > 0 || $task['price_per_hour'] > 0 || $task['description'] !== null) {
-            $model->insert($task + ['id_maintenance' => $idMaintenance, 'date_add' => date('Y-m-d H:i:s')]);
+        } elseif ($task['description'] !== null) {
+            $model->insert($task + ['id_maintenance' => $idMaintenance, 'id_maintenance_detail' => 0, 'date_add' => date('Y-m-d H:i:s')]);
         }
     }
 
@@ -292,9 +344,6 @@ class Maintenance extends AdminController
             'km' => 'permit_empty|integer',
             'note' => 'permit_empty|max_length[255]',
             'task_description' => 'permit_empty|max_length[255]',
-            'hours' => 'permit_empty|decimal',
-            'manpower' => 'permit_empty|decimal',
-            'price_per_hour' => 'permit_empty|decimal',
         ];
         if (!$this->validate($rules)) {
             return $this->jsonResponse(['success' => false, 'errors' => $this->validator->getErrors()], 422);
@@ -309,9 +358,6 @@ class Maintenance extends AdminController
             ],
             'task' => [
                 'description' => $this->request->getPost('task_description') !== '' ? $this->request->getPost('task_description') : null,
-                'hours' => (int) ($this->request->getPost('hours') ?: 0),
-                'manpower' => (float) ($this->request->getPost('manpower') ?: 0),
-                'price_per_hour' => (float) ($this->request->getPost('price_per_hour') ?: 0),
             ],
         ];
     }

@@ -18,7 +18,7 @@
 {% extends "admin/layout.twig" %}
 
 {% block page_styles %}
-    <link rel="stylesheet" href="{{ asset('fairy-bus/css/pages/products.css') }}">
+    <link rel="stylesheet" href="{{ asset('fairy-bus/css/pages/products.css?v=3') }}">
     <link rel="stylesheet" href="{{ asset('fairy-bus/css/pages/stocks.css') }}">
 {% endblock %}
 
@@ -84,6 +84,11 @@
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
                         Codici alias
                     </button>
+                    <label class="fb-switch fb-switch-success" style="margin-left: auto;" title="Prodotto attivo/disattivato">
+                        <input type="checkbox" name="active" value="1" checked>
+                        <span class="fb-switch-slider"></span>
+                        <span class="fb-switch-text">Attivo</span>
+                    </label>
                 </div>
                 <div class="fb-product-form-main fb-tab-panel active" data-panel="info">
                     <div class="fb-form-grid">
@@ -110,26 +115,27 @@
                     </div>
                     <div class="fb-form-row fb-form-row-prices">
                         <div class="fb-form-group">
-                            <label class="fb-form-label" for="product_price">Prezzo (€)</label>
-                            <input type="number" id="product_price" name="price" class="fb-form-input" step="0.000001" min="0" value="0">
-                        </div>
-                        <div class="fb-form-group">
-                            <label class="fb-form-label" for="product_wholesale">Prezzo d'acquisto (€)</label>
-                            <input type="number" id="product_wholesale" name="wholesale_price" class="fb-form-input" step="0.000001" min="0" value="0">
+                            <label class="fb-form-label" for="product_unit">Unità di misura</label>
+                            <select id="product_unit" name="unit" class="fb-form-input">
+                                {% for value, label in unit_labels %}
+                                    <option value="{{ value }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
                         </div>
                         <div class="fb-form-group fb-form-group-vat">
                             <label class="fb-form-label" for="product_tax">IVA (%)</label>
                             <input type="number" id="product_tax" name="tax_rate" class="fb-form-input" step="0.01" min="0" max="100" value="0">
                         </div>
-                        <div class="fb-form-group fb-form-group-active">
-                            <label class="fb-form-label">Stato</label>
-                            <label class="fb-switch fb-switch-success">
-                                <input type="checkbox" name="active" value="1" checked>
-                                <span class="fb-switch-slider"></span>
-                                <span class="fb-switch-text">Attivo</span>
-                            </label>
+                        <div class="fb-form-group">
+                            <label class="fb-form-label" for="product_wholesale">Prezzo d'acquisto (€)</label>
+                            <input type="number" id="product_wholesale" name="wholesale_price" class="fb-form-input" step="0.000001" min="0" value="0">
+                        </div>
+                        <div class="fb-form-group">
+                            <label class="fb-form-label" for="product_price">Prezzo vendita (€)</label>
+                            <input type="number" id="product_price" name="price" class="fb-form-input" step="0.000001" min="0" value="0">
                         </div>
                     </div>
+                    <div class="fb-price-preview" data-price-preview></div>
                 </div>
                 <div class="fb-product-form-codes fb-tab-panel" data-panel="alias" data-section="aliases">
                     <div class="fb-alias-help">Aggiungi codice e marca di un prodotto equivalente e premi il tasto “+” per confermare.</div>
@@ -140,7 +146,7 @@
                                 <input type="text" data-alias-field="sku" class="fb-form-input" placeholder="Codice">
                             </div>
                             <div class="fb-form-group">
-                                <select data-alias-field="id_brand" class="fb-form-input" data-table="brand">
+                                <select data-alias-field="id_brand" class="fb-form-input">
                                     <option value="">Marca</option>
                                 </select>
                             </div>
@@ -171,9 +177,9 @@
                 <div class="fb-form-group">
                     <label class="fb-form-label" for="pstock_unit">Unità di misura</label>
                     <select id="pstock_unit" name="unit" class="fb-form-input">
-                        <option value="0">Pezzi</option>
-                        <option value="1">Metri</option>
-                        <option value="2">Litri</option>
+                        {% for value, label in unit_labels %}
+                            <option value="{{ value }}">{{ label }}</option>
+                        {% endfor %}
                     </select>
                 </div>
                 <div class="fb-form-group">
@@ -194,5 +200,5 @@
 {% endblock %}
 
 {% block page_scripts %}
-    <script type="module" src="{{ asset('fairy-bus/js/pages/products.js') }}?v=4"></script>
+    <script type="module" src="{{ asset('fairy-bus/js/pages/products.js?v=10') }}"></script>
 {% endblock %}

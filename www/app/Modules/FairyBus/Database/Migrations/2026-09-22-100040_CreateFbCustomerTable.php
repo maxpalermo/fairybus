@@ -76,7 +76,7 @@ class CreateFbCustomerTable extends Migration
         ]);
 
         $this->forge->addKey('id_customer', true);
-        $this->forge->createTable('fb_customer');
+        $this->forge->createTable('fb_customer', true);
     }
 
     public function down(): void

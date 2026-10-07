@@ -24,6 +24,8 @@ namespace FairyBus\Controllers\Admin;
 
 use App\Controllers\AdminController;
 use CodeIgniter\HTTP\ResponseInterface;
+use FairyBus\Libraries\PdfHelper;
+use FairyBus\Models\FbExpirationOccurrenceModel;
 
 class Calendar extends AdminController
 {
@@ -32,5 +34,23 @@ class Calendar extends AdminController
         return $this->renderAdmin('admin/calendar.twig', [
             'page_title' => 'Calendario scadenze',
         ]);
+    }
+
+    public function printPdf(): ResponseInterface
+    {
+        $ids = $this->getPrintIds();
+        if ($ids instanceof ResponseInterface) {
+            return $ids;
+        }
+
+        $rows = (new FbExpirationOccurrenceModel())->listByIds($ids);
+
+        $pdf = PdfHelper::generate('print/expiration_occurrences.twig', [
+            'title' => 'Scadenze veicoli',
+            'rows' => $rows,
+            'user' => $this->getCurrentUser(),
+        ], 'a4', 'portrait');
+
+        return $this->pdfResponse($pdf, 'scadenze_veicoli');
     }
 }

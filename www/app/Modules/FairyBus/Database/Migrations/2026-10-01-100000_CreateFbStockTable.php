@@ -95,7 +95,7 @@ class CreateFbStockTable extends Migration
         $this->forge->addKey('id_stock', true);
         $this->forge->addKey('legacy_id');
         $this->forge->addKey('id_product');
-        $this->forge->createTable('fb_stock');
+        $this->forge->createTable('fb_stock', true);
     }
 
     public function down(): void

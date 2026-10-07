@@ -57,7 +57,7 @@ class CreateFbUserPermissionsTable extends Migration
         $this->forge->addUniqueKey(['user_id', 'permission_id']);
         $this->forge->addForeignKey('user_id', 'fb_users', 'id', 'CASCADE', 'CASCADE');
         $this->forge->addForeignKey('permission_id', 'fb_permissions', 'id', 'CASCADE', 'CASCADE');
-        $this->forge->createTable('fb_user_permissions');
+        $this->forge->createTable('fb_user_permissions', true);
     }
 
     public function down(): void

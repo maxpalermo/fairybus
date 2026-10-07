@@ -34,6 +34,7 @@ class FbMaintenanceTaskModel extends Model
     protected $allowedFields = [
         'legacy_id',
         'id_maintenance',
+        'id_maintenance_detail',
         'description',
         'hours',
         'manpower',

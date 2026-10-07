@@ -44,6 +44,9 @@ class Vehicles extends AdminController
         }
 
         $rows = (new FbVehicleModel())->listWithBrand();
+        if ($this->request->getGet('active') === '1') {
+            $rows = array_values(array_filter($rows, static fn(array $row): bool => ($row['status'] ?? 'active') !== 'retired'));
+        }
         foreach ($rows as &$row) {
             $row['id_vehicle'] = (int) $row['id_vehicle'];
             $row['id_brand'] = $row['id_brand'] !== null ? (int) $row['id_brand'] : null;
@@ -149,6 +152,26 @@ class Vehicles extends AdminController
         }
 
         return $this->jsonResponse(['success' => true, 'id_vehicle' => $id]);
+    }
+
+    public function setStatus(int $id): ResponseInterface
+    {
+        if ($denied = $this->requirePermission('*')) {
+            return $denied;
+        }
+
+        $status = (string) $this->request->getPost('status');
+        if (!in_array($status, ['active', 'maintenance', 'retired'], true)) {
+            return $this->jsonResponse(['success' => false, 'error' => 'Stato non valido.'], 422);
+        }
+
+        $model = new FbVehicleModel();
+        if ($model->find($id) === null) {
+            return $this->jsonResponse(['success' => false, 'error' => 'Veicolo non trovato.'], 404);
+        }
+        $model->update($id, ['status' => $status]);
+
+        return $this->jsonResponse(['success' => true, 'status' => $status]);
     }
 
     public function delete(int $id): ResponseInterface

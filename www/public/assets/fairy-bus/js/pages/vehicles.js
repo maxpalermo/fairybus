@@ -12,11 +12,27 @@ function escapeHtml(text) {
 
 let globalDefinitions = null;
 
+const ICON_EYE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+const ICON_PENCIL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>';
+const ICON_TRASH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>';
+const ICON_CHECK = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+const ICON_TIMES = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+
+const STATUS_LABELS = {
+    active: "Attivo",
+    maintenance: "In manutenzione",
+    retired: "Ritirato",
+};
+
+window.fbVehicleStatusOptions = STATUS_LABELS;
+
 function formatActions(value, row) {
     return `
-        <button type="button" class="fb-btn fb-btn-secondary fb-btn-sm" data-action="view-vehicle" data-id="${row.id_vehicle}">Visualizza</button>
-        <button type="button" class="fb-btn fb-btn-secondary fb-btn-sm" data-action="edit-vehicle" data-id="${row.id_vehicle}">Modifica</button>
-        <button type="button" class="fb-btn fb-btn-secondary fb-btn-sm" data-action="delete-vehicle" data-id="${row.id_vehicle}">Elimina</button>
+        <span class="fb-btn-group">
+            <button type="button" class="fb-btn-icon fb-btn-icon-info" data-action="view-vehicle" data-id="${row.id_vehicle}" title="Dettagli veicolo" aria-label="Dettagli veicolo">${ICON_EYE}</button>
+            <button type="button" class="fb-btn-icon fb-btn-icon-warning" data-action="edit-vehicle" data-id="${row.id_vehicle}" title="Modifica veicolo" aria-label="Modifica veicolo">${ICON_PENCIL}</button>
+            <button type="button" class="fb-btn-icon fb-btn-icon-danger" data-action="delete-vehicle" data-id="${row.id_vehicle}" title="Elimina veicolo" aria-label="Elimina veicolo">${ICON_TRASH}</button>
+        </span>
     `;
 }
 
@@ -45,7 +61,44 @@ window.vehicleActionsEvents = {
             await dialog.error(err);
         }
     },
+    "click [data-action=retire-vehicle]": async function (ev, value, row) {
+        ev.stopPropagation();
+        if (!(await dialog.confirm(`Disattivare il veicolo "${escapeHtml(row.plate)}"? Non comparirà più in scadenze, manutenzioni e ricerche.`, "Conferma"))) {
+            return;
+        }
+        await setVehicleStatus(row, "retired");
+    },
+    "click [data-action=activate-vehicle]": async function (ev, value, row) {
+        ev.stopPropagation();
+        await setVehicleStatus(row, "active");
+    },
 };
+
+window.vehicleStatusEvents = {
+    "click .fb-toggle": async function (ev, value, row) {
+        ev.stopPropagation();
+        const el = ev.currentTarget;
+        const retired = (row.status ?? "active") === "retired";
+        if (!retired && !(await dialog.confirm(`Disattivare il veicolo "${escapeHtml(row.plate)}"? Non comparirà più in scadenze, manutenzioni e ricerche.`, "Conferma"))) {
+            return;
+        }
+        el.disabled = true;
+        try {
+            await setVehicleStatus(row, retired ? "active" : "retired");
+        } finally {
+            el.disabled = false;
+        }
+    },
+};
+
+async function setVehicleStatus(row, status) {
+    try {
+        const res = await FetchHelper.post(`${window.FB.baseUrl}api/vehicles/${row.id_vehicle}/status`, { status });
+        window.$("#vehicles-table").bootstrapTable("updateByUniqueId", { id: row.id_vehicle, row: { ...row, status: res.status ?? status } });
+    } catch (err) {
+        await dialog.error(err);
+    }
+}
 
 function initVehiclesTable() {
     if (!window.$ || !window.$.fn.bootstrapTable) {
@@ -61,29 +114,35 @@ function initVehiclesTable() {
         filterControl: true,
         sortable: true,
         clickToSelect: false,
+        uniqueId: "id_vehicle",
         locale: "it-IT",
+        rowStyle: function (row) {
+            return (row.status ?? "active") === "retired" ? { classes: "fb-veh-row-retired" } : {};
+        },
         onClickRow: function (row, $element, field) {
             openVehicleDetail(row.id_vehicle);
         },
         columns: [
             { field: "state", checkbox: true, align: "center", valign: "middle" },
-            { field: "id_vehicle", title: "ID", sortable: true, width: 80, align: "center" , filterControl: "input", filterCustomSearch: window.fbFilterSearch },
-            { field: "plate", title: "Targa", sortable: true , filterControl: "input", filterCustomSearch: window.fbFilterSearch },
-            { field: "brand_name", title: "Marca", sortable: true , filterControl: "input", filterCustomSearch: window.fbFilterSearch },
-            { field: "status", title: "Stato", sortable: true, formatter: formatStatus , filterControl: "input", filterCustomSearch: window.fbFilterSearch },
-            { field: "current_km", title: "KM", sortable: true, align: "right" , filterControl: "input", filterCustomSearch: window.fbFilterSearch },
-            { field: "actions", title: "Azioni", formatter: formatActions, events: window.vehicleActionsEvents },
+            { field: "id_vehicle", title: "ID", sortable: true, width: 80, align: "center", filterControl: "input", filterCustomSearch: window.fbFilterSearch },
+            { field: "plate", title: "Targa", sortable: true, filterControl: "input", filterCustomSearch: window.fbFilterSearch },
+            { field: "brand_name", title: "Marca", sortable: true, filterControl: "input", filterCustomSearch: window.fbFilterSearch },
+            { field: "status", title: "Stato", sortable: true, align: "center", width: 90, formatter: formatStatus, events: window.vehicleStatusEvents, filterControl: "select", filterData: "var:fbVehicleStatusOptions" },
+            { field: "current_km", title: "KM", sortable: true, align: "right", formatter: formatKm, filterControl: "input", filterCustomSearch: window.fbFilterSearch },
+            { field: "actions", title: "Azioni", align: "center", valign: "middle", width: 150, formatter: formatActions, events: window.vehicleActionsEvents },
         ],
     });
 }
 
+function formatKm(value) {
+    const km = Number(value ?? 0);
+    return `<span class="fb-km-value">${km.toLocaleString("it-IT")} km</span>`;
+}
+
 function formatStatus(value) {
-    const labels = {
-        active: "Attivo",
-        maintenance: "In manutenzione",
-        retired: "Ritirato",
-    };
-    return `<span class="fb-badge">${escapeHtml(labels[value] ?? value)}</span>`;
+    const label = STATUS_LABELS[value] ?? value ?? "—";
+    const on = value !== "retired";
+    return `<button type="button" class="fb-toggle ${on ? "fb-toggle-on" : "fb-toggle-off"}" title="${escapeHtml(label)} — clicca per ${on ? "disattivare" : "riattivare"}" aria-label="Stato veicolo: ${escapeHtml(label)}">${on ? ICON_CHECK : ICON_TIMES}</button>`;
 }
 
 function refreshTable() {

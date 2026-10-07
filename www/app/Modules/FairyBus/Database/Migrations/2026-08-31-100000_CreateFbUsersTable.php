@@ -83,7 +83,7 @@ class CreateFbUsersTable extends Migration
 
         $this->forge->addKey('id', true);
         $this->forge->addUniqueKey('email');
-        $this->forge->createTable('fb_users');
+        $this->forge->createTable('fb_users', true);
     }
 
     public function down(): void

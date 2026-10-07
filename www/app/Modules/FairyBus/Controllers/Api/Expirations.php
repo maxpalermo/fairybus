@@ -111,6 +111,67 @@ class Expirations extends AdminController
     }
 
     /**
+     * Nuova scadenza su veicolo + prima occorrenza.
+     */
+    public function create(): ResponseInterface
+    {
+        if ($denied = $this->requirePermission('*')) {
+            return $denied;
+        }
+
+        $rules = [
+            'id_vehicle' => 'required|integer|greater_than[0]',
+            'description' => 'permit_empty|max_length[255]',
+            'expiration_date' => 'permit_empty|valid_date',
+            'expires_atkm' => 'permit_empty|integer',
+            'periodicity' => 'permit_empty|in_list[once,yearly,km,days]',
+            'kind' => 'permit_empty|in_list[km,date]',
+            'id_expiration_tag' => 'permit_empty|integer',
+            'note' => 'permit_empty|max_length[255]',
+        ];
+        if (!$this->validate($rules)) {
+            return $this->jsonResponse(['success' => false, 'errors' => $this->validator->getErrors()], 422);
+        }
+
+        $post = fn(string $k) => $this->request->getPost($k);
+        // getPost() ritorna null (non "") se la chiave manca: normalizza entrambi
+        $val = fn(string $k) => ($v = $post($k)) !== null && $v !== '' ? $v : null;
+        $kind = $post('kind') === 'km' ? 'km' : 'date';
+        $expirationDate = $val('expiration_date');
+        $expiresAtKm = $val('expires_atkm') !== null ? (int) $val('expires_atkm') : null;
+
+        if ($kind === 'date' && $expirationDate === null) {
+            return $this->jsonResponse(['success' => false, 'error' => 'Indica la data di scadenza.'], 422);
+        }
+        if ($kind === 'km' && ($expiresAtKm === null || $expiresAtKm <= 0)) {
+            return $this->jsonResponse(['success' => false, 'error' => 'Indica il chilometraggio di scadenza.'], 422);
+        }
+
+        $now = date('Y-m-d H:i:s');
+        $id = (int) (new FbExpirationModel())->insert([
+            'id_vehicle' => (int) $post('id_vehicle'),
+            'id_expiration_tag' => $val('id_expiration_tag') !== null ? (int) $val('id_expiration_tag') : null,
+            'description' => $val('description'),
+            'expiration_date' => $kind === 'date' ? $expirationDate : null,
+            'expires_atkm' => $kind === 'km' ? $expiresAtKm : null,
+            'periodicity' => $val('periodicity') ?? ($kind === 'km' ? 'km' : 'once'),
+            'kind' => $kind,
+            'note' => $val('note'),
+            'date_add' => $now,
+        ]);
+
+        (new FbExpirationOccurrenceModel())->insert([
+            'id_expiration' => $id,
+            'expiration_date' => $kind === 'date' ? $expirationDate : null,
+            'km' => $kind === 'km' ? $expiresAtKm : null,
+            'state' => FbExpirationOccurrenceModel::STATE_OPEN,
+            'date_add' => $now,
+        ]);
+
+        return $this->jsonResponse(['success' => true, 'id' => $id]);
+    }
+
+    /**
      * Modifica scadenza: periodica (yearly/km/days) oppure una tantum (once).
      */
     public function update(int $id): ResponseInterface
@@ -142,18 +203,19 @@ class Expirations extends AdminController
         }
 
         $post = fn(string $k) => $this->request->getPost($k);
+        $val = fn(string $k) => ($v = $post($k)) !== null && $v !== '' ? $v : null;
         $model->update($id, [
-            'id_expiration_tag' => (int) $post('id_expiration_tag') ?: null,
-            'description' => $post('description') !== '' ? $post('description') : null,
-            'expiration_date' => $post('expiration_date') !== '' ? $post('expiration_date') : null,
-            'until_date' => $post('until_date') !== '' ? $post('until_date') : null,
-            'expires_atkm' => $post('expires_atkm') !== '' ? (int) $post('expires_atkm') : null,
-            'periodicity' => $post('periodicity') !== '' ? $post('periodicity') : 'once',
-            'everyxdays' => $post('everyxdays') !== '' ? (int) $post('everyxdays') : null,
-            'yearly_month' => $post('yearly_month') !== '' ? (int) $post('yearly_month') : null,
-            'yearly_day' => $post('yearly_day') !== '' ? (int) $post('yearly_day') : null,
-            'kind' => $post('kind') !== '' ? $post('kind') : 'date',
-            'note' => $post('note') !== '' ? $post('note') : null,
+            'id_expiration_tag' => $val('id_expiration_tag') !== null ? (int) $val('id_expiration_tag') : null,
+            'description' => $val('description'),
+            'expiration_date' => $val('expiration_date'),
+            'until_date' => $val('until_date'),
+            'expires_atkm' => $val('expires_atkm') !== null ? (int) $val('expires_atkm') : null,
+            'periodicity' => $val('periodicity') ?? 'once',
+            'everyxdays' => $val('everyxdays') !== null ? (int) $val('everyxdays') : null,
+            'yearly_month' => $val('yearly_month') !== null ? (int) $val('yearly_month') : null,
+            'yearly_day' => $val('yearly_day') !== null ? (int) $val('yearly_day') : null,
+            'kind' => $val('kind') ?? 'date',
+            'note' => $val('note'),
             'date_upd' => date('Y-m-d H:i:s'),
         ]);
 
@@ -178,6 +240,20 @@ class Expirations extends AdminController
 
         $rows = (new FbExpirationOccurrenceModel())->listAll($states);
 
+        if ($this->request->getGet('include_hidden') !== '1') {
+            $rows = array_values(array_filter($rows, static fn(array $r): bool => (int) ($r['hidden'] ?? 0) !== 1));
+        }
+
+        $idVehicle = (int) $this->request->getGet('id_vehicle');
+        if ($idVehicle > 0) {
+            $rows = array_values(array_filter($rows, static fn(array $r): bool => (int) $r['id_vehicle'] === $idVehicle));
+        }
+
+        $idExpiration = (int) $this->request->getGet('id_expiration');
+        if ($idExpiration > 0) {
+            $rows = array_values(array_filter($rows, static fn(array $r): bool => (int) $r['id_expiration'] === $idExpiration));
+        }
+
         $from = $this->request->getGet('from');
         $to = $this->request->getGet('to');
         if ($from || $to) {
@@ -201,6 +277,10 @@ class Expirations extends AdminController
                 $db = (int) $b['km'] - (int) ($b['current_km'] ?? 0);
                 return $da <=> $db;
             });
+        }
+
+        if ($this->request->getGet('date_only') === '1') {
+            $rows = array_values(array_filter($rows, static fn(array $r): bool => $r['expiration_date'] !== null && ($r['tag_kind'] ?? '') !== 'km'));
         }
 
         return $this->jsonResponse(['success' => true, 'rows' => $rows]);
@@ -235,12 +315,31 @@ class Expirations extends AdminController
         }
 
         $model = new FbExpirationOccurrenceModel();
-        if ($model->find($id) === null) {
+        $occurrence = $model->find($id);
+        if ($occurrence === null) {
             return $this->jsonResponse(['success' => false, 'error' => 'Occorrenza non trovata.'], 404);
         }
 
         $state = $this->request->getPost('state');
-        if ($state === null || !isset(FbExpirationOccurrenceModel::STATE_LABELS[(int) $state])) {
+        if ($state === null) {
+            // Modifica semplice: solo data e/o km dell'occorrenza
+            $data = ['date_upd' => date('Y-m-d H:i:s')];
+            $date = $this->request->getPost('expiration_date');
+            if ($date !== null) {
+                $data['expiration_date'] = $date !== '' ? $date : null;
+            }
+            $km = $this->request->getPost('km');
+            if ($km !== null) {
+                $data['km'] = $km !== '' ? (int) $km : null;
+            }
+            if (count($data) === 1) {
+                return $this->jsonResponse(['success' => false, 'error' => 'Nessun dato da aggiornare.'], 422);
+            }
+            $model->update($id, $data);
+
+            return $this->jsonResponse(['success' => true]);
+        }
+        if (!isset(FbExpirationOccurrenceModel::STATE_LABELS[(int) $state])) {
             return $this->jsonResponse(['success' => false, 'error' => 'Stato non valido.'], 422);
         }
 
@@ -253,9 +352,160 @@ class Expirations extends AdminController
         if ($km !== null && $km !== '') {
             $data['km'] = (int) $km;
         }
+        $doneDate = null;
+        if ((int) $state === FbExpirationOccurrenceModel::STATE_DONE) {
+            $doneDate = (string) $this->request->getPost('done_date');
+            $data['done_date'] = $doneDate !== '' ? $doneDate : date('Y-m-d');
+        }
         $model->update($id, $data);
 
+        // Esecuzione: registra la lettura km (registro chilometrico + veicolo)
+        if ((int) $state === FbExpirationOccurrenceModel::STATE_DONE) {
+            $doneKm = (int) $this->request->getPost('done_km');
+            if ($doneKm > 0) {
+                $db = \Config\Database::connect();
+                $expiration = $db->table('fb_expiration')
+                    ->where('id_expiration', (int) $occurrence['id_expiration'])
+                    ->get()
+                    ->getRowArray();
+                $idVehicle = (int) ($expiration['id_vehicle'] ?? 0);
+                if ($idVehicle > 0) {
+                    $registration = $db->table('fb_vehicle_km')
+                        ->where('reason_class', 'Expiration')
+                        ->where('reason_id', $id)
+                        ->get()
+                        ->getRowArray();
+
+                    if ($registration !== null) {
+                        // Modifica di un'esecuzione esistente: aggiorna la lettura
+                        $db->table('fb_vehicle_km')
+                            ->where('id_vehicle_km', (int) $registration['id_vehicle_km'])
+                            ->update([
+                                'amount' => $doneKm,
+                                'registration_date' => $data['done_date'] . ' ' . date('H:i:s'),
+                                'date_upd' => date('Y-m-d H:i:s'),
+                            ]);
+                        // Riallinea il chilometraggio alla lettura massima
+                        $maxKm = $db->table('fb_vehicle_km')
+                            ->selectMax('amount')
+                            ->where('id_vehicle', $idVehicle)
+                            ->get()
+                            ->getRowArray();
+                        if ($maxKm !== null && $maxKm['amount'] !== null) {
+                            $db->table('fb_vehicle')
+                                ->where('id_vehicle', $idVehicle)
+                                ->update(['current_km' => (int) $maxKm['amount']]);
+                        }
+                    } else {
+                        (new \FairyBus\Models\FbVehicleKmModel())->register(
+                            $idVehicle,
+                            $doneKm,
+                            $data['done_date'] . ' ' . date('H:i:s'),
+                            $id,
+                            'Expiration'
+                        );
+                    }
+                }
+            }
+        }
+
         return $this->jsonResponse(['success' => true]);
+    }
+
+    /**
+     * Crea una nuova occorrenza di scadenza (rinnovo).
+     */
+    public function createOccurrence(): ResponseInterface
+    {
+        if ($denied = $this->requirePermission('*')) {
+            return $denied;
+        }
+
+        $idExpiration = (int) $this->request->getPost('id_expiration');
+        $date = $this->request->getPost('expiration_date');
+        $km = $this->request->getPost('km');
+        if ($idExpiration <= 0 || (($date === null || $date === '') && ($km === null || $km === ''))) {
+            return $this->jsonResponse(['success' => false, 'error' => 'Scadenza o data/km mancanti.'], 422);
+        }
+
+        $exists = \Config\Database::connect()
+            ->table('fb_expiration')
+            ->where('id_expiration', $idExpiration)
+            ->countAllResults();
+        if ($exists === 0) {
+            return $this->jsonResponse(['success' => false, 'error' => 'Scadenza non trovata.'], 404);
+        }
+
+        $model = new FbExpirationOccurrenceModel();
+        $id = $model->insert([
+            'id_expiration' => $idExpiration,
+            'expiration_date' => $date !== null && $date !== '' ? $date : null,
+            'km' => $km !== null && $km !== '' ? (int) $km : null,
+            'state' => FbExpirationOccurrenceModel::STATE_OPEN,
+            'date_add' => date('Y-m-d H:i:s'),
+            'date_upd' => date('Y-m-d H:i:s'),
+        ]);
+
+        return $this->jsonResponse(['success' => true, 'id_expiration_occurrence' => $id]);
+    }
+
+    /**
+     * Elimina un'occorrenza di scadenza.
+     */
+    public function deleteOccurrence(int $id): ResponseInterface
+    {
+        if ($denied = $this->requirePermission('*')) {
+            return $denied;
+        }
+
+        $model = new FbExpirationOccurrenceModel();
+        if ($model->find($id) === null) {
+            return $this->jsonResponse(['success' => false, 'error' => 'Occorrenza non trovata.'], 404);
+        }
+        $model->delete($id);
+
+        return $this->jsonResponse(['success' => true]);
+    }
+
+    /**
+     * Nasconde tutte le scadenze di un veicolo per una data voce (id_vehicle + id_expiration_tag).
+     */
+    public function hide(): ResponseInterface
+    {
+        return $this->setHidden(1);
+    }
+
+    /**
+     * Ripristina le scadenze nascoste di un veicolo per una data voce.
+     */
+    public function unhide(): ResponseInterface
+    {
+        return $this->setHidden(0);
+    }
+
+    private function setHidden(int $hidden): ResponseInterface
+    {
+        if ($denied = $this->requirePermission('*')) {
+            return $denied;
+        }
+
+        $idVehicle = (int) $this->request->getPost('id_vehicle');
+        $idTag = (int) $this->request->getPost('id_expiration_tag');
+        if ($idVehicle <= 0 || $idTag <= 0) {
+            return $this->jsonResponse(['success' => false, 'error' => 'Veicolo o voce di scadenza mancanti.'], 422);
+        }
+
+        $updated = \Config\Database::connect()
+            ->table('fb_expiration')
+            ->where('id_vehicle', $idVehicle)
+            ->where('id_expiration_tag', $idTag)
+            ->update(['hidden' => $hidden, 'date_upd' => date('Y-m-d H:i:s')]);
+
+        if ($updated === false) {
+            return $this->jsonResponse(['success' => false, 'error' => 'Aggiornamento non riuscito.'], 500);
+        }
+
+        return $this->jsonResponse(['success' => true, 'updated' => (int) $updated]);
     }
 
     /**

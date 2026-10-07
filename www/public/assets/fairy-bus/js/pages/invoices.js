@@ -21,7 +21,7 @@ function fmtDate(value) {
 }
 
 function fmtMoney(value) {
-    return `${Number(value || 0).toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
+    return `${Number(value || 0).toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\u00A0€`;
 }
 
 function fmtQty(value) {
@@ -38,10 +38,12 @@ function detailTotals(detail) {
 }
 
 function vatLabel(detail) {
-    if (detail.vat_code) {
-        return escapeHtml(`Aliquota ${detail.vat_code}%`);
+    const vat = detail.vat_code ?? detail.vat_rate;
+    if (vat === null || vat === undefined || vat === "") {
+        return "—";
     }
-    return detail.vat_rate !== null && detail.vat_rate !== undefined ? `${Number(detail.vat_rate)}%` : "—";
+    const num = Number(vat);
+    return isNaN(num) ? escapeHtml(String(vat)) : `${num.toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
 }
 
 const ICONS = {

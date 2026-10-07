@@ -30,11 +30,11 @@ class AddLegacyIdToFbSupplierTable extends Migration
     {
         $this->forge->addColumn('fb_supplier', [
             'legacy_id' => [
-                'type'       => 'INT',
+                'type' => 'INT',
                 'constraint' => 11,
-                'unsigned'   => true,
-                'null'       => true,
-                'after'      => 'id_supplier',
+                'unsigned' => true,
+                'null' => true,
+                'after' => 'id_supplier',
             ],
         ]);
         $this->forge->addKey('legacy_id', false, false, 'idx_supplier_legacy_id');
@@ -42,6 +42,8 @@ class AddLegacyIdToFbSupplierTable extends Migration
 
     public function down(): void
     {
-        $this->forge->dropColumn('fb_supplier', 'legacy_id');
+        if ($this->db->fieldExists('legacy_id', 'fb_supplier')) {
+            $this->forge->dropColumn('fb_supplier', 'legacy_id');
+        }
     }
 }

@@ -242,6 +242,27 @@
     gap: 0.75rem;
 }
 
+/* Bottone manuale utente: cerchio "?" che apre il PDF alla sezione
+   della pagina corrente */
+.fb-help-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border: 1px solid var(--fb-border);
+    border-radius: 9999px;
+    background-color: var(--fb-background);
+    color: var(--fb-muted-foreground);
+    transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease;
+}
+
+.fb-help-btn:hover {
+    background-color: var(--fb-muted);
+    color: var(--fb-foreground);
+    border-color: var(--fb-ring);
+}
+
 .fb-user-chip {
     display: flex;
     align-items: center;

@@ -367,6 +367,61 @@ class Settings extends AdminController
     }
 
     /**
+     * Configurazione globale (fb_configuration): costo orario manodopera
+     * e altri valori globali leggibili da ogni pagina.
+     */
+    public function config(): ResponseInterface
+    {
+        if ($denied = $this->requirePermission('*')) {
+            return $denied;
+        }
+
+        $config = new \FairyBus\Models\FbConfigurationModel();
+
+        return $this->jsonResponse([
+            'success' => true,
+            'hourly_cost' => (float) ($config->get('hourly_cost')['value'] ?? 0),
+            'expiration_alert_days' => (int) ($config->get('expiration_alert_days')['value'] ?? 30),
+            'expiration_alert_km' => (int) ($config->get('expiration_alert_km')['value'] ?? 2000),
+        ]);
+    }
+
+    /**
+     * Salva la configurazione globale (costo orario manodopera,
+     * soglie di avviso scadenze). Salva solo le chiavi presenti nel POST.
+     */
+    public function saveConfig(): ResponseInterface
+    {
+        if ($denied = $this->requirePermission('*')) {
+            return $denied;
+        }
+
+        if (
+            !$this->validate([
+                'hourly_cost' => 'permit_empty|decimal|greater_than_equal_to[0]',
+                'expiration_alert_days' => 'permit_empty|integer|greater_than_equal_to[0]',
+                'expiration_alert_km' => 'permit_empty|integer|greater_than_equal_to[0]',
+            ])
+        ) {
+            return $this->jsonResponse(['success' => false, 'errors' => $this->validator->getErrors()], 422);
+        }
+
+        $config = new \FairyBus\Models\FbConfigurationModel();
+        $post = $this->request->getPost();
+        if (array_key_exists('hourly_cost', $post)) {
+            $config->setValue('hourly_cost', (string) (float) ($post['hourly_cost'] ?: 0));
+        }
+        if (array_key_exists('expiration_alert_days', $post)) {
+            $config->setValue('expiration_alert_days', (string) (int) ($post['expiration_alert_days'] ?: 30));
+        }
+        if (array_key_exists('expiration_alert_km', $post)) {
+            $config->setValue('expiration_alert_km', (string) (int) ($post['expiration_alert_km'] ?: 2000));
+        }
+
+        return $this->jsonResponse(['success' => true]);
+    }
+
+    /**
      * Dati per l'editor del menu: albero salvato (o replica del default se
      * fb_menu e' vuota), flag menu_custom e metadati (icone, colori, rotte).
      */

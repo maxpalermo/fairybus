@@ -109,7 +109,7 @@ class CreateFbProductTable extends Migration
         $this->forge->addKey('id_alias');
         $this->forge->addKey('id_brand');
         $this->forge->addKey('sku');
-        $this->forge->createTable('fb_product');
+        $this->forge->createTable('fb_product', true);
     }
 
     public function down(): void

@@ -13,6 +13,22 @@ import DialogHelper from "../core/DialogHelper.js";
  */
 export default class PrintHelper {
     static MAX_ROWS = 500;
+    static DOWNLOAD_KEY = "fb_force_pdf_download";
+
+    /**
+     * Collega uno switch "Forza download PDF": persiste in localStorage e
+     * viene letto da print() per inviare `download=1` al backend.
+     */
+    static bindForceDownloadSwitch(selector) {
+        const el = document.querySelector(selector);
+        if (!el) {
+            return;
+        }
+        el.checked = localStorage.getItem(PrintHelper.DOWNLOAD_KEY) === "1";
+        el.addEventListener("change", () => {
+            localStorage.setItem(PrintHelper.DOWNLOAD_KEY, el.checked ? "1" : "0");
+        });
+    }
 
     /**
      * @param {object} options
@@ -103,6 +119,12 @@ export default class PrintHelper {
         input.name = "ids";
         input.value = JSON.stringify(ids);
         form.appendChild(input);
+
+        const dl = document.createElement("input");
+        dl.type = "hidden";
+        dl.name = "download";
+        dl.value = localStorage.getItem(PrintHelper.DOWNLOAD_KEY) === "1" ? "1" : "0";
+        form.appendChild(dl);
 
         for (const [name, value] of Object.entries(this.extraParams)) {
             const extra = document.createElement("input");

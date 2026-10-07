@@ -61,15 +61,26 @@
                 </tr>
             </thead>
             <tbody>
+                {% set tot_hours, tot_manpower = 0, 0 %}
                 {% for t in maintenance.tasks %}
+                    {% set tot_hours = tot_hours + t.hours %}
+                    {% set tot_manpower = tot_manpower + t.manpower %}
                     <tr>
                         <td>{{ t.description|default('—') }}</td>
                         <td class="num">{{ t.hours }}</td>
                         <td class="num">{{ t.manpower|number_format(2, ',', '.') }}</td>
-                        <td class="num">€ {{ t.price_per_hour|number_format(2, ',', '.') }}</td>
+                        <td class="num">&nbsp;{{ t.price_per_hour|number_format(2, ',', '.') }}</td>
                     </tr>
                 {% endfor %}
             </tbody>
+            <tfoot>
+                <tr>
+                    <th>Totale manodopera</th>
+                    <th class="num">{{ tot_hours }}</th>
+                    <th class="num">{{ tot_manpower|number_format(2, ',', '.') }}</th>
+                    <th></th>
+                </tr>
+            </tfoot>
         </table>
     {% endif %}
 
@@ -91,20 +102,21 @@
             {% set total = 0 %}
             {% set totalQty = 0 %}
             {% for row in maintenance.details %}
-                {% set importo = row.quantity * row.price * (1 + (row.discount|default(0)) / 100) %}
+                {% set qty = row.quantity|abs %}
+                    {% set importo = qty * row.price * (1 + (row.discount|default(0)) / 100) %}
                 {% set vat = row.vat_rate is not null ? row.vat_rate : 0 %}
                 {% set rowTotal = importo * (1 + vat / 100) %}
                 {% set total = total + rowTotal %}
-                {% set totalQty = totalQty + row.quantity %}
+                {% set totalQty = totalQty + qty %}
                 <tr>
-                    <td class="num">{{ row.quantity|number_format(3, ',', '.')|trim('0', 'right')|trim(',', 'right') ?: '0' }}</td>
+                    <td class="num">{{ qty|number_format(3, ',', '.')|trim('0', 'right')|trim(',', 'right') ?: '0' }} {{ row.unit_abbr|default('pz') }}</td>
                     <td>{{ row.sku|default('—') }}</td>
                     <td>{{ row.product_name|default('—') }}</td>
-                    <td class="num">€ {{ row.price|number_format(2, ',', '.') }}</td>
+                    <td class="num">&nbsp;{{ row.price|number_format(2, ',', '.') }}</td>
                     <td class="num">{{ row.discount|number_format(0) }}%</td>
-                    <td class="num">€ {{ importo|number_format(2, ',', '.') }}</td>
-                    <td>{% if row.vat_code %}Aliquota {{ row.vat_code }}%{% elseif row.vat_rate is not null %}{{ row.vat_rate }}%{% else %}—{% endif %}</td>
-                    <td class="num">€ {{ rowTotal|number_format(2, ',', '.') }}</td>
+                    <td class="num">&nbsp;{{ importo|number_format(2, ',', '.') }}</td>
+                    <td>{% if row.vat_rate is not null or row.vat_code is not null %}{{ (row.vat_rate ?? row.vat_code)|number_format(2, ',', '.') }}%{% else %}—{% endif %}</td>
+                    <td class="num">&nbsp;{{ rowTotal|number_format(2, ',', '.') }}</td>
                 </tr>
             {% else %}
                 <tr><td colspan="8" class="center muted">Nessun ricambio.</td></tr>
@@ -117,7 +129,7 @@
                     <td colspan="4" style="border-top: 1.5pt solid #18181b;"></td>
                     <td class="muted" style="border-top: 1.5pt solid #18181b;">Totale ricambi</td>
                     <td style="border-top: 1.5pt solid #18181b;"></td>
-                    <td class="num" style="border-top: 1.5pt solid #18181b;"><strong>€ {{ total|number_format(2, ',', '.') }}</strong></td>
+                    <td class="num" style="border-top: 1.5pt solid #18181b;"><strong>&nbsp;{{ total|number_format(2, ',', '.') }}</strong></td>
                 </tr>
             </tfoot>
         {% endif %}

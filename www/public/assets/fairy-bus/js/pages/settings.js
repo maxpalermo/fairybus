@@ -578,7 +578,93 @@ function initUserActionDelegation() {
     });
 }
 
+/* ---------- Importa tutto: sequenza pulizia + reimport ---------- */
+
+const IMPORT_ALL_STEPS = [
+    { label: "Marche", url: "api/brands/import-legacy" },
+    { label: "Categorie", url: "api/categories/import-legacy" },
+    { label: "Fornitori", url: "api/suppliers/import-legacy" },
+    { label: "Clienti", url: "api/customers/import-legacy" },
+    { label: "Veicoli", url: "api/vehicles/import-legacy" },
+    { label: "Prodotti", url: "api/products/import-legacy" },
+    { label: "Giacenze", url: "api/stocks/import-legacy" },
+    { label: "Documenti", url: "api/documents/import-legacy" },
+    { label: "Manutenzioni", url: "api/maintenance/import-legacy" },
+    { label: "Rifornimenti", url: "api/refuelling/import-legacy" },
+];
+
+function createImportProgressDialog() {
+    const dlg = document.createElement("dialog");
+    dlg.className = "fb-dialog fb-dialog-sm";
+    dlg.innerHTML = `
+        <div class="fb-dialog-header"><h3 class="fb-dialog-title">Importazione completa</h3></div>
+        <div class="fb-dialog-body"><ul class="fb-import-steps"></ul></div>
+        <div class="fb-dialog-footer" data-field="footer" hidden>
+            <button type="button" class="fb-btn fb-btn-primary" data-field="close">Chiudi</button>
+        </div>`;
+    document.body.appendChild(dlg);
+    dlg.querySelector('[data-field="close"]').addEventListener("click", () => dlg.close());
+    dlg.addEventListener("close", () => dlg.remove(), { once: true });
+    // Blocca la chiusura accidentale (Esc / click fuori) durante l'import
+    dlg.addEventListener("cancel", (e) => {
+        if (dlg.querySelector('[data-field="footer"]').hidden) e.preventDefault();
+    });
+    return dlg;
+}
+
+async function runImportAll() {
+    if (!(await dialog.confirm("Verranno svuotate e reimportate tutte le tabelle dati. Configurazione, utenti e permessi non vengono toccati. Continuare?", "Importa tutto"))) {
+        return;
+    }
+
+    const dlg = createImportProgressDialog();
+    const list = dlg.querySelector(".fb-import-steps");
+    const footer = dlg.querySelector('[data-field="footer"]');
+    const items = IMPORT_ALL_STEPS.map((s) => {
+        const li = document.createElement("li");
+        li.className = "fb-import-step is-pending";
+        li.innerHTML = `<span class="fb-import-step-icon">○</span><span class="fb-import-step-label">${s.label}</span><span class="fb-import-step-info"></span>`;
+        list.appendChild(li);
+        return li;
+    });
+    dlg.showModal();
+
+    let failed = false;
+    for (let i = 0; i < IMPORT_ALL_STEPS.length; i++) {
+        const step = IMPORT_ALL_STEPS[i];
+        const li = items[i];
+        li.className = "fb-import-step is-running";
+        li.querySelector(".fb-import-step-icon").textContent = "◌";
+        try {
+            const res = await FetchHelper.post(`${window.FB.baseUrl}${step.url}`, {});
+            li.className = "fb-import-step is-done";
+            li.querySelector(".fb-import-step-icon").textContent = "✔";
+            li.querySelector(".fb-import-step-info").textContent = res.message || "ok";
+        } catch (err) {
+            failed = true;
+            li.className = "fb-import-step is-failed";
+            li.querySelector(".fb-import-step-icon").textContent = "✖";
+            const msg = err?.payload?.message || err.message || "Errore";
+            li.querySelector(".fb-import-step-info").textContent = msg;
+            for (let j = i + 1; j < items.length; j++) {
+                items[j].className = "fb-import-step is-skipped";
+                items[j].querySelector(".fb-import-step-icon").textContent = "—";
+            }
+            break;
+        }
+    }
+
+    footer.hidden = false;
+    const title = dlg.querySelector(".fb-dialog-title");
+    title.textContent = failed ? "Importazione interrotta" : "Importazione completata";
+    if (failed) {
+        title.style.color = "#b91c1c";
+    }
+}
+
 function initImportButtons() {
+    document.querySelector('[data-action="import-all"]')?.addEventListener("click", () => runImportAll());
+
     document.querySelector('[data-action="import-brands"]')?.addEventListener("click", async () => {
         if (!(await dialog.confirm("Importare le marche dalla tabella legacy vehicle?", "Conferma"))) {
             return;
@@ -725,6 +811,38 @@ function initPasswordForm() {
     });
 }
 
+function initConfigForm() {
+    const form = document.getElementById("hourly-cost-form");
+    if (!form) return;
+
+    form.addEventListener("submit", async (ev) => {
+        ev.preventDefault();
+        const body = Object.fromEntries(new FormData(form).entries());
+        try {
+            await FetchHelper.post(`${window.FB.baseUrl}api/settings/config`, body);
+            toast.showToastSuccess("Costo orario salvato.");
+        } catch (err) {
+            await dialog.error(err);
+        }
+    });
+}
+
+function initAlertThresholdsForm() {
+    const form = document.getElementById("alert-thresholds-form");
+    if (!form) return;
+
+    form.addEventListener("submit", async (ev) => {
+        ev.preventDefault();
+        const body = Object.fromEntries(new FormData(form).entries());
+        try {
+            await FetchHelper.post(`${window.FB.baseUrl}api/settings/config`, body);
+            toast.showToastSuccess("Soglie avvisi salvate.");
+        } catch (err) {
+            await dialog.error(err);
+        }
+    });
+}
+
 function initToastPrefsForm() {
     const form = document.getElementById("toast-prefs-form");
     if (!form) return;
@@ -771,6 +889,7 @@ if (document.readyState === "loading") {
         initImportButtons();
         initPasswordForm();
         initToastPrefsForm();
+        initConfigForm();
         PasswordToggle.init();
         loadImports();
     });
@@ -784,6 +903,8 @@ if (document.readyState === "loading") {
     initImportButtons();
     initPasswordForm();
     initToastPrefsForm();
+    initConfigForm();
+    initAlertThresholdsForm();
     PasswordToggle.init();
     loadImports();
 }

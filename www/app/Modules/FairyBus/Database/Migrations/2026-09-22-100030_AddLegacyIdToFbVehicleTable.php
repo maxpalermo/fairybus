@@ -30,11 +30,11 @@ class AddLegacyIdToFbVehicleTable extends Migration
     {
         $fields = [
             'legacy_id' => [
-                'type'       => 'INT',
+                'type' => 'INT',
                 'constraint' => 11,
-                'unsigned'   => true,
-                'null'       => true,
-                'after'      => 'id_vehicle',
+                'unsigned' => true,
+                'null' => true,
+                'after' => 'id_vehicle',
             ],
         ];
 
@@ -44,6 +44,8 @@ class AddLegacyIdToFbVehicleTable extends Migration
 
     public function down(): void
     {
-        $this->forge->dropColumn('fb_vehicle', 'legacy_id');
+        if ($this->db->fieldExists('legacy_id', 'fb_vehicle')) {
+            $this->forge->dropColumn('fb_vehicle', 'legacy_id');
+        }
     }
 }

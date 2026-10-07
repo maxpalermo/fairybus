@@ -26,6 +26,7 @@ use App\Controllers\AdminController;
 use CodeIgniter\HTTP\ResponseInterface;
 use FairyBus\Libraries\PdfHelper;
 use FairyBus\Models\FbProductModel;
+use FairyBus\Models\FbStockModel;
 
 class Products extends AdminController
 {
@@ -33,6 +34,7 @@ class Products extends AdminController
     {
         return $this->renderAdmin('admin/products.twig', [
             'page_title' => 'Prodotti',
+            'unit_labels' => FbStockModel::UNIT_LABELS,
         ]);
     }
 

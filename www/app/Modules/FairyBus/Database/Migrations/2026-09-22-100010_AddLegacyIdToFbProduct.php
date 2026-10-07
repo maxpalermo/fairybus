@@ -30,11 +30,11 @@ class AddLegacyIdToFbProduct extends Migration
     {
         $fields = [
             'legacy_id' => [
-                'type'       => 'INT',
+                'type' => 'INT',
                 'constraint' => 11,
-                'unsigned'   => true,
-                'null'       => true,
-                'after'      => 'id_product',
+                'unsigned' => true,
+                'null' => true,
+                'after' => 'id_product',
             ],
         ];
 
@@ -44,6 +44,8 @@ class AddLegacyIdToFbProduct extends Migration
 
     public function down(): void
     {
-        $this->forge->dropColumn('fb_product', 'legacy_id');
+        if ($this->db->fieldExists('legacy_id', 'fb_product')) {
+            $this->forge->dropColumn('fb_product', 'legacy_id');
+        }
     }
 }

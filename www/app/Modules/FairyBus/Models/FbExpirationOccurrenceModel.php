@@ -52,6 +52,7 @@ class FbExpirationOccurrenceModel extends Model
         'expiration_date',
         'km',
         'state',
+        'done_date',
         'status',
         'note',
         'date_add',
@@ -68,11 +69,12 @@ class FbExpirationOccurrenceModel extends Model
     public function listAll(array $states = []): array
     {
         $builder = $this->db->table('fb_expiration_occurrence o')
-            ->select('o.*, e.id_vehicle, e.id_expiration_tag, e.description, e.kind AS expiration_kind,
-                v.plate AS vehicle_plate, v.current_km, t.name AS tag_name, t.kind AS tag_kind')
+            ->select('o.*, e.id_vehicle, e.id_expiration_tag, e.description, e.kind AS expiration_kind, e.hidden,
+                v.plate AS vehicle_plate, v.current_km, t.name AS tag_name, t.kind AS tag_kind, t.interval_value, t.interval_unit')
             ->join('fb_expiration e', 'e.id_expiration = o.id_expiration', 'left')
             ->join('fb_vehicle v', 'v.id_vehicle = e.id_vehicle', 'left')
             ->join('fb_expiration_tag t', 't.id_expiration_tag = e.id_expiration_tag', 'left')
+            ->where("v.status !=", 'retired')
             ->orderBy('o.expiration_date', 'ASC');
 
         if ($states !== []) {
@@ -82,6 +84,38 @@ class FbExpirationOccurrenceModel extends Model
         $rows = $builder->get()->getResultArray();
         foreach ($rows as &$row) {
             $row['state_label'] = self::STATE_LABELS[(int) $row['state']] ?? '—';
+        }
+
+        return $rows;
+    }
+
+    /**
+     * Occorrenze per id (stampa selezionate).
+     *
+     * @param list<int> $ids
+     * @return list<array<string, mixed>>
+     */
+    public function listByIds(array $ids): array
+    {
+        if ($ids === []) {
+            return [];
+        }
+
+        $rows = $this->db->table('fb_expiration_occurrence o')
+            ->select('o.*, e.id_vehicle, e.id_expiration_tag, e.description, e.kind AS expiration_kind, e.hidden,
+                v.plate AS vehicle_plate, v.current_km, t.name AS tag_name, t.kind AS tag_kind, t.interval_value, t.interval_unit')
+            ->join('fb_expiration e', 'e.id_expiration = o.id_expiration', 'left')
+            ->join('fb_vehicle v', 'v.id_vehicle = e.id_vehicle', 'left')
+            ->join('fb_expiration_tag t', 't.id_expiration_tag = e.id_expiration_tag', 'left')
+            ->where("v.status !=", 'retired')
+            ->whereIn('o.id_expiration_occurrence', $ids)
+            ->orderBy('o.expiration_date', 'ASC')
+            ->get()
+            ->getResultArray();
+
+        foreach ($rows as &$row) {
+            $row['state_label'] = self::STATE_LABELS[(int) $row['state']] ?? '—';
+            $row['is_km_deadline'] = $row['expiration_date'] === null || ($row['tag_kind'] === 'km');
         }
 
         return $rows;
@@ -99,8 +133,8 @@ class FbExpirationOccurrenceModel extends Model
         $limit = date('Y-m-d', strtotime("+{$days} days"));
 
         $rows = $this->db->table('fb_expiration_occurrence o')
-            ->select('o.*, e.id_vehicle, e.id_expiration_tag, e.description, e.kind AS expiration_kind,
-                v.plate AS vehicle_plate, v.current_km, t.name AS tag_name, t.kind AS tag_kind')
+            ->select('o.*, e.id_vehicle, e.id_expiration_tag, e.description, e.kind AS expiration_kind, e.hidden,
+                v.plate AS vehicle_plate, v.current_km, t.name AS tag_name, t.kind AS tag_kind, t.interval_value, t.interval_unit')
             ->join('fb_expiration e', 'e.id_expiration = o.id_expiration', 'left')
             ->join('fb_vehicle v', 'v.id_vehicle = e.id_vehicle', 'left')
             ->join('fb_expiration_tag t', 't.id_expiration_tag = e.id_expiration_tag', 'left')
@@ -115,6 +149,8 @@ class FbExpirationOccurrenceModel extends Model
             ->groupEnd()
             ->groupEnd()
             ->whereNotIn('COALESCE(o.state,0)', [self::STATE_DONE])
+            ->where('COALESCE(e.hidden,0)', 0)
+            ->where("v.status !=", 'retired')
             ->orderBy('o.expiration_date', 'ASC')
             ->orderBy('o.km', 'ASC')
             ->get()

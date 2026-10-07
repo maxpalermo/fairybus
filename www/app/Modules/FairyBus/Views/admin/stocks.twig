@@ -18,7 +18,7 @@
 {% extends "admin/layout.twig" %}
 
 {% block page_styles %}
-    <link rel="stylesheet" href="{{ asset('fairy-bus/css/pages/stocks.css') }}">
+    <link rel="stylesheet" href="{{ asset('fairy-bus/css/pages/stocks.css?v=14') }}">
 {% endblock %}
 
 {% block content %}
@@ -30,7 +30,9 @@
             </div>
             <div class="fb-page-actions">
                 <span class="fb-muted fb-selected-count" id="stocks-selected-count">0 selezionati</span>
-                <button type="button" class="fb-btn fb-btn-secondary" data-action="print-stocks">Stampa PDF</button>
+                <button type="button" class="fb-btn-icon fb-btn-icon-warning" data-action="print-stocks" title="Stampa PDF (righe selezionate, max 500)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                </button>
             </div>
         </div>
 
@@ -51,9 +53,9 @@
                 <div class="fb-form-group">
                     <label class="fb-form-label" for="stock_unit">Unità di misura</label>
                     <select id="stock_unit" name="unit" class="fb-form-input">
-                        <option value="0">Pezzi</option>
-                        <option value="1">Metri</option>
-                        <option value="2">Litri</option>
+                        {% for value, label in unit_labels %}
+                            <option value="{{ value }}">{{ label }}</option>
+                        {% endfor %}
                     </select>
                 </div>
                 <div class="fb-form-group">
@@ -74,5 +76,5 @@
 {% endblock %}
 
 {% block page_scripts %}
-    <script type="module" src="{{ asset('fairy-bus/js/pages/stocks.js') }}"></script>
+    <script type="module" src="{{ asset('fairy-bus/js/pages/stocks.js?v=12') }}"></script>
 {% endblock %}

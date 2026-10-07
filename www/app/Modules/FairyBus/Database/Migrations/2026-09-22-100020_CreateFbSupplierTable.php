@@ -76,7 +76,7 @@ class CreateFbSupplierTable extends Migration
         ]);
 
         $this->forge->addKey('id_supplier', true);
-        $this->forge->createTable('fb_supplier');
+        $this->forge->createTable('fb_supplier', true);
     }
 
     public function down(): void

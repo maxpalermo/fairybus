@@ -61,10 +61,14 @@ class FbExpirationModel extends Model
     public function listAll(array $ids = []): array
     {
         $builder = $this->db->table('fb_expiration e')
-            ->select('e.*, v.plate AS vehicle_plate, t.name AS tag_name, t.kind AS tag_kind, t.interval_value, t.interval_unit')
+            ->select('e.*, v.plate AS vehicle_plate, v.current_km, t.name AS tag_name, t.kind AS tag_kind, t.interval_value, t.interval_unit')
             ->join('fb_vehicle v', 'v.id_vehicle = e.id_vehicle', 'left')
             ->join('fb_expiration_tag t', 't.id_expiration_tag = e.id_expiration_tag', 'left')
-            ->orderBy('e.expiration_date', 'ASC');
+            ->where("v.status !=", 'retired')
+            ->orderBy('v.plate', 'ASC')
+            ->orderBy('t.name', 'ASC')
+            ->orderBy('e.expiration_date', 'DESC')
+            ->orderBy('e.expires_atkm', 'DESC');
 
         if ($ids !== []) {
             $ids = array_values(array_filter(array_map('intval', $ids), static fn(int $i): bool => $i > 0));

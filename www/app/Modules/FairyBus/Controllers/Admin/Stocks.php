@@ -33,6 +33,7 @@ class Stocks extends AdminController
     {
         return $this->renderAdmin('admin/stocks.twig', [
             'page_title' => 'Giacenze',
+            'unit_labels' => FbStockModel::UNIT_LABELS,
         ]);
     }
 

@@ -30,11 +30,11 @@ class AddLegacyIdToFbCustomerTable extends Migration
     {
         $this->forge->addColumn('fb_customer', [
             'legacy_id' => [
-                'type'       => 'INT',
+                'type' => 'INT',
                 'constraint' => 11,
-                'unsigned'   => true,
-                'null'       => true,
-                'after'      => 'id_customer',
+                'unsigned' => true,
+                'null' => true,
+                'after' => 'id_customer',
             ],
         ]);
         $this->forge->addKey('legacy_id', false, false, 'idx_customer_legacy_id');
@@ -42,6 +42,8 @@ class AddLegacyIdToFbCustomerTable extends Migration
 
     public function down(): void
     {
-        $this->forge->dropColumn('fb_customer', 'legacy_id');
+        if ($this->db->fieldExists('legacy_id', 'fb_customer')) {
+            $this->forge->dropColumn('fb_customer', 'legacy_id');
+        }
     }
 }

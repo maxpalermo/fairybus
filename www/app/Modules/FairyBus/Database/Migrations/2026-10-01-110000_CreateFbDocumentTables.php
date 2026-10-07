@@ -42,7 +42,7 @@ class CreateFbDocumentTables extends Migration
             ],
         ]);
         $this->forge->addKey('id', true);
-        $this->forge->createTable('fb_document_type');
+        $this->forge->createTable('fb_document_type', true);
 
         $this->db->table('fb_document_type')->insertBatch([
             ['id' => 0, 'name' => 'DDT'],
@@ -130,7 +130,7 @@ class CreateFbDocumentTables extends Migration
         $this->forge->addKey('legacy_id');
         $this->forge->addKey('id_customer');
         $this->forge->addKey('id_supplier');
-        $this->forge->createTable('fb_invoice');
+        $this->forge->createTable('fb_invoice', true);
 
         // Documenti (legacy trade, esclusi i riferimenti a maintenance)
         $this->forge->addField([
@@ -222,7 +222,7 @@ class CreateFbDocumentTables extends Migration
         $this->forge->addKey('id_customer');
         $this->forge->addKey('id_supplier');
         $this->forge->addKey('id_invoice');
-        $this->forge->createTable('fb_document');
+        $this->forge->createTable('fb_document', true);
 
         // Righe dettaglio documenti (legacy movement collegati a trade)
         $this->forge->addField([
@@ -317,7 +317,7 @@ class CreateFbDocumentTables extends Migration
         $this->forge->addKey('legacy_id');
         $this->forge->addKey('id_document');
         $this->forge->addKey('id_product');
-        $this->forge->createTable('fb_document_detail');
+        $this->forge->createTable('fb_document_detail', true);
     }
 
     public function down(): void

@@ -18,7 +18,7 @@
 {% extends "admin/layout.twig" %}
 
 {% block page_styles %}
-    <link rel="stylesheet" href="{{ asset('fairy-bus/css/pages/vehicles.css') }}?v=4">
+    <link rel="stylesheet" href="{{ asset('fairy-bus/css/pages/vehicles.css') }}?v=5">
 {% endblock %}
 
 {% block content %}
@@ -26,11 +26,16 @@
         <div class="fb-page-header">
             <div>
                 <h1 class="fb-page-title">Veicoli</h1>
+                <p class="fb-page-subtitle">Anagrafica mezzi: targhe, chilometri, caratteristiche, documenti e scadenze.</p>
             </div>
             <div class="fb-page-actions">
                 <span class="fb-muted fb-selected-count" id="vehicles-selected-count">0 selezionati</span>
-                <button type="button" class="fb-btn fb-btn-secondary" data-action="print-vehicles">Stampa PDF</button>
-                <button type="button" class="fb-btn fb-btn-primary" data-action="new-vehicle">Nuovo veicolo</button>
+                <button type="button" class="fb-btn-icon fb-btn-icon-warning" data-action="print-vehicles" title="Stampa PDF (righe selezionate)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                </button>
+                <button type="button" class="fb-btn-icon fb-btn-icon-success" data-action="new-vehicle" title="Nuovo veicolo">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                </button>
             </div>
         </div>
 
@@ -138,5 +143,5 @@
 {% endblock %}
 
 {% block page_scripts %}
-    <script type="module" src="{{ asset('fairy-bus/js/pages/vehicles.js') }}"></script>
+    <script type="module" src="{{ asset('fairy-bus/js/pages/vehicles.js') }}?v=6"></script>
 {% endblock %}

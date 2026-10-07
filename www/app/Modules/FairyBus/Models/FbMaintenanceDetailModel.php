@@ -56,12 +56,21 @@ class FbMaintenanceDetailModel extends Model
      */
     public function listByMaintenance(int $idMaintenance): array
     {
-        return $this->db->table('fb_maintenance_detail d')
-            ->select('d.*, p.sku, p.name AS product_name')
+        $rows = $this->db->table('fb_maintenance_detail d')
+            ->select('d.*, p.sku, p.name AS product_name,
+                (SELECT s.unit FROM fb_stock s WHERE s.id_product = p.id_product ORDER BY s.id_stock LIMIT 1) AS unit,
+                t.hours AS labor_hours, t.price_per_hour AS labor_price_per_hour, t.manpower AS labor_manpower')
             ->join('fb_product p', 'p.id_product = d.id_product', 'left')
+            ->join('fb_maintenance_task t', 't.id_maintenance_detail = d.id_maintenance_detail', 'left')
             ->where('d.id_maintenance', $idMaintenance)
             ->orderBy('d.id_maintenance_detail', 'ASC')
             ->get()
             ->getResultArray();
+
+        foreach ($rows as &$row) {
+            $row['unit_abbr'] = FbStockModel::unitAbbr($row['unit'] ?? 0);
+        }
+
+        return $rows;
     }
 }

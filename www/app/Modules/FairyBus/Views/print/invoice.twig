@@ -38,9 +38,9 @@
             {% if fees != 0 %}
                 <tr>
                     <td class="muted">Spese trasporto</td>
-                    <td>€ {{ invoice.transport_fee|default(0)|number_format(2, ',', '.') }}</td>
+                    <td>&nbsp;{{ invoice.transport_fee|default(0)|number_format(2, ',', '.') }}</td>
                     <td class="muted">Incasso / Acconto</td>
-                    <td>€ {{ invoice.collection_fee|default(0)|number_format(2, ',', '.') }} / € {{ invoice.deposit|default(0)|number_format(2, ',', '.') }}</td>
+                    <td>&nbsp;{{ invoice.collection_fee|default(0)|number_format(2, ',', '.') }} / &nbsp;{{ invoice.deposit|default(0)|number_format(2, ',', '.') }}</td>
                 </tr>
             {% endif %}
             {% if invoice.note %}
@@ -79,11 +79,11 @@
                         <td class="num">{{ row.quantity|number_format(3, ',', '.')|trim('0', 'right')|trim(',', 'right') ?: '0' }}</td>
                         <td>{{ row.sku|default('—') }}</td>
                         <td>{{ row.product_name|default('—') }}</td>
-                        <td class="num">€ {{ row.price|number_format(2, ',', '.') }}</td>
+                        <td class="num">&nbsp;{{ row.price|number_format(2, ',', '.') }}</td>
                         <td class="num">{{ row.discount|number_format(0) }}%</td>
-                        <td class="num">€ {{ importo|number_format(2, ',', '.') }}</td>
-                        <td>{% if row.vat_code %}Aliquota {{ row.vat_code }}%{% elseif row.vat_rate is not null %}{{ row.vat_rate }}%{% else %}—{% endif %}</td>
-                        <td class="num">€ {{ rowTotal|number_format(2, ',', '.') }}</td>
+                        <td class="num">&nbsp;{{ importo|number_format(2, ',', '.') }}</td>
+                        <td>{{ row.vat_code is not empty ? (row.vat_code|number_format(2, ',', '.') ~ '%') : (row.vat_rate is not null ? row.vat_rate|number_format(2, ',', '.') ~ '%' : '—') }}</td>
+                        <td class="num">&nbsp;{{ rowTotal|number_format(2, ',', '.') }}</td>
                     </tr>
                 {% else %}
                     <tr><td colspan="8" class="center muted">Nessun movimento.</td></tr>
@@ -94,7 +94,7 @@
                 <tfoot>
                     <tr>
                         <td colspan="7" class="muted" style="text-align: right; border-top: 1.5pt solid #18181b;">Totale DDT</td>
-                        <td class="num" style="border-top: 1.5pt solid #18181b;"><strong>€ {{ docTotal|number_format(2, ',', '.') }}</strong></td>
+                        <td class="num" style="border-top: 1.5pt solid #18181b;"><strong>&nbsp;{{ docTotal|number_format(2, ',', '.') }}</strong></td>
                     </tr>
                 </tfoot>
             {% endif %}
@@ -108,7 +108,7 @@
             <tbody>
                 <tr>
                     <td class="muted"><strong>Totale fattura</strong></td>
-                    <td class="num" style="width: 15%;"><strong>€ {{ grandTotal|number_format(2, ',', '.') }}</strong></td>
+                    <td class="num" style="width: 15%;"><strong>&nbsp;{{ grandTotal|number_format(2, ',', '.') }}</strong></td>
                 </tr>
             </tbody>
         </table>

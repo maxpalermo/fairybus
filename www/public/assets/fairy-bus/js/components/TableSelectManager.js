@@ -30,7 +30,7 @@ class TableSelectManager {
     }
 
     componentsFor(table) {
-        return [...this.components].filter((c) => c.table === table && c.select.isConnected);
+        return [...this.components].filter((c) => c.table === table && (c.container || c.select).isConnected);
     }
 
     async loadOptions(table) {

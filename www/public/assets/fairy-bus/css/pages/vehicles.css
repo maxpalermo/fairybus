@@ -363,3 +363,50 @@ textarea.fb-form-input {
         align-items: flex-start;
     }
 }
+/* Badge stato veicolo */
+.fb-veh-status {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.15rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+.fb-veh-status-active {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.fb-veh-status-maintenance {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.fb-veh-status-retired {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.fb-veh-status-unknown {
+    background: var(--fb-muted, #f4f4f5);
+    color: var(--fb-muted-foreground, #64748b);
+}
+
+/* Riga veicolo disattivato */
+.fb-veh-row-retired > td {
+    background: #fafafa;
+    color: var(--fb-muted-foreground, #64748b);
+    font-style: italic;
+}
+
+.fb-veh-row-retired > td:first-child {
+    box-shadow: inset 3px 0 0 #94a3b8;
+}
+
+.fb-km-value {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}

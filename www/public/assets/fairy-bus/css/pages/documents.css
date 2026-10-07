@@ -25,10 +25,18 @@
 
 .fb-detail-add {
     display: grid;
-    grid-template-columns: 1fr 5.5rem 6.5rem 6rem 5.5rem auto;
+    grid-template-columns: minmax(20rem, 1fr) 6rem 7rem 7rem 5.5rem auto;
     gap: 0.5rem;
     align-items: center;
     margin-top: 0.5rem;
+}
+
+.fb-detail-add .fb-searchable-select {
+    min-width: 0;
+}
+
+.fb-detail-add .fb-searchable-select-input {
+    width: 100%;
 }
 
 .fb-detail-hint {

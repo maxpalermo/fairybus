@@ -3,7 +3,7 @@ import DialogHelper from "../core/DialogHelper.js";
 import Toast from "../core/Toast.js";
 import PrintHelper from "../components/PrintHelper.js";
 import RefuellingKpis from "../components/RefuellingKpis.js";
-import SearchableSelect from "../components/SearchableSelect.js";
+import SearchableSelect from "../components/SearchableSelect.js?v=4";
 import { viewItem } from "../components/ViewGrid.js";
 
 const dialog = new DialogHelper();
@@ -75,7 +75,7 @@ async function loadOptions() {
     const [optsRes, vehiclesRes, suppliersRes] = await Promise.all([FetchHelper.get(`${BASE}api/refuelling/options`), FetchHelper.get(`${BASE}api/vehicles`).catch(() => ({ rows: [] })), FetchHelper.get(`${BASE}api/suppliers`).catch(() => ({ rows: [] }))]);
     stationsCache = optsRes.stations || [];
     fuelTypesCache = optsRes.fuel_types || [];
-    vehiclesCache = (vehiclesRes.rows || []).filter((v) => Number(v.active ?? 1) === 1);
+    vehiclesCache = (vehiclesRes.rows || []).filter((v) => (v.status ?? "active") !== "retired");
     suppliersCache = (suppliersRes.rows || []).filter((s) => Number(s.active ?? 1) === 1);
 }
 

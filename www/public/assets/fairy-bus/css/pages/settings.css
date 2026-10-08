@@ -221,6 +221,28 @@
     color: var(--fb-muted-foreground);
 }
 
+/* Comando cron backup */
+.fb-backup-cron {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+    padding: 0.625rem 0.875rem;
+    border-radius: 0.5rem;
+    border: 1px solid #bfdbfe;
+    background-color: #eff6ff;
+    font-size: 0.8125rem;
+}
+
+.fb-backup-cron code {
+    font-family: var(--fb-font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+    color: #1d4ed8;
+    font-weight: 600;
+}
+
+.fb-backup-cron .fb-muted {
+    font-size: 0.75rem;
+}
+
 .fb-import-toolbar {
     justify-content: flex-start;
     margin-bottom: 0;

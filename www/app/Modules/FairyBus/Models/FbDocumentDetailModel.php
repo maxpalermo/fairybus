@@ -34,6 +34,7 @@ class FbDocumentDetailModel extends Model
     protected $allowedFields = [
         'legacy_id',
         'id_document',
+        'id_maintenance',
         'id_product',
         'quantity',
         'price',

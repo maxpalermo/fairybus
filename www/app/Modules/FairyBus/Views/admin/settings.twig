@@ -18,7 +18,7 @@
 {% extends "admin/layout.twig" %}
 
 {% block page_styles %}
-    <link rel="stylesheet" href="{{ asset('fairy-bus/css/pages/settings.css') }}?v=4">
+    <link rel="stylesheet" href="{{ asset('fairy-bus/css/pages/settings.css') }}?v=5">
 {% endblock %}
 
 {% block content %}
@@ -33,6 +33,7 @@
             <button class="fb-tab" data-tab="interface" role="tab" aria-selected="false" aria-controls="panel-interface">Interfaccia</button>
             <button class="fb-tab" data-tab="doctypes" role="tab" aria-selected="false" aria-controls="panel-doctypes">Tipi documento</button>
             <button class="fb-tab" data-tab="menu" role="tab" aria-selected="false" aria-controls="panel-menu">Menu</button>
+            <button class="fb-tab" data-tab="backup" role="tab" aria-selected="false" aria-controls="panel-backup">Backup</button>
         </div>
 
         <div class="fb-tab-panel active" id="panel-users" role="tabpanel" aria-labelledby="tab-users">
@@ -277,6 +278,20 @@
                 </div>
 
                 <div class="fb-import-card">
+                    <h3 class="fb-import-card-title">Aliquota IVA</h3>
+                    <p class="fb-import-card-help">Aliquota IVA predefinita dell'officina: quando un prodotto non ha un'IVA propria, questa viene applicata in automatico nei ricambi delle manutenzioni e nelle righe dei documenti.</p>
+                    <form class="fb-form" id="vat-rate-form" style="max-width: 28rem;">
+                        <div class="fb-form-group">
+                            <label class="fb-form-label" for="default_tax_rate">Aliquota IVA predefinita (%)</label>
+                            <input type="number" id="default_tax_rate" name="default_tax_rate" class="fb-form-input" min="0" max="100" step="0.01" value="{{ default_tax_rate }}" placeholder="22.00">
+                        </div>
+                        <div class="fb-form-actions" style="justify-content: flex-start;">
+                            <button type="submit" class="fb-btn fb-btn-primary">Salva</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="fb-import-card">
                     <h3 class="fb-import-card-title">Avvisi scadenze</h3>
                     <p class="fb-import-card-help">Finestra di attenzione per le scadenze dei veicoli: le occorrenze risultano "In scadenza" e compaiono negli Avvisi quando mancano meno di questi valori.</p>
                     <form class="fb-form" id="alert-thresholds-form" style="max-width: 28rem;">
@@ -374,6 +389,47 @@
                         fb_menu è vuota: stai modificando una copia del menu predefinito. Salva per creare il menu custom.
                     </div>
                     <div id="menu-tree" class="fb-menu-tree"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="fb-tab-panel" id="panel-backup" role="tabpanel" aria-labelledby="tab-backup">
+            <div class="fb-import-sections">
+                <div class="fb-import-card">
+                    <h3 class="fb-import-card-title">Backup del database</h3>
+                    <p class="fb-import-card-help">Crea un archivio ZIP con il dump completo del database (tabelle e dati). I file sono conservati nell'area dati dell'applicazione e sono ripristinabili o scaricabili dalla tabella dello storico.</p>
+                    <div class="fb-form-actions" style="justify-content: flex-start;">
+                        <button type="button" class="fb-btn fb-btn-primary" data-action="backup-create">
+                            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                            Crea backup ora
+                        </button>
+                    </div>
+                </div>
+
+                <div class="fb-import-card">
+                    <h3 class="fb-import-card-title">Backup automatico (cron)</h3>
+                    <p class="fb-import-card-help">Per schedulare un backup periodico aggiungi al cron del server il comando seguente — con <code>--keep N</code> vengono conservati solo gli ultimi N archivi:</p>
+                    <div class="fb-backup-cron">
+                        <code>php spark fb:backup --keep 14</code>
+                        <span class="fb-muted">nell'ambiente Docker: <code>docker exec -u www-data fairy-bus php spark fb:backup --keep 14</code></span>
+                    </div>
+                </div>
+
+                <div class="fb-import-card">
+                    <h3 class="fb-import-card-title">Storico backup</h3>
+                    <p class="fb-import-card-help">Elenco degli archivi presenti. <strong>Ripristina</strong> sovrascrive il database corrente con il contenuto del backup.</p>
+                    <div class="fb-table-wrap">
+                        <table id="backups-table" class="fb-table">
+                            <thead>
+                                <tr>
+                                    <th data-field="name" data-sortable="true">File</th>
+                                    <th data-field="created_at" data-sortable="true">Data</th>
+                                    <th data-field="size" data-sortable="true">Dimensione</th>
+                                    <th data-field="actions">Azioni</th>
+                                </tr>
+                            </thead>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
@@ -485,6 +541,6 @@
 {% endblock %}
 
 {% block page_scripts %}
-    <script type="module" src="{{ asset('fairy-bus/js/pages/settings.js') }}?v=10"></script>
+    <script type="module" src="{{ asset('fairy-bus/js/pages/settings.js') }}?v=11"></script>
     <script type="module" src="{{ asset('fairy-bus/js/pages/settings-menu.js') }}?v=2"></script>
 {% endblock %}

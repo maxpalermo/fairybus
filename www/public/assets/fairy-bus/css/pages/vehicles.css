@@ -305,6 +305,79 @@ textarea.fb-form-input {
     font-weight: 500;
 }
 
+.fb-badge-info {
+    background-color: #dbeafe;
+    color: #1d4ed8;
+}
+
+/* Badge tipo scadenza (come pagina scadenziario) */
+.fb-kind-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.125rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.fb-kind-km {
+    background: #e0f2fe;
+    color: #0369a1;
+}
+
+.fb-kind-date {
+    background: #fef3c7;
+    color: #b45309;
+}
+
+/* Badge stato occorrenza scadenza */
+.fb-state-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.125rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.fb-state-0 {
+    background: #f1f5f9;
+    color: #475569;
+}
+
+.fb-state-1 {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.fb-state-2 {
+    background: #ede9fe;
+    color: #6d28d9;
+}
+
+.fb-state-3 {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.fb-state-4 {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+/* Link alla scheda manutenzione (tabella riparazioni) */
+
+.fb-doc-link {
+    color: var(--fb-foreground);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.fb-doc-link:hover {
+    text-decoration: underline;
+    color: var(--fb-primary);
+}
+
 .fb-detail-header {
     display: flex;
     align-items: center;
@@ -363,6 +436,7 @@ textarea.fb-form-input {
         align-items: flex-start;
     }
 }
+
 /* Badge stato veicolo */
 .fb-veh-status {
     display: inline-flex;
@@ -396,13 +470,13 @@ textarea.fb-form-input {
 }
 
 /* Riga veicolo disattivato */
-.fb-veh-row-retired > td {
+.fb-veh-row-retired>td {
     background: #fafafa;
     color: var(--fb-muted-foreground, #64748b);
     font-style: italic;
 }
 
-.fb-veh-row-retired > td:first-child {
+.fb-veh-row-retired>td:first-child {
     box-shadow: inset 3px 0 0 #94a3b8;
 }
 

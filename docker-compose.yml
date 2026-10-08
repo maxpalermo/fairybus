@@ -12,6 +12,7 @@ services:
       - ./docker/php/php-xdebug.ini:/usr/local/etc/php/conf.d/99-xdebug.ini:ro
       - ./docker/apache/000-default.conf:/etc/apache2/sites-available/000-default.conf:ro
     environment:
+      - TZ=Europe/Rome
       - CI_ENVIRONMENT=development
       - XDEBUG_MODE=debug
     networks:

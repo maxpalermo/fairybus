@@ -18,7 +18,7 @@
 {% extends "admin/layout.twig" %}
 
 {% block page_styles %}
-    <link rel="stylesheet" href="{{ asset('fairy-bus/css/pages/documents.css') }}?v=2">
+    <link rel="stylesheet" href="{{ asset('fairy-bus/css/pages/documents.css') }}?v=3">
 {% endblock %}
 
 {% block content %}
@@ -55,12 +55,19 @@
             <div class="fb-tabs fb-form-tabs" role="tablist">
                 <button type="button" class="fb-tab active" data-tab="info" role="tab" aria-selected="true">Informazioni</button>
                 <button type="button" class="fb-tab" data-tab="movimenti" role="tab" aria-selected="false">Movimenti</button>
+                <button type="button" class="fb-tab" data-tab="manutenzioni" role="tab" aria-selected="false">Manutenzioni</button>
             </div>
 
             <div class="fb-tab-panel active" data-panel="info" role="tabpanel">
-                <div class="fb-form-group">
-                    <label class="fb-form-label" for="doc_customer">Cliente</label>
-                    <select id="doc_customer" name="id_customer" class="fb-form-input" data-field="supplier"></select>
+                <div class="fb-form-grid">
+                    <div class="fb-form-group">
+                        <label class="fb-form-label" for="doc_customer">Cliente</label>
+                        <select id="doc_customer" name="id_customer" class="fb-form-input" data-field="supplier"></select>
+                    </div>
+                    <div class="fb-form-group">
+                        <label class="fb-form-label" for="doc_vehicle">Automezzo (targa)</label>
+                        <select id="doc_vehicle" name="id_vehicle" class="fb-form-input" data-field="vehicle"></select>
+                    </div>
                 </div>
                 <div class="fb-form-grid">
                     <div class="fb-form-group">
@@ -131,6 +138,12 @@
                 <p class="fb-muted fb-detail-hint" data-field="detail-hint">Salva prima il documento per aggiungere movimenti.</p>
             </div>
 
+            <div class="fb-tab-panel" data-panel="manutenzioni" role="tabpanel">
+                <p class="fb-muted" style="margin: 0 0 0.35rem; font-size: 0.8125rem;">Schede manutenzione dell'automezzo selezionato in Informazioni, non ancora associate a uno scarico o a una fattura cliente.</p>
+                <div class="fb-mnt-list" data-field="mnt-list"></div>
+                <p class="fb-muted fb-detail-hint" data-field="mnt-hint">Seleziona l'automezzo nella scheda Informazioni.</p>
+            </div>
+
             <div class="fb-form-actions">
                 <button type="submit" class="fb-btn fb-btn-primary">Salva</button>
                 <button type="button" class="fb-btn fb-btn-secondary" data-action="close">Annulla</button>
@@ -140,5 +153,5 @@
 {% endblock %}
 
 {% block page_scripts %}
-    <script type="module" src="{{ asset('fairy-bus/js/pages/documents.js?v=16') }}"></script>
+    <script type="module" src="{{ asset('fairy-bus/js/pages/documents.js?v=19') }}"></script>
 {% endblock %}

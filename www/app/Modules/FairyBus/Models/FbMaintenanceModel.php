@@ -34,6 +34,8 @@ class FbMaintenanceModel extends Model
     protected $allowedFields = [
         'legacy_id',
         'id_vehicle',
+        'id_document',
+        'id_invoice',
         'date',
         'km',
         'status',
@@ -49,16 +51,22 @@ class FbMaintenanceModel extends Model
      * @param list<int> $ids Se valorizzato, filtra per id_maintenance
      * @return list<array<string, mixed>>
      */
-    public function listAll(array $ids = []): array
+    public function listAll(array $ids = [], ?int $idVehicle = null): array
     {
         $builder = $this->db->table('fb_maintenance m')
             ->select('m.*, v.plate AS vehicle_plate, b.name AS brand_name,
                 (SELECT COUNT(*) FROM fb_maintenance_invoice mi WHERE mi.id_maintenance = m.id_maintenance) AS invoices_count')
             ->join('fb_vehicle v', 'v.id_vehicle = m.id_vehicle', 'left')
             ->join('fb_brand b', 'b.id_brand = v.id_brand', 'left')
-            ->where("v.status !=", 'retired')
             ->orderBy('m.date', 'DESC')
             ->orderBy('m.id_maintenance', 'DESC');
+
+        if ($idVehicle !== null && $idVehicle > 0) {
+            // dettaglio veicolo: mostra anche le manutenzioni di mezzi ritirati
+            $builder->where('m.id_vehicle', $idVehicle);
+        } else {
+            $builder->where("v.status !=", 'retired');
+        }
 
         if ($ids !== []) {
             $ids = array_values(array_filter(array_map('intval', $ids), static fn(int $i): bool => $i > 0));

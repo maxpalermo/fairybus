@@ -36,10 +36,45 @@ class Maintenance extends AdminController
             return $denied;
         }
 
+        $idVehicle = (int) $this->request->getGet('vehicle_id');
+
         return $this->jsonResponse([
             'success' => true,
-            'rows' => (new \FairyBus\Models\FbMaintenanceModel())->listAll(),
+            'rows' => (new \FairyBus\Models\FbMaintenanceModel())->listAll([], $idVehicle > 0 ? $idVehicle : null),
         ]);
+    }
+
+    /**
+     * Righe dettaglio (ricambi + manodopera) di tutte le manutenzioni di un
+     * veicolo, appiattite con data e id scheda — usate dalla tabella
+     * Riparazioni del dettaglio veicolo.
+     * GET api/maintenance/lines?vehicle_id=N
+     */
+    public function lines(): ResponseInterface
+    {
+        if ($denied = $this->requirePermission('*')) {
+            return $denied;
+        }
+
+        $idVehicle = (int) $this->request->getGet('vehicle_id');
+        if ($idVehicle <= 0) {
+            return $this->jsonResponse(['success' => true, 'rows' => []]);
+        }
+
+        $db = \Config\Database::connect();
+        $rows = $db->table('fb_maintenance_detail d')
+            ->select('d.*, m.date AS maintenance_date, p.sku, p.name AS product_name,
+                t.hours AS labor_hours, t.price_per_hour AS labor_price_per_hour, t.manpower AS labor_manpower')
+            ->join('fb_maintenance m', 'm.id_maintenance = d.id_maintenance')
+            ->join('fb_product p', 'p.id_product = d.id_product', 'left')
+            ->join('fb_maintenance_task t', 't.id_maintenance_detail = d.id_maintenance_detail', 'left')
+            ->where('m.id_vehicle', $idVehicle)
+            ->orderBy('m.date', 'DESC')
+            ->orderBy('m.id_maintenance', 'DESC')
+            ->orderBy('d.id_maintenance_detail', 'ASC')
+            ->get()->getResultArray();
+
+        return $this->jsonResponse(['success' => true, 'rows' => $rows]);
     }
 
     public function get(int $id): ResponseInterface
@@ -134,6 +169,102 @@ class Maintenance extends AdminController
     }
 
     /* ---------- Dettagli (ricambi usati: stock -) ---------- */
+
+    /**
+     * Schede manutenzione di un veicolo fatturabili tramite documento di
+     * scarico: non associate ad alcuna fattura cliente (fb_maintenance_invoice)
+     * e non gia' collegate ad un altro scarico (id_document). Con document_id
+     * vengono restituite anche le schede gia' collegate a quel documento
+     * (modifica dello scarico).
+     */
+    public function available(): ResponseInterface
+    {
+        if ($denied = $this->requirePermission('*')) {
+            return $denied;
+        }
+
+        $idVehicle = (int) $this->request->getGet('vehicle_id');
+        $idDocument = (int) $this->request->getGet('document_id');
+        $idInvoice = (int) $this->request->getGet('invoice_id');
+        $withLines = (string) $this->request->getGet('with_lines') === '1';
+        if ($idVehicle <= 0 && $idDocument <= 0 && $idInvoice <= 0) {
+            return $this->jsonResponse(['success' => true, 'rows' => []]);
+        }
+
+        $db = \Config\Database::connect();
+        $b = $db->table('fb_maintenance m')
+            ->select('m.id_maintenance, m.id_vehicle, m.date, m.km, m.note, m.id_document, v.plate')
+            ->select('(SELECT COUNT(*) FROM fb_maintenance_detail d WHERE d.id_maintenance = m.id_maintenance) AS parts_count', false)
+            ->select('(SELECT COUNT(*) FROM fb_maintenance_task t WHERE t.id_maintenance = m.id_maintenance) AS tasks_count', false)
+            ->select('(SELECT COALESCE(SUM(ABS(d.quantity) * d.price * (1 + COALESCE(d.discount, 0) / 100)), 0) FROM fb_maintenance_detail d WHERE d.id_maintenance = m.id_maintenance) AS parts_amount', false)
+            ->select('(SELECT COALESCE(SUM(t.manpower), 0) FROM fb_maintenance_task t WHERE t.id_maintenance = m.id_maintenance) AS labor_amount', false)
+            ->join('fb_vehicle v', 'v.id_vehicle = m.id_vehicle', 'left');
+
+        if ($idInvoice > 0) {
+            // fattura cliente: sono escluse solo le schede registrate su
+            // ALTRE fatture; quelle gia' su questa tornano marcate linked
+            $b->groupStart()
+                ->where('m.id_invoice IS NULL', null, false)
+                ->orWhere('m.id_invoice', $idInvoice)
+                ->groupEnd();
+        } else {
+            // scarico: solo schede mai fatturate
+            $b->where('m.id_invoice IS NULL', null, false)
+                ->where("NOT EXISTS (SELECT 1 FROM fb_maintenance_invoice mi WHERE mi.id_maintenance = m.id_maintenance)", null, false);
+        }
+
+        if ($idVehicle > 0) {
+            if ($idInvoice > 0) {
+                // fattura cliente: veicolo selezionato + schede gia' sulla
+                // fattura (anche se di altro veicolo, per non perderle)
+                $b->groupStart()
+                    ->where('m.id_vehicle', $idVehicle)
+                    ->orWhere('m.id_invoice', $idInvoice)
+                    ->groupEnd();
+            } else {
+                // schede libere + quelle gia' collegate al documento in modifica
+                $b->where('m.id_vehicle', $idVehicle)
+                    ->groupStart()
+                    ->where('m.id_document IS NULL', null, false)
+                    ->orWhere('m.id_document', $idDocument > 0 ? $idDocument : 0)
+                    ->groupEnd();
+            }
+        } elseif ($idDocument > 0) {
+            // solo document_id: in modifica serve per ritrovare le schede
+            // gia' collegate e da li' la targa del veicolo
+            $b->where('m.id_document', $idDocument);
+        } else {
+            // solo invoice_id: schede gia' collegate a questa fattura
+            $b->where('m.id_invoice', $idInvoice);
+        }
+
+        $rows = $b->orderBy('m.date', 'DESC')
+            ->orderBy('m.id_maintenance', 'DESC')
+            ->get()
+            ->getResultArray();
+
+        $linkedIds = [];
+        if ($idInvoice > 0) {
+            $linkedIds = array_map('intval', array_column(
+                $db->table('fb_maintenance')->select('id_maintenance')->where('id_invoice', $idInvoice)->get()->getResultArray(),
+                'id_maintenance'
+            ));
+        }
+
+        $lines = $withLines ? \FairyBus\Models\FbMaintenanceInvoiceModel::detailLines(array_column($rows, 'id_maintenance')) : [];
+
+        foreach ($rows as &$row) {
+            $row['linked'] = $idInvoice > 0
+                ? in_array((int) $row['id_maintenance'], $linkedIds, true)
+                : ($idDocument > 0 && (int) ($row['id_document'] ?? 0) === $idDocument);
+            $row['amount'] = (float) ($row['parts_amount'] ?? 0) + (float) ($row['labor_amount'] ?? 0);
+            if ($withLines) {
+                $row['lines'] = $lines[(int) $row['id_maintenance']] ?? [];
+            }
+        }
+
+        return $this->jsonResponse(['success' => true, 'rows' => $rows]);
+    }
 
     public function details(int $id): ResponseInterface
     {

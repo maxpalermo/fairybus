@@ -118,14 +118,20 @@ class Documents extends AdminController
         $stock = new \FairyBus\Models\FbStockModel();
 
         // Storna a magazzino solo le righe create manualmente:
-        // i movimenti importati dal legacy sono già compresi nella giacenza iniziale.
+        // i movimenti importati dal legacy e quelli copiati dalle schede di
+        // manutenzione hanno gia' movimentato lo stock a monte.
         $direction = $this->stockDirection($document ?? []);
         foreach ($detailModel->listByDocument($id) as $detail) {
-            if (empty($detail['legacy_id'])) {
+            if (empty($detail['legacy_id']) && empty($detail['id_maintenance'])) {
                 // Storno: eliminare un carico scarica, eliminare uno scarico carica
                 $stock->moveStock((int) ($detail['id_product'] ?? 0), $direction > 0 ? 'out' : 'in', (float) $detail['quantity']);
             }
         }
+
+        // schede manutenzione associate: svincola ed elimina eventuali
+        // riferimenti a fattura generati tramite questo documento
+        \FairyBus\Models\FbMaintenanceInvoiceModel::unlinkByDocument($id, (int) ($document['id_invoice'] ?? 0));
+        $db->table('fb_maintenance')->where('id_document', $id)->set('id_document', null)->update();
 
         $db->table('fb_document_detail')->where('id_document', $id)->delete();
         $model->delete($id);
@@ -164,12 +170,149 @@ class Documents extends AdminController
             }
         }
 
+        $oldInvoice = (int) ($document['id_invoice'] ?? 0);
         $model->update($id, [
             'id_invoice' => $idInvoice,
             'date_upd' => date('Y-m-d H:i:s'),
         ]);
 
+        // propaga il collegamento alle schede manutenzione dello scarico
+        if ($oldInvoice > 0) {
+            \FairyBus\Models\FbMaintenanceInvoiceModel::unlinkByDocument($id, $oldInvoice);
+        }
+        if ($idInvoice !== null) {
+            \FairyBus\Models\FbMaintenanceInvoiceModel::linkByDocument($id, $idInvoice);
+        }
+
         return $this->jsonResponse(['success' => true]);
+    }
+
+    /**
+     * Sincronizza le schede manutenzione associate a un documento di scarico
+     * (conto terzi): riceve l'elenco finale degli id selezionati, collega i
+     * nuovi (copiando ricambi e manodopera nelle righe documento) e svincola
+     * quelli deselezionati (eliminando le righe copiate).
+     */
+    public function syncMaintenances(int $id): ResponseInterface
+    {
+        if ($denied = $this->requirePermission('*')) {
+            return $denied;
+        }
+
+        $document = (new \FairyBus\Models\FbDocumentModel())->find($id);
+        if ($document === null) {
+            return $this->jsonResponse(['success' => false, 'error' => 'Documento non trovato.'], 404);
+        }
+        if (empty($document['id_customer'])) {
+            return $this->jsonResponse(['success' => false, 'error' => 'Le schede manutenzione si associano solo agli scarichi verso clienti.'], 422);
+        }
+
+        // maintenance_ids arriva come JSON (FormData) o array
+        $raw = $this->request->getPost('maintenance_ids');
+        if (is_string($raw)) {
+            $decoded = json_decode($raw, true);
+            $raw = is_array($decoded) ? $decoded : [];
+        }
+        $wanted = array_values(array_unique(array_filter(array_map('intval', (array) $raw), static fn(int $i): bool => $i > 0)));
+
+        $db = \Config\Database::connect();
+        $current = array_map('intval', array_column(
+            $db->table('fb_maintenance')->select('id_maintenance')->where('id_document', $id)->get()->getResultArray(),
+            'id_maintenance'
+        ));
+
+        $toRemove = array_diff($current, $wanted);
+        $toAdd = array_diff($wanted, $current);
+
+        if ($toRemove !== []) {
+            $db->table('fb_document_detail')
+                ->where('id_document', $id)
+                ->whereIn('id_maintenance', array_values($toRemove))
+                ->delete();
+            $db->table('fb_maintenance')
+                ->whereIn('id_maintenance', array_values($toRemove))
+                ->set('id_document', null)
+                ->update();
+        }
+
+        $defaultVat = (float) ((new \FairyBus\Models\FbConfigurationModel())->get('default_tax_rate')['value'] ?? 0);
+        $detailModel = new \FairyBus\Models\FbDocumentDetailModel();
+        $linked = 0;
+        $copied = 0;
+
+        foreach ($toAdd as $idMaintenance) {
+            $mnt = $db->table('fb_maintenance')->where('id_maintenance', $idMaintenance)->get()->getRowArray();
+            if ($mnt === null) {
+                return $this->jsonResponse(['success' => false, 'error' => "Manutenzione #{$idMaintenance} non trovata."], 422);
+            }
+            if (!empty($mnt['id_document'])) {
+                return $this->jsonResponse(['success' => false, 'error' => "La manutenzione #{$idMaintenance} è già associata a un altro scarico."], 422);
+            }
+            $invoiced = $db->table('fb_maintenance_invoice')->where('id_maintenance', $idMaintenance)->countAllResults() > 0;
+            if ($invoiced) {
+                return $this->jsonResponse(['success' => false, 'error' => "La manutenzione #{$idMaintenance} è già associata a una fattura."], 422);
+            }
+
+            $db->table('fb_maintenance')->where('id_maintenance', $idMaintenance)->update(['id_document' => $id]);
+            $linked++;
+
+            // ricambi della scheda -> righe documento (lo stock era gia'
+            // stato scaricato dalla manutenzione: nessun movimento extra)
+            $parts = $db->table('fb_maintenance_detail')->where('id_maintenance', $idMaintenance)->get()->getResultArray();
+            foreach ($parts as $part) {
+                // quantity nei ricambi e' negativa (scarico magazzino):
+                // sul documento di fatturazione va registrata positiva
+                $detailModel->insert([
+                    'id_document' => $id,
+                    'id_maintenance' => $idMaintenance,
+                    'id_product' => $part['id_product'] !== null ? (int) $part['id_product'] : null,
+                    'quantity' => abs((float) $part['quantity']),
+                    'price' => (float) ($part['price'] ?? 0),
+                    'discount' => (float) ($part['discount'] ?? 0),
+                    'lot' => $part['lot'] ?? null,
+                    'vat_code' => $part['vat_code'] ?? null,
+                    'vat_rate' => $part['vat_rate'] !== null ? (float) $part['vat_rate'] : null,
+                    'type' => (int) ($document['type'] ?? 0),
+                    'note' => $part['note'] ?? null,
+                    'date_add' => date('Y-m-d H:i:s'),
+                ]);
+                $copied++;
+            }
+
+            // manodopera della scheda -> riga documento senza articolo
+            $tasks = $db->table('fb_maintenance_task')->where('id_maintenance', $idMaintenance)->get()->getResultArray();
+            foreach ($tasks as $task) {
+                $hours = (float) ($task['hours'] ?? 0);
+                $priceHour = (float) ($task['price_per_hour'] ?? 0);
+                $manpower = (float) ($task['manpower'] ?? 0);
+                $desc = trim((string) ($task['description'] ?? ''));
+                if ($hours <= 0 && $manpower <= 0 && $priceHour <= 0 && $desc === '') {
+                    continue;
+                }
+                $detailModel->insert([
+                    'id_document' => $id,
+                    'id_maintenance' => $idMaintenance,
+                    'id_product' => null,
+                    'quantity' => $hours > 0 ? $hours : 1,
+                    'price' => $priceHour > 0 ? $priceHour : $manpower,
+                    'discount' => 0,
+                    'vat_rate' => $defaultVat > 0 ? $defaultVat : null,
+                    'type' => (int) ($document['type'] ?? 0),
+                    'note' => trim('Manodopera' . ($desc !== '' ? ': ' . $desc : '') . " (sc. #{$idMaintenance})"),
+                    'date_add' => date('Y-m-d H:i:s'),
+                ]);
+                $copied++;
+            }
+        }
+
+        // Registra sul documento il veicolo delle schede associate; se non
+        // restano schede si mantiene il valore scelto nel form (id_vehicle).
+        $idVehicle = $db->table('fb_maintenance')->select('id_vehicle')->where('id_document', $id)->limit(1)->get()->getRow('id_vehicle');
+        if ($idVehicle !== null) {
+            $db->table('fb_document')->where('id_document', $id)->update(['id_vehicle' => (int) $idVehicle]);
+        }
+
+        return $this->jsonResponse(['success' => true, 'linked' => $linked, 'unlinked' => count($toRemove), 'rows_copied' => $copied]);
     }
 
     /**
@@ -300,9 +443,9 @@ class Documents extends AdminController
         }
         $model->delete($id);
 
-        // Le righe importate dal legacy non toccano lo stock: erano già
-        // conteggiate nella giacenza iniziale importata da inventory.
-        if (empty($detail['legacy_id'])) {
+        // Le righe importate dal legacy e quelle copiate dalle schede di
+        // manutenzione non toccano lo stock: lo scarico era gia' avvenuto.
+        if (empty($detail['legacy_id']) && empty($detail['id_maintenance'])) {
             $document = (new \FairyBus\Models\FbDocumentModel())->find((int) $detail['id_document']);
             $direction = $this->stockDirection($document ?? []);
             // Storno: eliminare una riga di carico scarica, di scarico carica
@@ -331,6 +474,7 @@ class Documents extends AdminController
             'date' => 'permit_empty|valid_date',
             'id_supplier' => 'permit_empty|integer',
             'id_customer' => 'permit_empty|integer',
+            'id_vehicle' => 'permit_empty|integer',
             'type' => 'permit_empty|is_natural|is_not_unique[fb_type_document.id]',
             'note' => 'permit_empty|max_length[255]',
         ];
@@ -343,6 +487,7 @@ class Documents extends AdminController
             'date' => $this->request->getPost('date') !== '' ? $this->request->getPost('date') : null,
             'id_supplier' => (int) $this->request->getPost('id_supplier') ?: null,
             'id_customer' => (int) $this->request->getPost('id_customer') ?: null,
+            'id_vehicle' => (int) $this->request->getPost('id_vehicle') ?: null,
             'type' => $this->request->getPost('type') !== '' && $this->request->getPost('type') !== null
                 ? (int) $this->request->getPost('type')
                 : \FairyBus\Models\FbTypeDocumentModel::TYPE_DEFAULT,

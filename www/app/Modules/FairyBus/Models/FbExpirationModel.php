@@ -58,17 +58,23 @@ class FbExpirationModel extends Model
      * @param list<int> $ids
      * @return list<array<string, mixed>>
      */
-    public function listAll(array $ids = []): array
+    public function listAll(array $ids = [], ?int $idVehicle = null): array
     {
         $builder = $this->db->table('fb_expiration e')
             ->select('e.*, v.plate AS vehicle_plate, v.current_km, t.name AS tag_name, t.kind AS tag_kind, t.interval_value, t.interval_unit')
             ->join('fb_vehicle v', 'v.id_vehicle = e.id_vehicle', 'left')
             ->join('fb_expiration_tag t', 't.id_expiration_tag = e.id_expiration_tag', 'left')
-            ->where("v.status !=", 'retired')
             ->orderBy('v.plate', 'ASC')
             ->orderBy('t.name', 'ASC')
             ->orderBy('e.expiration_date', 'DESC')
             ->orderBy('e.expires_atkm', 'DESC');
+
+        if ($idVehicle !== null && $idVehicle > 0) {
+            // dettaglio veicolo: mostra anche le scadenze di mezzi ritirati
+            $builder->where('e.id_vehicle', $idVehicle);
+        } else {
+            $builder->where("v.status !=", 'retired');
+        }
 
         if ($ids !== []) {
             $ids = array_values(array_filter(array_map('intval', $ids), static fn(int $i): bool => $i > 0));

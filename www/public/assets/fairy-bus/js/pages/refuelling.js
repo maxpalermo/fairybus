@@ -175,7 +175,7 @@ function openRefuellingView(row) {
     d.querySelector('[data-action="close-view"]').addEventListener("click", () => d.close());
 }
 
-function populateSelects(form, row) {
+function populateSelects(form, row, onSelectChange = null) {
     const vehicleSel = form.querySelector('[data-field="vehicle"]');
     if (vehicleSel) {
         vehicleSel.innerHTML = '<option value="">— Seleziona —</option>' + vehiclesCache.map((v) => `<option value="${v.id_vehicle}" ${row && Number(row.id_vehicle) === Number(v.id_vehicle) ? "selected" : ""}>${escapeHtml(v.plate)}${v.brand_name ? " — " + escapeHtml(v.brand_name) : ""}</option>`).join("");
@@ -197,7 +197,7 @@ function populateSelects(form, row) {
         selects[sel.dataset.field] = new SearchableSelect(sel, {
             placeholder: labels[sel.dataset.field] || "Cerca…",
             emptyText: sel.dataset.field === "supplier" ? "— Nessuno —" : "— Seleziona —",
-            onChange: sel.dataset.field === "vehicle" ? (v) => loadVehicleData(form, selects, v) : null,
+            onChange: sel.dataset.field === "vehicle" ? (v) => loadVehicleData(form, selects, v) : ["station", "fuel-type"].includes(sel.dataset.field) && onSelectChange ? () => onSelectChange() : null,
         });
     });
 }
@@ -319,7 +319,50 @@ function openForm(row = null) {
     const tpl = document.getElementById("tpl-refuelling-form");
     const form = tpl.content.cloneNode(true).querySelector("form");
 
-    populateSelects(form, row);
+    // giacenza residua per stazione+alimentazione (solo scarico)
+    const availBox = form.querySelector('[data-role="fuel-avail"]');
+    let fuelAvail = null;
+
+    function renderAvailBox() {
+        if (!availBox) return;
+        if (fuelAvail === null) {
+            availBox.hidden = true;
+            return;
+        }
+        const liters = parseFloat(form.liters?.value);
+        const over = !Number.isNaN(liters) && liters - fuelAvail > 0.0001;
+        availBox.hidden = false;
+        availBox.classList.toggle("is-over", over);
+        availBox.innerHTML = `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
+            <span>Disponibili: <strong>${Number(fuelAvail).toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\u00A0lt</strong>${over ? " — quantità superata!" : ""}</span>`;
+    }
+
+    async function updateFuelAvail() {
+        if (!availBox) return;
+        const stationId = form.id_station?.value;
+        const fuelTypeId = form.id_fuel_type?.value;
+        if (!stationId || !fuelTypeId) {
+            fuelAvail = null;
+            renderAvailBox();
+            return;
+        }
+        try {
+            const res = await FetchHelper.get(`${BASE}api/refuelling/available`, {
+                station_id: stationId,
+                fuel_type_id: fuelTypeId,
+                exclude_id: form.id_refuelling?.value || 0,
+            });
+            fuelAvail = Number(res.available ?? 0);
+        } catch (err) {
+            fuelAvail = null;
+            console.error("Errore lettura giacenza carburante:", err);
+        }
+        renderAvailBox();
+    }
+
+    populateSelects(form, row, () => updateFuelAvail());
+    form.liters?.addEventListener("input", renderAvailBox);
 
     if (row) {
         form.id_refuelling.value = row.id_refuelling;
@@ -340,6 +383,9 @@ function openForm(row = null) {
     }
 
     const isLoad = PAGE_DIRECTION === "in";
+
+    // lettura iniziale della giacenza (in edit id_refuelling e litri sono gia' compilati)
+    updateFuelAvail();
 
     // casella readonly "differenza" = km attuali − km ultimo rifornimento (solo scarico)
     function updateKmDiff() {
@@ -387,6 +433,15 @@ function openForm(row = null) {
             const cur = parseFloat(body.km_at_refuel);
             if (!Number.isNaN(last) && !Number.isNaN(cur) && cur - last < 0) {
                 await dialog.alert("Chilometri non validi: i km attuali non possono essere inferiori a quelli dell'ultimo rifornimento.", "Km errati");
+                return;
+            }
+        }
+
+        // la quantità scaricata non può superare il carico residuo (solo scarichi)
+        if (!isLoad && fuelAvail !== null) {
+            const liters = parseFloat(body.liters);
+            if (!Number.isNaN(liters) && liters - fuelAvail > 0.0001) {
+                await dialog.alert(`Quantità non valida: per ${escapeHtml(fuelTypeName(body.id_fuel_type))} in questa stazione puoi scaricare al massimo <strong>${fmtLiters(fuelAvail)}</strong>.`, "Carico residuo insufficiente");
                 return;
             }
         }

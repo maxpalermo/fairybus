@@ -50,6 +50,7 @@ class Settings extends AdminController
                 'style' => $config->get('toast_style')['value'] ?? 'default',
             ],
             'hourly_cost' => (float) ($config->get('hourly_cost')['value'] ?? 0),
+            'default_tax_rate' => (float) ($config->get('default_tax_rate')['value'] ?? 22),
             'expiration_alert_days' => (int) ($config->get('expiration_alert_days')['value'] ?? 30),
             'expiration_alert_km' => (int) ($config->get('expiration_alert_km')['value'] ?? 2000),
         ]);

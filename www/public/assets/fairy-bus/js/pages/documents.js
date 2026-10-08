@@ -2,6 +2,7 @@ import FetchHelper from "../core/FetchHelper.js";
 import DialogHelper from "../core/DialogHelper.js";
 import PrintHelper from "../components/PrintHelper.js";
 import TableSelect from "../components/TableSelect.js?v=2";
+import SearchableSelect from "../components/SearchableSelect.js?v=4";
 import { openPurchasePicker, loadProductPurchases } from "../components/PurchasePicker.js";
 import { viewItem } from "../components/ViewGrid.js";
 
@@ -10,7 +11,10 @@ let suppliersCache = [];
 let productsCache = [];
 let docTypesCache = null;
 let invoicesCache = null;
+let vehiclesCache = [];
 let lastVat = null;
+// aliquota IVA predefinita da Impostazioni -> Generali (fallback se il prodotto non ha IVA)
+let defaultTaxRate = 0;
 
 // 'in' = carichi da fornitori (stock +), 'out' = scarichi verso clienti (stock -)
 const DIRECTION = document.getElementById("documents-table")?.dataset.direction === "out" ? "out" : "in";
@@ -233,14 +237,14 @@ function renderDetails(form, details) {
         const tr = document.createElement("tr");
         tr.innerHTML = `
             <td class="num">${fmtQty(d.quantity)}</td>
-            <td>${escapeHtml(d.sku || "—")}</td>
-            <td>${escapeHtml(d.product_name || "—")}</td>
+            <td>${escapeHtml(d.sku || (d.id_maintenance ? `sc. ${d.id_maintenance}` : "—"))}</td>
+            <td>${escapeHtml(d.product_name || d.note || "—")}</td>
             <td class="num">${fmtMoney(d.price)}</td>
             <td class="num">${Number(d.discount || 0)}%</td>
             <td class="num">${fmtMoney(t.importo)}</td>
             <td>${vatLabel(d)}</td>
             <td class="num">${fmtMoney(t.totale)}</td>
-            <td><button type="button" class="fb-btn fb-btn-secondary fb-btn-sm" data-action="del-detail" data-id="${d.id_document_detail}">✕</button></td>
+            <td>${d.id_maintenance ? `<span class="fb-mnt-badge" title="Riga copiata dalla scheda manutenzione #${d.id_maintenance}: si rimuove dalla scheda Manutenzioni">sc.&nbsp;${d.id_maintenance}</span>` : `<button type="button" class="fb-btn fb-btn-secondary fb-btn-sm" data-action="del-detail" data-id="${d.id_document_detail}">✕</button>`}</td>
         `;
         tbody.appendChild(tr);
     }
@@ -275,6 +279,108 @@ function setDetailsEnabled(form, enabled) {
     if (hint) {
         hint.style.display = enabled ? "none" : "";
     }
+}
+
+/* ---------- Schede manutenzione (conto terzi, solo scarichi) ---------- */
+
+async function loadMaintenanceSheets(form, idVehicle, idDocument) {
+    const container = form.querySelector('[data-field="mnt-list"]');
+    const hint = form.querySelector('[data-field="mnt-hint"]');
+    if (!container) {
+        return;
+    }
+    container.innerHTML = "";
+    if (!idVehicle && !idDocument) {
+        hint.style.display = "";
+        hint.textContent = "Seleziona l'automezzo nella scheda Informazioni.";
+        return;
+    }
+    hint.style.display = "";
+    hint.textContent = "Caricamento schede manutenzione…";
+    try {
+        const res = await FetchHelper.get(`${window.FB.baseUrl}api/maintenance/available`, { vehicle_id: idVehicle || 0, document_id: idDocument || 0 });
+        renderMaintenanceList(form, res.rows || []);
+    } catch (err) {
+        hint.textContent = "Errore caricamento schede.";
+        await dialog.error(err);
+    }
+}
+
+function renderMaintenanceList(form, rows) {
+    const container = form.querySelector('[data-field="mnt-list"]');
+    const hint = form.querySelector('[data-field="mnt-hint"]');
+    container.innerHTML = "";
+
+    if (rows.length === 0) {
+        hint.style.display = "";
+        hint.textContent = "Nessuna scheda manutenzione da fatturare per questo automezzo.";
+        return;
+    }
+    hint.style.display = "none";
+
+    for (const m of rows) {
+        const parts = Number(m.parts_count || 0);
+        const tasks = Number(m.tasks_count || 0);
+        const km = Number(m.km) > 0 ? `${Number(m.km).toLocaleString("it-IT")}\u00A0km` : null;
+        const meta = [km, `${parts} ricambi`, tasks > 0 ? `${tasks} lav.` : null].filter(Boolean).join(" · ");
+
+        const item = document.createElement("label");
+        item.className = "fb-mnt-item" + (m.linked ? " is-linked" : "");
+        item.innerHTML = `
+            <input type="checkbox" data-mnt-id="${m.id_maintenance}" ${m.linked ? "checked" : ""}>
+            <span class="fb-mnt-item-main">
+                <strong>Scheda del ${String(m.date || "")
+                    .slice(0, 10)
+                    .split("-")
+                    .reverse()
+                    .join("/")}</strong>${m.note ? ` — ${escapeHtml(m.note)}` : ""}
+                <small>${meta}</small>
+            </span>
+            <span class="fb-mnt-item-amount">${fmtMoney(m.amount)}</span>
+        `;
+        container.appendChild(item);
+    }
+}
+
+function initMaintenancePanel(form, doc) {
+    // Il veicolo si sceglie nella scheda Informazioni (campo id_vehicle del
+    // documento); qui ci si aggancia per caricare le schede disponibili.
+    const selEl = form.querySelector('[data-field="vehicle"]');
+    if (!selEl || DIRECTION !== "out") {
+        return;
+    }
+
+    selEl.innerHTML = '<option value="">— Seleziona targa —</option>' + vehiclesCache.map((v) => `<option value="${v.id_vehicle}">${escapeHtml(v.plate)}${v.brand_name ? " — " + escapeHtml(v.brand_name) : ""}</option>`).join("");
+
+    const docId = doc?.id_document || null;
+    const mntSelect = new SearchableSelect(selEl, {
+        placeholder: "Cerca targa…",
+        emptyText: "— Seleziona targa —",
+        onChange: (v) => loadMaintenanceSheets(form, Number(v) || 0, docId),
+    });
+
+    if (docId) {
+        if (Number(doc?.id_vehicle) > 0) {
+            // modifica: targa già registrata sul documento → elenco diretto
+            mntSelect._select(String(doc.id_vehicle));
+        } else {
+            // fallback: risale alla targa dalle schede gia' collegate
+            FetchHelper.get(`${window.FB.baseUrl}api/maintenance/available`, { document_id: docId })
+                .then((res) => {
+                    const linked = (res.rows || []).filter((r) => r.linked);
+                    if (linked.length > 0 && linked[0].id_vehicle) {
+                        mntSelect._select(String(linked[0].id_vehicle));
+                    }
+                })
+                .catch(() => {});
+        }
+    }
+
+    // Invocata dopo il salvataggio del documento: allinea le associazioni.
+    form._syncMaintenances = async (idDocument) => {
+        const ids = Array.from(form.querySelectorAll('[data-field="mnt-list"] input[type="checkbox"]:checked')).map((cb) => Number(cb.dataset.mntId));
+        await FetchHelper.post(`${window.FB.baseUrl}api/documents/${idDocument}/maintenances`, { maintenance_ids: JSON.stringify(ids) });
+    };
 }
 
 function initFormTabs(form) {
@@ -360,7 +466,7 @@ function openDocumentForm(doc = null) {
             if (!p) {
                 return;
             }
-            vatInput.value = Number(p.tax_rate) > 0 ? Number(p.tax_rate) : "0.00";
+            vatInput.value = Number(p.tax_rate) > 0 ? Number(p.tax_rate) : defaultTaxRate > 0 ? defaultTaxRate.toFixed(2) : "0.00";
             qtyInput.focus();
             // Carico: il prezzo proposto è quello dell'ultimo acquisto effettuato
             if (DIRECTION === "in") {
@@ -412,6 +518,7 @@ function openDocumentForm(doc = null) {
     d.showModal();
 
     initFormTabs(form);
+    initMaintenancePanel(form, doc);
 
     if (doc) {
         loadDetails(form, doc.id_document);
@@ -426,6 +533,12 @@ function openDocumentForm(doc = null) {
         const url = currentId ? `${window.FB.baseUrl}api/documents/${currentId}/update` : `${window.FB.baseUrl}api/documents`;
         try {
             const res = await FetchHelper.post(url, data);
+            const savedId = Number(currentId || res.id || 0);
+            // sincronizza le schede manutenzione selezionate (solo scarichi)
+            if (savedId > 0 && form._syncMaintenances) {
+                await form._syncMaintenances(savedId);
+                await loadDetails(form, savedId);
+            }
             refreshTable();
             if (currentId) {
                 d.close();
@@ -659,9 +772,11 @@ async function openAssignInvoiceDialog(row) {
 async function loadOptions() {
     const partnersUrl = DIRECTION === "out" ? "api/customers" : "api/suppliers";
     try {
-        const [partners, products] = await Promise.all([FetchHelper.get(`${window.FB.baseUrl}${partnersUrl}`), FetchHelper.get(`${window.FB.baseUrl}api/products/options`)]);
+        const [partners, products, config, vehicles] = await Promise.all([FetchHelper.get(`${window.FB.baseUrl}${partnersUrl}`), FetchHelper.get(`${window.FB.baseUrl}api/products/options`), FetchHelper.get(`${window.FB.baseUrl}api/settings/config`).catch(() => ({})), DIRECTION === "out" ? FetchHelper.get(`${window.FB.baseUrl}api/vehicles`).catch(() => ({ rows: [] })) : Promise.resolve({ rows: [] })]);
         suppliersCache = (partners.rows || []).filter((s) => Number(s.active) === 1);
         productsCache = [...(products.products || []), ...(products.alias_products || [])].sort((a, b) => String(a.label).localeCompare(String(b.label), "it"));
+        defaultTaxRate = Number(config.default_tax_rate) > 0 ? Number(config.default_tax_rate) : 0;
+        vehiclesCache = (vehicles.rows || []).filter((v) => (v.status ?? "active") !== "retired");
     } catch (err) {
         await dialog.error(err);
     }

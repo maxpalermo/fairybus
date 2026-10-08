@@ -54,6 +54,7 @@ class Invoices extends AdminController
         }
 
         $invoice['documents'] = $this->invoiceDocuments($id);
+        $invoice['maintenances'] = \FairyBus\Models\FbMaintenanceInvoiceModel::blocksByInvoice($id);
 
         return $this->jsonResponse(['success' => true, 'invoice' => $invoice]);
     }
@@ -73,6 +74,7 @@ class Invoices extends AdminController
         $id = (int) $model->insert($validation + ['date_add' => date('Y-m-d H:i:s')]);
 
         $this->syncDocuments($id, $this->documentIdsFromPost(), (int) ($validation['id_supplier'] ?? 0), (int) ($validation['id_customer'] ?? 0));
+        $this->syncMaintenances($id, $this->maintenanceIdsFromPost());
 
         return $this->jsonResponse(['success' => true, 'id' => $id]);
     }
@@ -96,6 +98,7 @@ class Invoices extends AdminController
         $model->update($id, $validation + ['date_upd' => date('Y-m-d H:i:s')]);
 
         $this->syncDocuments($id, $this->documentIdsFromPost(), (int) ($validation['id_supplier'] ?? 0), (int) ($validation['id_customer'] ?? 0));
+        $this->syncMaintenances($id, $this->maintenanceIdsFromPost());
 
         return $this->jsonResponse(['success' => true]);
     }
@@ -113,6 +116,8 @@ class Invoices extends AdminController
 
         $db = \Config\Database::connect();
         $db->table('fb_document')->where('id_invoice', $id)->set('id_invoice', null)->update();
+        $db->table('fb_maintenance_invoice')->where('id_invoice', $id)->delete();
+        $db->table('fb_maintenance')->where('id_invoice', $id)->set('id_invoice', null)->update();
         $model->delete($id);
 
         return $this->jsonResponse(['success' => true]);
@@ -160,6 +165,139 @@ class Invoices extends AdminController
     }
 
     /**
+     * Collega/scollega una singola scheda manutenzione a una fattura cliente.
+     * POST: id_maintenance (obbligatorio), remove=1 per scollegare.
+     */
+    public function assignMaintenance(int $id): ResponseInterface
+    {
+        if ($denied = $this->requirePermission('*')) {
+            return $denied;
+        }
+
+        $model = new FbInvoiceModel();
+        $invoice = $model->find($id);
+        if ($invoice === null) {
+            return $this->jsonResponse(['success' => false, 'error' => 'Fattura non trovata.'], 404);
+        }
+        if (empty($invoice['id_customer'])) {
+            return $this->jsonResponse(['success' => false, 'error' => 'Le schede manutenzione si associano solo alle fatture cliente.'], 422);
+        }
+
+        $idMaintenance = (int) $this->request->getPost('id_maintenance');
+        $remove = (string) $this->request->getPost('remove') === '1';
+        if ($idMaintenance <= 0) {
+            return $this->jsonResponse(['success' => false, 'error' => 'Scheda manutenzione non valida.'], 422);
+        }
+
+        $db = \Config\Database::connect();
+        $mnt = $db->table('fb_maintenance')->select('id_maintenance, id_invoice')->where('id_maintenance', $idMaintenance)->get()->getRowArray();
+        if ($mnt === null) {
+            return $this->jsonResponse(['success' => false, 'error' => 'Scheda manutenzione non trovata.'], 404);
+        }
+
+        if ($remove) {
+            $db->table('fb_maintenance_invoice')
+                ->where('id_invoice', $id)
+                ->where('id_maintenance', $idMaintenance)
+                ->delete();
+            $remaining = $db->table('fb_maintenance_invoice')->where('id_maintenance', $idMaintenance)->countAllResults();
+            if ($remaining === 0 && (int) ($mnt['id_invoice'] ?? 0) === $id) {
+                $db->table('fb_maintenance')->where('id_maintenance', $idMaintenance)->update(['id_invoice' => null]);
+            }
+
+            return $this->jsonResponse(['success' => true, 'linked' => false]);
+        }
+
+        if ((int) ($mnt['id_invoice'] ?? 0) > 0 && (int) $mnt['id_invoice'] !== $id) {
+            return $this->jsonResponse(['success' => false, 'error' => 'La scheda è già registrata su un\'altra fattura.'], 422);
+        }
+        $exists = $db->table('fb_maintenance_invoice')
+            ->where('id_maintenance', $idMaintenance)
+            ->where('id_invoice', $id)
+            ->countAllResults() > 0;
+        if (!$exists) {
+            $db->table('fb_maintenance_invoice')->insert([
+                'id_maintenance' => $idMaintenance,
+                'id_invoice' => $id,
+                'date_add' => date('Y-m-d H:i:s'),
+            ]);
+        }
+        $db->table('fb_maintenance')->where('id_maintenance', $idMaintenance)->update(['id_invoice' => $id]);
+
+        return $this->jsonResponse(['success' => true, 'linked' => true]);
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function maintenanceIdsFromPost(): array
+    {
+        $raw = (string) $this->request->getPost('maintenance_ids');
+        $ids = [];
+        if ($raw !== '') {
+            $decoded = json_decode($raw, true);
+            if (is_array($decoded)) {
+                $ids = array_values(array_filter(array_map('intval', $decoded), static fn(int $i): bool => $i > 0));
+            }
+        }
+
+        return $ids;
+    }
+
+    /**
+     * Collega le schede manutenzione selezionate alla fattura cliente e
+     * scollega quelle deselezionate (fb_maintenance_invoice). Una scheda gia'
+     * presente su un'altra fattura non viene mai spostata.
+     *
+     * @param list<int> $maintenanceIds
+     */
+    private function syncMaintenances(int $idInvoice, array $maintenanceIds): void
+    {
+        $db = \Config\Database::connect();
+        $current = array_map('intval', array_column(
+            $db->table('fb_maintenance_invoice')->select('id_maintenance')->where('id_invoice', $idInvoice)->get()->getResultArray(),
+            'id_maintenance'
+        ));
+
+        $toRemove = array_diff($current, $maintenanceIds);
+        $toAdd = array_diff($maintenanceIds, $current);
+
+        if ($toRemove !== []) {
+            $db->table('fb_maintenance_invoice')
+                ->where('id_invoice', $idInvoice)
+                ->whereIn('id_maintenance', array_values($toRemove))
+                ->delete();
+            // azzera il riferimento diretto solo se non restano altri link
+            $db->table('fb_maintenance')
+                ->where('id_invoice', $idInvoice)
+                ->whereIn('id_maintenance', array_values($toRemove))
+                ->where("NOT EXISTS (SELECT 1 FROM fb_maintenance_invoice mi WHERE mi.id_maintenance = fb_maintenance.id_maintenance)", null, false)
+                ->update(['id_invoice' => null]);
+        }
+
+        foreach ($toAdd as $idMaintenance) {
+            $mnt = $db->table('fb_maintenance')->select('id_maintenance, id_invoice')->where('id_maintenance', $idMaintenance)->get()->getRowArray();
+            if ($mnt === null) {
+                continue;
+            }
+            $invoicedElsewhere = ((int) ($mnt['id_invoice'] ?? 0) > 0 && (int) $mnt['id_invoice'] !== $idInvoice)
+                || $db->table('fb_maintenance_invoice')
+                    ->where('id_maintenance', $idMaintenance)
+                    ->where('id_invoice !=', $idInvoice)
+                    ->countAllResults() > 0;
+            if ($invoicedElsewhere) {
+                continue;
+            }
+            $db->table('fb_maintenance_invoice')->insert([
+                'id_maintenance' => $idMaintenance,
+                'id_invoice' => $idInvoice,
+                'date_add' => date('Y-m-d H:i:s'),
+            ]);
+            $db->table('fb_maintenance')->where('id_maintenance', $idMaintenance)->update(['id_invoice' => $idInvoice]);
+        }
+    }
+
+    /**
      * Collega i documenti selezionati alla fattura e scollega quelli deselezionati.
      * Solo documenti dello stesso fornitore possono essere collegati.
      *
@@ -171,12 +309,25 @@ class Invoices extends AdminController
         $partnerField = $idCustomer > 0 ? 'id_customer' : 'id_supplier';
         $partnerId = $idCustomer > 0 ? $idCustomer : $idSupplier;
 
+        // Documenti attualmente collegati (servono per propagare lo svincolo
+        // alle schede manutenzione associate via scarico conto terzi)
+        $previouslyLinked = array_map('intval', array_column(
+            $db->table('fb_document')->select('id_document')->where('id_invoice', $idInvoice)->get()->getResultArray(),
+            'id_document'
+        ));
+
         // Scollega i documenti attualmente collegati ma non più selezionati
         $builder = $db->table('fb_document')->where('id_invoice', $idInvoice);
         if ($documentIds !== []) {
             $builder->whereNotIn('id_document', $documentIds);
         }
         $builder->set('id_invoice', null)->update();
+
+        foreach ($previouslyLinked as $idDocument) {
+            if (!in_array($idDocument, $documentIds, true)) {
+                \FairyBus\Models\FbMaintenanceInvoiceModel::unlinkByDocument($idDocument, $idInvoice);
+            }
+        }
 
         // Collega i documenti selezionati (solo se dello stesso partner e liberi o già di questa fattura)
         if ($documentIds !== [] && $partnerId > 0) {
@@ -189,6 +340,10 @@ class Invoices extends AdminController
                 ->groupEnd()
                 ->set('id_invoice', $idInvoice)
                 ->update();
+
+            foreach ($documentIds as $idDocument) {
+                \FairyBus\Models\FbMaintenanceInvoiceModel::linkByDocument($idDocument, $idInvoice);
+            }
         }
     }
 
@@ -202,6 +357,7 @@ class Invoices extends AdminController
             'date' => 'permit_empty|valid_date',
             'id_supplier' => 'permit_empty|integer',
             'id_customer' => 'permit_empty|integer',
+            'id_vehicle' => 'permit_empty|integer',
             'collection_fee' => 'permit_empty|decimal',
             'deposit' => 'permit_empty|decimal',
             'transport_fee' => 'permit_empty|decimal',
@@ -216,6 +372,7 @@ class Invoices extends AdminController
             'date' => $this->request->getPost('date') !== '' ? $this->request->getPost('date') : null,
             'id_supplier' => (int) $this->request->getPost('id_supplier') ?: null,
             'id_customer' => (int) $this->request->getPost('id_customer') ?: null,
+            'id_vehicle' => (int) $this->request->getPost('id_vehicle') ?: null,
             'collection_fee' => (float) ($this->request->getPost('collection_fee') ?: 0),
             'deposit' => (float) ($this->request->getPost('deposit') ?: 0),
             'transport_fee' => (float) ($this->request->getPost('transport_fee') ?: 0),

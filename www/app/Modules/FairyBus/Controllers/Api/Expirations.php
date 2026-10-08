@@ -104,9 +104,11 @@ class Expirations extends AdminController
             return $denied;
         }
 
+        $idVehicle = (int) $this->request->getGet('vehicle_id');
+
         return $this->jsonResponse([
             'success' => true,
-            'rows' => (new FbExpirationModel())->listAll(),
+            'rows' => (new FbExpirationModel())->listAll([], $idVehicle > 0 ? $idVehicle : null),
         ]);
     }
 

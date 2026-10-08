@@ -36,6 +36,7 @@ class FbInvoiceModel extends Model
         'number',
         'date',
         'id_customer',
+        'id_vehicle',
         'id_supplier',
         'collection_fee',
         'deposit',
@@ -57,9 +58,10 @@ class FbInvoiceModel extends Model
     public function listAll(array $ids = []): array
     {
         $builder = $this->db->table('fb_invoice i')
-            ->select('i.*, s.company AS supplier_name, c.company AS customer_name, (SELECT COUNT(*) FROM fb_document fd WHERE fd.id_invoice = i.id_invoice) AS documents_count')
+            ->select('i.*, s.company AS supplier_name, c.company AS customer_name, v.plate AS vehicle_plate, (SELECT COUNT(*) FROM fb_document fd WHERE fd.id_invoice = i.id_invoice) AS documents_count, (SELECT COUNT(*) FROM fb_maintenance_invoice fmi WHERE fmi.id_invoice = i.id_invoice) AS maintenances_count')
             ->join('fb_supplier s', 's.id_supplier = i.id_supplier', 'left')
             ->join('fb_customer c', 'c.id_customer = i.id_customer', 'left')
+            ->join('fb_vehicle v', 'v.id_vehicle = i.id_vehicle', 'left')
             ->orderBy('i.date', 'DESC')
             ->orderBy('i.id_invoice', 'DESC');
 
@@ -80,9 +82,10 @@ class FbInvoiceModel extends Model
     public function findById(int $id): ?array
     {
         return $this->db->table('fb_invoice i')
-            ->select('i.*, s.company AS supplier_name, c.company AS customer_name')
+            ->select('i.*, s.company AS supplier_name, c.company AS customer_name, v.plate AS vehicle_plate')
             ->join('fb_supplier s', 's.id_supplier = i.id_supplier', 'left')
             ->join('fb_customer c', 'c.id_customer = i.id_customer', 'left')
+            ->join('fb_vehicle v', 'v.id_vehicle = i.id_vehicle', 'left')
             ->where('i.id_invoice', $id)
             ->get()
             ->getRowArray();

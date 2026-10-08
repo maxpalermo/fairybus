@@ -23,7 +23,7 @@
     <table class="data" style="margin-bottom: 14pt;">
         <tbody>
             <tr>
-                <td style="width: 18%;" class="muted">Fornitore</td>
+                <td style="width: 18%;" class="muted">{{ invoice.id_customer ? 'Cliente' : 'Fornitore' }}</td>
                 <td><strong>{{ invoice.supplier_name|default(invoice.customer_name)|default('—') }}</strong></td>
                 <td style="width: 12%;" class="muted">Numero</td>
                 <td>{{ invoice.number|default('—') }}</td>
@@ -31,8 +31,8 @@
             <tr>
                 <td class="muted">Data</td>
                 <td>{{ invoice.date ? invoice.date|date('d/m/Y') : '—' }}</td>
-                <td class="muted">N. DDT</td>
-                <td>{{ invoice.documents|length }}</td>
+                <td class="muted">{{ invoice.id_customer ? 'N. schede' : 'N. DDT' }}</td>
+                <td>{{ invoice.id_customer ? invoice.maintenances|length : invoice.documents|length }}</td>
             </tr>
             {% set fees = (invoice.transport_fee|default(0)) + (invoice.collection_fee|default(0)) + (invoice.deposit|default(0)) %}
             {% if fees != 0 %}
@@ -100,10 +100,60 @@
             {% endif %}
         </table>
     {% else %}
-        <p class="muted">Nessun DDT collegato.</p>
+        {% if not invoice.id_customer or invoice.maintenances|length == 0 %}
+            <p class="muted">Nessun DDT collegato.</p>
+        {% endif %}
     {% endfor %}
 
-    {% if invoice.documents|length > 0 %}
+    {% for mnt in invoice.maintenances|default([]) %}
+        <h3 style="margin: 10pt 0 4pt;">Scheda manutenzione del {{ mnt.date ? mnt.date|date('d/m/Y') : '—' }}{% if mnt.plate %} — {{ mnt.plate }}{% endif %}</h3>
+        <table class="data">
+            <thead>
+                <tr>
+                    <th style="width: 8%;" class="num">Q.tà</th>
+                    <th style="width: 15%;">Codice</th>
+                    <th>Articolo</th>
+                    <th style="width: 11%;" class="num">Prezzo</th>
+                    <th style="width: 9%;" class="num">Sconto</th>
+                    <th style="width: 12%;" class="num">Importo</th>
+                    <th style="width: 10%;">I.v.a.</th>
+                    <th style="width: 12%;" class="num">Totale</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% set docTotal = 0 %}
+                {% for row in mnt.details %}
+                    {% set importo = row.quantity * row.price * (1 + (row.discount|default(0)) / 100) %}
+                    {% set vat = row.vat_rate is not null ? row.vat_rate : 0 %}
+                    {% set rowTotal = importo * (1 + vat / 100) %}
+                    {% set docTotal = docTotal + rowTotal %}
+                    <tr>
+                        <td class="num">{{ row.quantity|number_format(3, ',', '.')|trim('0', 'right')|trim(',', 'right') ?: '0' }}</td>
+                        <td>{{ row.sku|default('—') }}</td>
+                        <td>{{ row.product_name|default('—') }}</td>
+                        <td class="num">&nbsp;{{ row.price|number_format(2, ',', '.') }}</td>
+                        <td class="num">{{ row.discount|number_format(0) }}%</td>
+                        <td class="num">&nbsp;{{ importo|number_format(2, ',', '.') }}</td>
+                        <td>{{ row.vat_rate is not null ? row.vat_rate|number_format(2, ',', '.') ~ '%' : '—' }}</td>
+                        <td class="num">&nbsp;{{ rowTotal|number_format(2, ',', '.') }}</td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="8" class="center muted">Nessun movimento.</td></tr>
+                {% endfor %}
+                {% set grandTotal = grandTotal + docTotal %}
+            </tbody>
+            {% if mnt.details|length > 0 %}
+                <tfoot>
+                    <tr>
+                        <td colspan="7" class="muted" style="text-align: right; border-top: 1.5pt solid #18181b;">Totale scheda</td>
+                        <td class="num" style="border-top: 1.5pt solid #18181b;"><strong>&nbsp;{{ docTotal|number_format(2, ',', '.') }}</strong></td>
+                    </tr>
+                </tfoot>
+            {% endif %}
+        </table>
+    {% endfor %}
+
+    {% if invoice.documents|length > 0 or invoice.maintenances|length > 0 %}
         <table class="data" style="margin-top: 12pt;">
             <tbody>
                 <tr>

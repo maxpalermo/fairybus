@@ -177,6 +177,9 @@ function initTabs() {
                 if (tab.dataset.tab === "doctypes") {
                     initDocTypesTable();
                 }
+                if (tab.dataset.tab === "backup") {
+                    initBackupTable();
+                }
             }
         });
     });
@@ -843,6 +846,143 @@ function initAlertThresholdsForm() {
     });
 }
 
+function initVatRateForm() {
+    const form = document.getElementById("vat-rate-form");
+    if (!form) return;
+
+    form.addEventListener("submit", async (ev) => {
+        ev.preventDefault();
+        const body = Object.fromEntries(new FormData(form).entries());
+        try {
+            await FetchHelper.post(`${window.FB.baseUrl}api/settings/config`, body);
+            toast.showToastSuccess("Aliquota IVA salvata.");
+        } catch (err) {
+            await dialog.error(err);
+        }
+    });
+}
+
+/* ---------- Backup database ---------- */
+
+const BACKUP_ICONS = {
+    restore: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>',
+    download: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>',
+    trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>',
+};
+
+function fmtBackupSize(bytes) {
+    const b = Number(bytes || 0);
+    if (b >= 1048576) return (b / 1048576).toLocaleString("it-IT", { maximumFractionDigits: 2 }) + "\u00A0MB";
+    if (b >= 1024) return (b / 1024).toLocaleString("it-IT", { maximumFractionDigits: 1 }) + "\u00A0KB";
+    return b + "\u00A0B";
+}
+
+function formatBackupActions() {
+    return `
+        <div class="fb-btn-group">
+            <button type="button" class="fb-btn-icon fb-btn-icon-warning backup-restore" title="Ripristina il database da questo backup">${BACKUP_ICONS.restore}</button>
+            <button type="button" class="fb-btn-icon fb-btn-icon-info backup-download" title="Scarica l'archivio">${BACKUP_ICONS.download}</button>
+            <button type="button" class="fb-btn-icon fb-btn-icon-danger backup-delete" title="Elimina il backup">${BACKUP_ICONS.trash}</button>
+        </div>`;
+}
+
+function initBackupTable(attempt = 0) {
+    if (!window.$ || !window.$.fn.bootstrapTable) {
+        if (attempt < 50) setTimeout(() => initBackupTable(attempt + 1), 100);
+        return false;
+    }
+    const $table = window.$("#backups-table");
+    if (!$table.length) return false;
+
+    if (!$table.data("bootstrap.table")) {
+        window.backupActionsEvents = {
+            "click .backup-restore": async (e, value, row) => {
+                const ok = await dialog.confirm(`Ripristinare il backup <strong>${escapeHtml(row.name)}</strong> del ${escapeHtml(row.created_at)}?<br>` + "<strong>Il database corrente verrà completamente sovrascritto.</strong> L'operazione non è annullabile.", "Ripristina database");
+                if (!ok) return;
+                try {
+                    await FetchHelper.post(`${window.FB.baseUrl}api/settings/backups/${encodeURIComponent(row.name)}/restore`, {});
+                    toast.showToastSuccess("Database ripristinato. Ricarica la pagina per vedere i dati aggiornati.");
+                } catch (err) {
+                    await dialog.error(err);
+                }
+            },
+            "click .backup-download": (e, value, row) => {
+                const a = document.createElement("a");
+                a.href = `${window.FB.baseUrl}api/settings/backups/${encodeURIComponent(row.name)}/download`;
+                a.download = row.name;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+            },
+            "click .backup-delete": async (e, value, row) => {
+                const ok = await dialog.confirm(`Eliminare definitivamente il backup <strong>${escapeHtml(row.name)}</strong>?`, "Elimina backup");
+                if (!ok) return;
+                try {
+                    await FetchHelper.post(`${window.FB.baseUrl}api/settings/backups/${encodeURIComponent(row.name)}/delete`, {});
+                    toast.showToastSuccess("Backup eliminato.");
+                    refreshBackups();
+                } catch (err) {
+                    await dialog.error(err);
+                }
+            },
+        };
+
+        $table.bootstrapTable({
+            data: [],
+            sidePagination: "client",
+            pagination: true,
+            search: false,
+            sortable: true,
+            locale: "it-IT",
+            columns: [
+                { field: "name", title: "File", sortable: true, formatter: (v) => `<code>${escapeHtml(v)}</code>` },
+                { field: "created_at", title: "Data", sortable: true, sorter: (a, b, rowA, rowB) => (rowA.mtime || 0) - (rowB.mtime || 0) },
+                { field: "size", title: "Dimensione", sortable: true, align: "right", formatter: fmtBackupSize },
+                { field: "actions", title: "Azioni", formatter: formatBackupActions, events: window.backupActionsEvents },
+            ],
+        });
+    }
+
+    refreshBackups();
+    return true;
+}
+
+async function refreshBackups() {
+    const $table = window.$("#backups-table");
+    try {
+        const res = await FetchHelper.get(`${window.FB.baseUrl}api/settings/backups`);
+        if ($table.length && $table.data("bootstrap.table")) {
+            $table.bootstrapTable("load", res.rows || []);
+        }
+    } catch (err) {
+        await dialog.error(err);
+    }
+}
+
+function initBackups() {
+    const btn = document.querySelector('[data-action="backup-create"]');
+    if (!btn || btn.dataset.bound === "1") return;
+    btn.dataset.bound = "1";
+
+    btn.addEventListener("click", async () => {
+        btn.disabled = true;
+        const label = btn.innerHTML;
+        btn.innerHTML = "Backup in corso…";
+        try {
+            const res = await FetchHelper.post(`${window.FB.baseUrl}api/settings/backups/create`, {});
+            toast.showToastSuccess(`Backup creato: ${res.name}`);
+            if (initBackupTable()) {
+                refreshBackups();
+            }
+        } catch (err) {
+            await dialog.error(err);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = label;
+        }
+    });
+}
+
 function initToastPrefsForm() {
     const form = document.getElementById("toast-prefs-form");
     if (!form) return;
@@ -890,6 +1030,9 @@ if (document.readyState === "loading") {
         initPasswordForm();
         initToastPrefsForm();
         initConfigForm();
+        initVatRateForm();
+        initAlertThresholdsForm();
+        initBackups();
         PasswordToggle.init();
         loadImports();
     });
@@ -904,7 +1047,9 @@ if (document.readyState === "loading") {
     initPasswordForm();
     initToastPrefsForm();
     initConfigForm();
+    initVatRateForm();
     initAlertThresholdsForm();
+    initBackups();
     PasswordToggle.init();
     loadImports();
 }

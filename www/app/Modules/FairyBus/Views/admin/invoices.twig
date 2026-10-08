@@ -18,7 +18,7 @@
 {% extends "admin/layout.twig" %}
 
 {% block page_styles %}
-    <link rel="stylesheet" href="{{ asset('fairy-bus/css/pages/invoices.css') }}">
+    <link rel="stylesheet" href="{{ asset('fairy-bus/css/pages/invoices.css') }}?v=4">
 {% endblock %}
 
 {% block content %}
@@ -29,12 +29,27 @@
                 <p class="fb-page-subtitle">Fatture fornitori e clienti, con i DDT collegati.</p>
             </div>
             <div class="fb-page-actions">
+                <label class="fb-switch" title="Se attivo, il PDF viene scaricato invece di aperto in anteprima">
+                    <input type="checkbox" id="force-pdf-download">
+                    <span class="fb-switch-slider"></span>
+                    <span class="fb-switch-text">Forza download PDF</span>
+                </label>
                 <span class="fb-muted fb-selected-count" id="invoices-selected-count">0 selezionati</span>
-                <button type="button" class="fb-btn-icon fb-btn-icon-warning" data-action="print-invoices" title="Stampa PDF (righe selezionate, max 500)">
+                <button type="button" class="fb-btn fb-btn-lg fb-btn-warn" data-action="print-invoices" title="Stampa PDF (righe selezionate, max 500)">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                    <span>Stampa</span>
                 </button>
-                <button type="button" class="fb-btn-icon fb-btn-icon-success" data-action="new-invoice" title="Nuova fattura">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                <button type="button" class="fb-btn fb-btn-lg fb-btn-purple-solid" data-action="print-invoice-details" title="Stampa dettagli (fatture complete di DDT/schede manutenzione + riepilogo finale)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
+                    <span>Stampa dettagli</span>
+                </button>
+                <button type="button" class="fb-btn fb-btn-lg fb-btn-info-solid" data-action="new-invoice-supplier" title="Nuova fattura da fornitore">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+                    <span>Fattura fornitore</span>
+                </button>
+                <button type="button" class="fb-btn fb-btn-lg fb-btn-success-solid" data-action="new-invoice-customer" title="Nuova fattura cliente (manutenzione conto terzi)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
+                    <span>Fattura cliente</span>
                 </button>
             </div>
         </div>
@@ -50,7 +65,7 @@
 
             <div class="fb-tabs fb-form-tabs" role="tablist">
                 <button type="button" class="fb-tab active" data-tab="info" role="tab" aria-selected="true">Informazioni</button>
-                <button type="button" class="fb-tab" data-tab="ddt" role="tab" aria-selected="false">DDT</button>
+                <button type="button" class="fb-tab" data-tab="ddt" role="tab" aria-selected="false"><span data-field="ddt-tab-label">DDT</span></button>
             </div>
 
             <div class="fb-tab-panel active" data-panel="info" role="tabpanel">
@@ -61,12 +76,22 @@
                     </div>
                     <div class="fb-kpi fb-kpi-danger">
                         <span class="fb-kpi-value" data-kpi="docs">0</span>
-                        <span class="fb-kpi-label">Numero di DDT</span>
+                        <span class="fb-kpi-label" data-kpi-label="docs">Numero di DDT</span>
                     </div>
                 </div>
-                <div class="fb-form-group">
+                <div class="fb-form-group" data-kind-group="supplier">
                     <label class="fb-form-label" for="inv_supplier">Fornitore *</label>
-                    <select id="inv_supplier" name="id_supplier" class="fb-form-input" data-field="supplier" required></select>
+                    <select id="inv_supplier" name="id_supplier" class="fb-form-input" data-field="supplier"></select>
+                </div>
+                <div class="fb-form-grid" data-kind-group="customer" hidden>
+                    <div class="fb-form-group">
+                        <label class="fb-form-label" for="inv_customer">Cliente *</label>
+                        <select id="inv_customer" name="id_customer" class="fb-form-input" data-field="customer"></select>
+                    </div>
+                    <div class="fb-form-group">
+                        <label class="fb-form-label" for="inv_vehicle">Automezzo (targa)</label>
+                        <select id="inv_vehicle" name="id_vehicle" class="fb-form-input" data-field="vehicle"></select>
+                    </div>
                 </div>
                 <div class="fb-form-grid">
                     <div class="fb-form-group">
@@ -99,8 +124,14 @@
             </div>
 
             <div class="fb-tab-panel" data-panel="ddt" role="tabpanel">
-                <p class="fb-muted" data-field="ddt-hint">Seleziona un fornitore per vedere i DDT disponibili.</p>
-                <div data-field="ddt-list"></div>
+                <div data-kind-group="supplier">
+                    <p class="fb-muted" data-field="ddt-hint">Seleziona un fornitore per vedere i DDT disponibili.</p>
+                    <div data-field="ddt-list"></div>
+                </div>
+                <div data-kind-group="customer" hidden>
+                    <p class="fb-muted" data-field="mnt-hint">Seleziona cliente e automezzo per vedere le schede manutenzione da fatturare.</p>
+                    <div class="fb-mnt-list" data-field="mnt-list"></div>
+                </div>
             </div>
 
             <div class="fb-form-actions">
@@ -112,5 +143,5 @@
 {% endblock %}
 
 {% block page_scripts %}
-    <script type="module" src="{{ asset('fairy-bus/js/pages/invoices.js?v=3') }}"></script>
+    <script type="module" src="{{ asset('fairy-bus/js/pages/invoices.js?v=9') }}"></script>
 {% endblock %}

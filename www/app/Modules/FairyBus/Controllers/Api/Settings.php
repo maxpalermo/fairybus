@@ -381,6 +381,7 @@ class Settings extends AdminController
         return $this->jsonResponse([
             'success' => true,
             'hourly_cost' => (float) ($config->get('hourly_cost')['value'] ?? 0),
+            'default_tax_rate' => (float) ($config->get('default_tax_rate')['value'] ?? 22),
             'expiration_alert_days' => (int) ($config->get('expiration_alert_days')['value'] ?? 30),
             'expiration_alert_km' => (int) ($config->get('expiration_alert_km')['value'] ?? 2000),
         ]);
@@ -399,6 +400,7 @@ class Settings extends AdminController
         if (
             !$this->validate([
                 'hourly_cost' => 'permit_empty|decimal|greater_than_equal_to[0]',
+                'default_tax_rate' => 'permit_empty|decimal|greater_than_equal_to[0]|less_than_equal_to[100]',
                 'expiration_alert_days' => 'permit_empty|integer|greater_than_equal_to[0]',
                 'expiration_alert_km' => 'permit_empty|integer|greater_than_equal_to[0]',
             ])
@@ -410,6 +412,9 @@ class Settings extends AdminController
         $post = $this->request->getPost();
         if (array_key_exists('hourly_cost', $post)) {
             $config->setValue('hourly_cost', (string) (float) ($post['hourly_cost'] ?: 0));
+        }
+        if (array_key_exists('default_tax_rate', $post)) {
+            $config->setValue('default_tax_rate', (string) (float) ($post['default_tax_rate'] ?: 22));
         }
         if (array_key_exists('expiration_alert_days', $post)) {
             $config->setValue('expiration_alert_days', (string) (int) ($post['expiration_alert_days'] ?: 30));

@@ -20,6 +20,8 @@ function priceSearchOn(form) {
 let invoicesCache = null;
 // Ultima aliquota IVA usata nei ricambi (fallback per prodotti senza IVA)
 let lastVat = null;
+// aliquota IVA predefinita da Impostazioni -> Generali (fallback se il prodotto non ha IVA)
+let defaultTaxRate = 0;
 // Costo orario globale (fb_configuration.hourly_cost)
 let hourlyCost = null;
 
@@ -511,7 +513,7 @@ async function openMaintenanceForm(row = null) {
             if (!p) {
                 return;
             }
-            vatInput.value = Number(p.tax_rate) > 0 ? Number(p.tax_rate) : "0.00";
+            vatInput.value = Number(p.tax_rate) > 0 ? Number(p.tax_rate) : defaultTaxRate > 0 ? defaultTaxRate.toFixed(2) : "0.00";
             qtyInput.focus();
             // In modalità "per prezzo d'acquisto" il prezzo è quello del lotto scelto
             const lotPrice = item?.data?.lot_price;
@@ -801,7 +803,7 @@ async function openMaintenanceView(row) {
                 <table class="fb-table fb-details-table">
                     <thead>
                         <tr>
-                            <th class="num">Q.tà</th><th>Codice</th><th>Articolo</th>
+                            <th>Codice</th><th>Articolo</th><th class="num">Q.tà</th>
                             <th class="num">Prezzo</th><th class="num">Sconto</th><th class="num">Importo</th>
                             <th class="num">Ore</th><th class="num">€/h</th><th class="num">Manodopera</th>
                             <th>I.v.a.</th><th class="num">Totale</th>
@@ -837,6 +839,7 @@ async function loadOptions() {
         lotsCache = (products.lot_products || []).sort((a, b) => String(a.label).localeCompare(String(b.label), "it"));
         invoicesCache = invoices.rows || [];
         hourlyCost = Number(config.hourly_cost) > 0 ? Number(config.hourly_cost) : null;
+        defaultTaxRate = Number(config.default_tax_rate) > 0 ? Number(config.default_tax_rate) : 0;
     } catch (err) {
         await dialog.error(err);
     }

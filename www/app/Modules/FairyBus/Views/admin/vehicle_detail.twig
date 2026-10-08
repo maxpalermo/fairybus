@@ -18,7 +18,7 @@
 {% extends "admin/layout.twig" %}
 
 {% block page_styles %}
-    <link rel="stylesheet" href="{{ asset('fairy-bus/css/pages/vehicles.css') }}?v=4">
+    <link rel="stylesheet" href="{{ asset('fairy-bus/css/pages/vehicles.css') }}?v=7">
 {% endblock %}
 
 {% block content %}
@@ -54,11 +54,15 @@
         </div>
 
         <div class="fb-tab-panel" data-panel="expirations" role="tabpanel">
-            <p class="fb-muted">Gestione scadenze in fase di sviluppo.</p>
+            <div class="fb-table-wrap">
+                <table id="vehicle-expirations-table" class="fb-table"></table>
+            </div>
         </div>
 
         <div class="fb-tab-panel" data-panel="repairs" role="tabpanel">
-            <p class="fb-muted">Gestione riparazioni in fase di sviluppo.</p>
+            <div class="fb-table-wrap">
+                <table id="vehicle-repairs-table" class="fb-table"></table>
+            </div>
         </div>
     </section>
 
@@ -68,5 +72,5 @@
     <script>
         window.FB.idVehicle = {{ id_vehicle|json_encode|raw }};
     </script>
-    <script type="module" src="{{ asset('fairy-bus/js/pages/vehicle_detail.js') }}"></script>
+    <script type="module" src="{{ asset('fairy-bus/js/pages/vehicle_detail.js') }}?v=2"></script>
 {% endblock %}

@@ -40,6 +40,7 @@ class FbDocumentModel extends Model
         'id_supplier',
         'id_invoice',
         'id_ddt',
+        'id_vehicle',
         'reference_class',
         'reference_id',
         'status',

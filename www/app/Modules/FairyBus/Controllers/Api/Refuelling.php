@@ -361,7 +361,7 @@ class Refuelling extends AdminController
             return $this->jsonResponse(['success' => false, 'error' => 'Rifornimento non trovato.'], 404);
         }
 
-        $data = $this->validateRefuelling();
+        $data = $this->validateRefuelling($id);
         if ($data instanceof ResponseInterface) {
             return $data;
         }
@@ -483,9 +483,57 @@ class Refuelling extends AdminController
     }
 
     /**
+     * Carico residuo (litri) di un tipo di carburante in una stazione:
+     * totale carichi meno totale scarichi. In edit si esclude la riga
+     * corrente (exclude_id) cosi' il valore precedente non fa peso.
+     */
+    public function available(): ResponseInterface
+    {
+        if ($denied = $this->requirePermission('*')) {
+            return $denied;
+        }
+
+        return $this->jsonResponse([
+            'success' => true,
+            'available' => $this->fuelAvailable(
+                (int) $this->request->getGet('station_id'),
+                (int) $this->request->getGet('fuel_type_id'),
+                (int) $this->request->getGet('exclude_id')
+            ),
+        ]);
+    }
+
+    /**
+     * Giacenza del carburante = somma litri 'in' - somma litri 'out'
+     * per la stessa stazione e alimentazione.
+     */
+    private function fuelAvailable(int $stationId, int $fuelTypeId, int $excludeId = 0): float
+    {
+        if ($stationId <= 0 || $fuelTypeId <= 0) {
+            return 0.0;
+        }
+
+        $db = \Config\Database::connect();
+        $sum = static function (string $direction) use ($db, $stationId, $fuelTypeId, $excludeId): float {
+            $b = $db->table('fb_refuelling')
+                ->selectSum('liters')
+                ->where('id_station', $stationId)
+                ->where('id_fuel_type', $fuelTypeId)
+                ->where('direction', $direction);
+            if ($excludeId > 0) {
+                $b->where('id_refuelling !=', $excludeId);
+            }
+
+            return (float) ($b->get()->getRow()->liters ?? 0);
+        };
+
+        return $sum('in') - $sum('out');
+    }
+
+    /**
      * @return array<string, mixed>|ResponseInterface
      */
-    private function validateRefuelling(): array|ResponseInterface
+    private function validateRefuelling(?int $excludeId = null): array|ResponseInterface
     {
         $direction = $this->request->getPost('direction') === 'in' ? 'in' : 'out';
         $isLoad = $direction === 'in';
@@ -512,6 +560,26 @@ class Refuelling extends AdminController
             $time .= ':00';
         } elseif ($time !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $time)) {
             $time .= ' 00:00:00';
+        }
+
+        // uno scarico non puo' superare il carico residuo della coppia
+        // stazione + alimentazione (in edit la riga corrente non fa peso)
+        if (!$isLoad) {
+            $available = $this->fuelAvailable(
+                (int) $this->request->getPost('id_station'),
+                (int) ($this->request->getPost('id_fuel_type') ?: 0),
+                (int) ($excludeId ?? 0)
+            );
+            $liters = (float) $this->request->getPost('liters');
+            if ($liters - $available > 0.0001) {
+                return $this->jsonResponse([
+                    'success' => false,
+                    'errors' => [
+                        'liters' => 'Quantità superiore al carico residuo disponibile: massimo ' .
+                            number_format($available, 2, ',', '.') . ' litri.',
+                    ],
+                ], 422);
+            }
         }
 
         return [

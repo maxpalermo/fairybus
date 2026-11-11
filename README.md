@@ -1,5 +1,7 @@
 # Fairy Bus — Gestionale autorimessa pullman
 
+[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-sostieni%20il%20progetto-ffdd00?logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/maxpalermo)
+
 Web application modulare per la gestione di un'autorimessa/autofficina di pullman.
 
 - **Framework**: CodeIgniter 4.7.4

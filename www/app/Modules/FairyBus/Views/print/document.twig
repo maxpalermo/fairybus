@@ -27,6 +27,12 @@
                 <td style="width: 18%;" class="muted">{{ is_out ? 'Destinatario' : 'Fornitore' }}</td>
                 <td colspan="3"><strong>{{ document.customer_name|default(document.supplier_name)|default('—') }}</strong></td>
             </tr>
+            {% if document.vehicle_plate %}
+                <tr>
+                    <td class="muted">Targa</td>
+                    <td colspan="3">{{ document.vehicle_plate }}</td>
+                </tr>
+            {% endif %}
             <tr>
                 <td class="muted">Numero</td>
                 <td>{{ document.number|default('—') }}</td>

@@ -60,8 +60,9 @@ class FbDocumentDetailModel extends Model
     public function listByDocument(int $idDocument): array
     {
         return $this->db->table('fb_document_detail dd')
-            ->select('dd.*, p.sku, p.name AS product_name')
+            ->select('dd.*, p.sku, p.name AS product_name, m.date AS maintenance_date')
             ->join('fb_product p', 'p.id_product = dd.id_product', 'left')
+            ->join('fb_maintenance m', 'm.id_maintenance = dd.id_maintenance', 'left')
             ->where('dd.id_document', $idDocument)
             ->orderBy('dd.id_document_detail', 'ASC')
             ->get()

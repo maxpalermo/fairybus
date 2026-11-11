@@ -60,11 +60,12 @@ class FbDocumentModel extends Model
     public function listAll(array $ids = [], string $direction = 'all', ?int $month = null, ?int $year = null): array
     {
         $builder = $this->db->table('fb_document d')
-            ->select('d.*, s.company AS supplier_name, c.company AS customer_name, i.number AS invoice_number, t.name AS type_name')
+            ->select('d.*, s.company AS supplier_name, c.company AS customer_name, i.number AS invoice_number, t.name AS type_name, v.plate AS vehicle_plate')
             ->join('fb_supplier s', 's.id_supplier = d.id_supplier', 'left')
             ->join('fb_customer c', 'c.id_customer = d.id_customer', 'left')
             ->join('fb_invoice i', 'i.id_invoice = d.id_invoice', 'left')
             ->join('fb_type_document t', 't.id = d.type', 'left')
+            ->join('fb_vehicle v', 'v.id_vehicle = d.id_vehicle', 'left')
             ->orderBy('d.date', 'DESC')
             ->orderBy('d.id_document', 'DESC');
 
@@ -98,11 +99,12 @@ class FbDocumentModel extends Model
     public function findById(int $id): ?array
     {
         return $this->db->table('fb_document d')
-            ->select('d.*, s.company AS supplier_name, c.company AS customer_name, i.number AS invoice_number, t.name AS type_name')
+            ->select('d.*, s.company AS supplier_name, c.company AS customer_name, i.number AS invoice_number, t.name AS type_name, v.plate AS vehicle_plate')
             ->join('fb_supplier s', 's.id_supplier = d.id_supplier', 'left')
             ->join('fb_customer c', 'c.id_customer = d.id_customer', 'left')
             ->join('fb_invoice i', 'i.id_invoice = d.id_invoice', 'left')
             ->join('fb_type_document t', 't.id = d.type', 'left')
+            ->join('fb_vehicle v', 'v.id_vehicle = d.id_vehicle', 'left')
             ->where('d.id_document', $id)
             ->get()
             ->getRowArray();

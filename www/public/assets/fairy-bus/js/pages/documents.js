@@ -124,6 +124,25 @@ async function loadDocTypes() {
     return docTypesPromise;
 }
 
+// Targhe per il filtro select della colonna Targa (solo scarichi):
+// include anche i mezzi dismessi — i riepiloghi possono riferirsi a veicoli ritirati.
+let plateOptionsPromise = null;
+async function loadPlateOptions() {
+    if (DIRECTION !== "out" || plateOptionsPromise !== null) {
+        return plateOptionsPromise;
+    }
+    plateOptionsPromise = (async () => {
+        try {
+            const res = await FetchHelper.get(`${window.FB.baseUrl}api/vehicles`);
+            const plates = [...new Set((res.rows || []).map((v) => v.plate).filter(Boolean))].sort((a, b) => a.localeCompare(b, "it"));
+            window.fbPlateOptions = Object.fromEntries(plates.map((p) => [p, p]));
+        } catch (err) {
+            window.fbPlateOptions = {};
+        }
+    })();
+    return plateOptionsPromise;
+}
+
 async function initDocumentsTable() {
     if (!window.$ || !window.$.fn.bootstrapTable) {
         setTimeout(initDocumentsTable, 100);
@@ -131,6 +150,7 @@ async function initDocumentsTable() {
     }
 
     await loadDocTypes();
+    await loadPlateOptions();
 
     window.$("#documents-table").bootstrapTable({
         url: window.FB.baseUrl + `api/documents?direction=${DIRECTION}`,
@@ -145,6 +165,7 @@ async function initDocumentsTable() {
             { field: "date", title: "Data", sortable: true, formatter: (v) => fmtDate(v), filterControl: "input", filterCustomSearch: window.fbFilterSearch },
             { field: "number", title: "Numero", sortable: true, formatter: (v) => (v ? escapeHtml(v) : "—"), filterControl: "input", filterCustomSearch: window.fbFilterSearch },
             { field: "supplier_name", title: DIRECTION === "out" ? "Cliente" : "Fornitore", sortable: true, formatter: (v, row) => partnerName(row), filterControl: "input", filterCustomSearch: window.fbFilterSearch },
+            ...(DIRECTION === "out" ? [{ field: "vehicle_plate", title: "Targa", sortable: true, formatter: (v) => escapeHtml(v || "—"), filterControl: "select", filterData: "var:fbPlateOptions" }] : []),
             ...(DIRECTION === "in" ? [{ field: "invoice_number", title: "Fattura", sortable: true, align: "center", formatter: invoiceBadge, filterControl: "input", filterCustomSearch: window.fbFilterSearch }] : []),
             { field: "type", title: "Tipo", sortable: true, align: "center", formatter: (v, row) => escapeHtml(row.type_name || "—"), searchFormatter: false, filterControl: "select", filterData: "var:fbDocTypeOptions" },
             { field: "actions", title: "Azioni", searchable: false, formatter: formatActions, events: window.documentActionsEvents },
@@ -300,6 +321,8 @@ async function loadMaintenanceSheets(form, idVehicle, idDocument) {
     }
     container.innerHTML = "";
     form._mntRows = [];
+    form._mntChecked = new Set();
+    updateMntToolbar(form);
     if (!idVehicle && !idDocument) {
         hint.style.display = "";
         hint.textContent = "Seleziona l'automezzo nella scheda Informazioni.";
@@ -310,6 +333,7 @@ async function loadMaintenanceSheets(form, idVehicle, idDocument) {
     try {
         const res = await FetchHelper.get(`${window.FB.baseUrl}api/maintenance/available`, { vehicle_id: idVehicle || 0, document_id: idDocument || 0, with_lines: 1 });
         form._mntRows = res.rows || [];
+        form._mntChecked = new Set(form._mntRows.filter((m) => m.linked).map((m) => Number(m.id_maintenance)));
         renderMaintenanceList(form, form._mntRows);
     } catch (err) {
         hint.textContent = "Errore caricamento schede.";
@@ -324,7 +348,7 @@ function renderMntSummary(form) {
     if (!tbody) {
         return;
     }
-    const selected = new Set(Array.from(form.querySelectorAll('[data-field="mnt-list"] input[type="checkbox"]:checked')).map((cb) => Number(cb.dataset.mntId)));
+    const selected = form._mntChecked || new Set();
     const lines = (form._mntRows || [])
         .filter((m) => selected.has(Number(m.id_maintenance)))
         .flatMap((m) => (m.lines || []).map((l) => ({ ...l, id_maintenance: m.id_maintenance })));
@@ -358,28 +382,58 @@ function renderMntSummary(form) {
     form.querySelector('[data-kpi="rows"]').textContent = String(lines.length);
 }
 
+function updateMntToolbar(form) {
+    const countEl = form.querySelector('[data-field="mnt-count"]');
+    if (!countEl) {
+        return;
+    }
+    const n = (form._mntChecked || new Set()).size;
+    countEl.textContent = n > 0 ? `${n} selezionata${n === 1 ? "" : "e"}` : "";
+}
+
 function renderMaintenanceList(form, rows) {
     const container = form.querySelector('[data-field="mnt-list"]');
     const hint = form.querySelector('[data-field="mnt-hint"]');
+    const toolbar = form.querySelector('[data-field="mnt-toolbar"]');
+    const checked = form._mntChecked || new Set();
     container.innerHTML = "";
+    if (toolbar) {
+        toolbar.style.display = rows.length > 0 ? "" : "none";
+    }
 
     if (rows.length === 0) {
         hint.style.display = "";
         hint.textContent = "Nessuna scheda manutenzione da fatturare per questo automezzo.";
+        updateMntToolbar(form);
+        return;
+    }
+
+    const from = form.querySelector('[data-field="mnt-from"]')?.value || "";
+    const to = form.querySelector('[data-field="mnt-to"]')?.value || "";
+    const visible = rows.filter((m) => {
+        const d = String(m.date || "").slice(0, 10);
+        return (!from || d >= from) && (!to || d <= to);
+    });
+
+    if (visible.length === 0) {
+        hint.style.display = "";
+        hint.textContent = "Nessuna scheda nel periodo selezionato.";
+        updateMntToolbar(form);
         return;
     }
     hint.style.display = "none";
 
-    for (const m of rows) {
+    for (const m of visible) {
         const parts = Number(m.parts_count || 0);
         const tasks = Number(m.tasks_count || 0);
         const km = Number(m.km) > 0 ? `${Number(m.km).toLocaleString("it-IT")}\u00A0km` : null;
         const meta = [km, `${parts} ricambi`, tasks > 0 ? `${tasks} lav.` : null].filter(Boolean).join(" · ");
 
         const item = document.createElement("label");
-        item.className = "fb-mnt-item" + (m.linked ? " is-linked" : "");
+        const isChecked = checked.has(Number(m.id_maintenance));
+        item.className = "fb-mnt-item" + (isChecked || m.linked ? " is-linked" : "");
         item.innerHTML = `
-            <input type="checkbox" data-mnt-id="${m.id_maintenance}" ${m.linked ? "checked" : ""}>
+            <input type="checkbox" data-mnt-id="${m.id_maintenance}" ${isChecked ? "checked" : ""}>
             <span class="fb-mnt-item-main">
                 <strong>Scheda del ${String(m.date || "")
                     .slice(0, 10)
@@ -392,6 +446,7 @@ function renderMaintenanceList(form, rows) {
         `;
         container.appendChild(item);
     }
+    updateMntToolbar(form);
 }
 
 function initMaintenancePanel(form, doc) {
@@ -428,9 +483,55 @@ function initMaintenancePanel(form, doc) {
         }
     }
 
+    // Selezione persistente (Set): sopravvive al filtro periodo che
+    // ri-renderizza la lista; il DOM resta solo una vista dei selezionati.
+    const list = form.querySelector('[data-field="mnt-list"]');
+    list.addEventListener("change", (ev) => {
+        const cb = ev.target.closest("input[data-mnt-id]");
+        if (!cb) {
+            return;
+        }
+        const id = Number(cb.dataset.mntId);
+        if (cb.checked) {
+            form._mntChecked.add(id);
+        } else {
+            form._mntChecked.delete(id);
+        }
+        cb.closest(".fb-mnt-item")?.classList.toggle("is-linked", cb.checked);
+        updateMntToolbar(form);
+        form._updateSaveState?.();
+    });
+
+    // Toolbar: Tutti (spunta le schede visibili nel periodo filtrato),
+    // Nessuno (azzera ogni selezione), filtro date da/a.
+    const toolbar = form.querySelector('[data-field="mnt-toolbar"]');
+    if (toolbar) {
+        const rerender = () => renderMaintenanceList(form, form._mntRows || []);
+        toolbar.querySelector('[data-field="mnt-from"]').addEventListener("change", rerender);
+        toolbar.querySelector('[data-field="mnt-to"]').addEventListener("change", rerender);
+        toolbar.querySelector('[data-action="mnt-check-all"]').addEventListener("click", () => {
+            form.querySelectorAll('[data-field="mnt-list"] input[type="checkbox"]').forEach((cb) => {
+                cb.checked = true;
+                cb.closest(".fb-mnt-item")?.classList.add("is-linked");
+                form._mntChecked.add(Number(cb.dataset.mntId));
+            });
+            updateMntToolbar(form);
+            form._updateSaveState?.();
+        });
+        toolbar.querySelector('[data-action="mnt-check-none"]').addEventListener("click", () => {
+            form._mntChecked.clear();
+            form.querySelectorAll('[data-field="mnt-list"] input[type="checkbox"]').forEach((cb) => {
+                cb.checked = false;
+                cb.closest(".fb-mnt-item")?.classList.remove("is-linked");
+            });
+            updateMntToolbar(form);
+            form._updateSaveState?.();
+        });
+    }
+
     // Invocata dopo il salvataggio del documento: allinea le associazioni.
     form._syncMaintenances = async (idDocument) => {
-        const ids = Array.from(form.querySelectorAll('[data-field="mnt-list"] input[type="checkbox"]:checked')).map((cb) => Number(cb.dataset.mntId));
+        const ids = Array.from(form._mntChecked || []);
         await FetchHelper.post(`${window.FB.baseUrl}api/documents/${idDocument}/maintenances`, { maintenance_ids: JSON.stringify(ids) });
     };
 }
@@ -604,10 +705,11 @@ function openDocumentForm(doc = null) {
     if (isWizard) {
         const WIZARD_STEPS = ["info", "manutenzioni", "movimenti"];
         const targetOk = () => customerSel.value !== "" && vehicleSel.value !== "";
-        const mntOk = () => form.querySelectorAll('[data-field="mnt-list"] input[type="checkbox"]:checked').length > 0;
+        const mntOk = () => (form._mntChecked?.size || 0) > 0;
         const updateSaveState = () => {
             saveBtn.disabled = !(targetOk() && mntOk());
         };
+        form._updateSaveState = updateSaveState;
         const updateNextState = () => {
             const panel = activeTabPanel(form);
             nextBtn.style.display = panel === "movimenti" ? "none" : "";
@@ -676,6 +778,19 @@ function openDocumentForm(doc = null) {
             el.addEventListener("change", updateSaveState);
         }
         form.querySelector('[data-field="mnt-list"]').addEventListener("change", updateSaveState);
+    } else if (DIRECTION === "out" && doc && nextBtn) {
+        // Modifica riepilogo: SUCCESSIVO compare solo sulla scheda Manutenzioni
+        // e ricostruisce l'anteprima Movimenti dalla selezione corrente.
+        const updateNextState = () => {
+            nextBtn.style.display = activeTabPanel(form) === "manutenzioni" ? "" : "none";
+        };
+        form._onTabSwitch = updateNextState;
+        nextBtn.addEventListener("click", () => {
+            renderMntSummary(form);
+            switchTabPanel(form, "movimenti");
+            updateNextState();
+        });
+        updateNextState();
     }
 
     if (doc) {
@@ -798,6 +913,8 @@ async function openDocumentView(row) {
         return;
     }
 
+    const isOut = DIRECTION === "out";
+    const schedaCell = (d) => (d.id_maintenance ? `Scheda ${d.id_maintenance} del ${fmtDate(d.maintenance_date)}` : "—");
     let total = 0;
     const rowsHtml = (doc.details || [])
         .map((d) => {
@@ -805,6 +922,7 @@ async function openDocumentView(row) {
             total += t.totale;
             return `
             <tr>
+                ${isOut ? `<td>${schedaCell(d)}</td>` : ""}
                 <td class="num">${fmtQty(d.quantity)}</td>
                 <td>${escapeHtml(d.sku || "—")}</td>
                 <td>${escapeHtml(d.product_name || "—")}</td>
@@ -818,29 +936,31 @@ async function openDocumentView(row) {
         })
         .join("");
 
-    const dlgTitle = DIRECTION === "out" ? `Documento di riepilogo ${escapeHtml(doc.number || doc.id_document)}` : `${DOC_LABEL} ${escapeHtml(doc.number || doc.id_document)}`;
+    const dlgTitle = isOut ? `Documento di riepilogo ${escapeHtml(doc.number || doc.id_document)}` : `${DOC_LABEL} ${escapeHtml(doc.number || doc.id_document)}`;
     const dlg = document.createElement("dialog");
     dlg.className = "fb-dialog";
     dlg.innerHTML = `
         <div class="fb-dialog-header"><h3 class="fb-dialog-title">${dlgTitle}</h3></div>
         <div class="fb-dialog-body">
             <dl class="fb-view-grid">
-                ${viewItem(DIRECTION === "out" ? "Cliente" : "Fornitore", doc.supplier_name || doc.customer_name)}
-                ${viewItem("Data", fmtDate(doc.date))}
+                ${viewItem(isOut ? "Cliente" : "Fornitore", doc.supplier_name || doc.customer_name)}
+                ${isOut ? viewItem("Targa", doc.vehicle_plate) : ""}
                 ${viewItem("Numero", doc.number)}
-                ${DIRECTION === "in" ? viewItem("Fattura", doc.invoice_number, { icon: "hash" }) : ""}
+                ${viewItem("Data", fmtDate(doc.date))}
                 ${viewItem("Tipo", doc.type_name)}
+                ${!isOut ? viewItem("Fattura", doc.invoice_number, { icon: "hash" }) : ""}
             </dl>
             <div class="fb-details-scroll">
                 <table class="fb-table fb-details-table">
                     <thead>
                         <tr>
+                            ${isOut ? "<th>Scheda</th>" : ""}
                             <th class="num">Q.tà</th><th>Codice</th><th>Articolo</th>
                             <th class="num">Prezzo</th><th class="num">Sconto</th><th class="num">Importo</th>
                             <th>I.v.a.</th><th class="num">Totale</th>
                         </tr>
                     </thead>
-                    <tbody>${rowsHtml || '<tr><td colspan="8" class="fb-muted" style="text-align:center">Nessun movimento.</td></tr>'}</tbody>
+                    <tbody>${rowsHtml || `<tr><td colspan="${isOut ? 9 : 8}" class="fb-muted" style="text-align:center">Nessun movimento.</td></tr>`}</tbody>
                 </table>
             </div>
             <div class="fb-details-total"><span class="fb-muted">Totale documento</span><strong>${fmtMoney(total)}</strong></div>

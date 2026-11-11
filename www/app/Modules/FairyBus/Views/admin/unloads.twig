@@ -18,7 +18,7 @@
 {% extends "admin/layout.twig" %}
 
 {% block page_styles %}
-    <link rel="stylesheet" href="{{ asset('fairy-bus/css/pages/documents.css') }}?v=6">
+    <link rel="stylesheet" href="{{ asset('fairy-bus/css/pages/documents.css') }}?v=7">
 {% endblock %}
 
 {% block content %}
@@ -96,6 +96,16 @@
 
             <div class="fb-tab-panel" data-panel="manutenzioni" role="tabpanel">
                 <p class="fb-muted" style="margin: 0 0 0.35rem; font-size: 0.8125rem;">Schede manutenzione dell'automezzo selezionato in Informazioni, non ancora registrate su un riepilogo o su una fattura cliente.</p>
+                <div class="fb-mnt-toolbar" data-field="mnt-toolbar" style="display: none;">
+                    <button type="button" class="fb-btn fb-btn-secondary fb-btn-sm" data-action="mnt-check-all">Tutti</button>
+                    <button type="button" class="fb-btn fb-btn-secondary fb-btn-sm" data-action="mnt-check-none">Nessuno</button>
+                    <span class="fb-mnt-period">
+                        <span class="fb-muted">Periodo:</span>
+                        <label>da&nbsp;<input type="date" class="fb-form-input fb-mnt-date" data-field="mnt-from"></label>
+                        <label>a&nbsp;<input type="date" class="fb-form-input fb-mnt-date" data-field="mnt-to"></label>
+                    </span>
+                    <span class="fb-muted fb-mnt-count" data-field="mnt-count"></span>
+                </div>
                 <div class="fb-mnt-list" data-field="mnt-list"></div>
                 <p class="fb-muted fb-detail-hint" data-field="mnt-hint">Seleziona l'automezzo nella scheda Informazioni.</p>
             </div>
@@ -159,5 +169,5 @@
 {% endblock %}
 
 {% block page_scripts %}
-    <script type="module" src="{{ asset('fairy-bus/js/pages/documents.js?v=31') }}"></script>
+    <script type="module" src="{{ asset('fairy-bus/js/pages/documents.js?v=35') }}"></script>
 {% endblock %}

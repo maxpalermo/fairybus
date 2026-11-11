@@ -48,6 +48,40 @@
     color: var(--fb-muted-foreground, #64748b);
 }
 
+/* Toolbar selezione/filtro schede manutenzione */
+.fb-mnt-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin: 0.35rem 0 0;
+}
+
+.fb-mnt-period {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.8125rem;
+}
+
+.fb-mnt-period label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    color: var(--fb-muted-foreground, #64748b);
+}
+
+.fb-mnt-date {
+    width: auto;
+    padding: 0.2rem 0.4rem;
+    font-size: 0.8125rem;
+}
+
+.fb-mnt-count {
+    margin-left: auto;
+    font-size: 0.8125rem;
+}
+
 /* Schede manutenzione associabili allo scarico (conto terzi) */
 .fb-mnt-list {
     display: flex;

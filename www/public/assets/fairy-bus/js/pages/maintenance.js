@@ -223,6 +223,7 @@ async function openDocumentDialog(idDocument) {
             total += t.totale;
             return `
             <tr>
+                <td>${d.id_maintenance ? `Scheda ${d.id_maintenance} del ${fmtDate(d.maintenance_date)}` : "—"}</td>
                 <td class="num">${fmtQty(d.quantity)}</td>
                 <td>${escapeHtml(d.sku || (d.id_maintenance ? `sc. ${d.id_maintenance}` : "—"))}</td>
                 <td>${escapeHtml(d.product_name || d.note || "—")}</td>
@@ -243,8 +244,9 @@ async function openDocumentDialog(idDocument) {
         <div class="fb-dialog-body">
             <dl class="fb-view-grid">
                 ${viewItem("Cliente", doc.customer_name || doc.supplier_name)}
-                ${viewItem("Data", fmtDate(doc.date))}
+                ${viewItem("Targa", doc.vehicle_plate)}
                 ${viewItem("Numero", doc.number)}
+                ${viewItem("Data", fmtDate(doc.date))}
                 ${viewItem("Tipo", doc.type_name)}
                 ${viewItem("Nota", doc.note)}
             </dl>
@@ -252,12 +254,12 @@ async function openDocumentDialog(idDocument) {
                 <table class="fb-table fb-details-table">
                     <thead>
                         <tr>
-                            <th class="num">Q.tà</th><th>Codice</th><th>Articolo</th>
+                            <th>Scheda</th><th class="num">Q.tà</th><th>Codice</th><th>Articolo</th>
                             <th class="num">Prezzo</th><th class="num">Sconto</th><th class="num">Importo</th>
                             <th>I.v.a.</th><th class="num">Totale</th>
                         </tr>
                     </thead>
-                    <tbody>${rowsHtml || '<tr><td colspan="8" class="fb-muted" style="text-align:center">Nessun movimento.</td></tr>'}</tbody>
+                    <tbody>${rowsHtml || '<tr><td colspan="9" class="fb-muted" style="text-align:center">Nessun movimento.</td></tr>'}</tbody>
                 </table>
             </div>
             <div class="fb-details-total"><span class="fb-muted">Totale documento</span><strong>${fmtMoney(total)}</strong></div>

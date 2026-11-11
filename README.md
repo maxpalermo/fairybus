@@ -4,6 +4,8 @@
 
 Web application modulare per la gestione di un'autorimessa/autofficina di pullman.
 
+> **Download**: [Fairy Bus v1.0.0 — installer offline](https://github.com/maxpalermo/fairybus/releases/latest) (zip self-contained con immagini Docker, `install.sh` guidato e DB factory).
+
 - **Framework**: CodeIgniter 4.7.4
 - **Container Docker**: `fairybus-mysql` (app), `fairybus-mysql-db` (MariaDB 10.11), `fairybus-mysql-pma` (phpMyAdmin)
 - **Database**: MariaDB 10.11 containerizzato nello stesso compose, accessibile tramite rete `caddy-net`

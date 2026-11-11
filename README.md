@@ -3,8 +3,8 @@
 Web application modulare per la gestione di un'autorimessa/autofficina di pullman.
 
 - **Framework**: CodeIgniter 4.7.4
-- **Container Docker**: `fairy-bus`
-- **Database**: MariaDB esterno/containerizzato, accessibile tramite rete `caddy-net`
+- **Container Docker**: `fairybus-mysql` (app), `fairybus-mysql-db` (MariaDB 10.11), `fairybus-mysql-pma` (phpMyAdmin)
+- **Database**: MariaDB 10.11 containerizzato nello stesso compose, accessibile tramite rete `caddy-net`
 - **Prefisso tabelle**: `fb_` fa parte del nome delle tabelle nuove (es. `fb_customer`), dichiarato nei model e nelle migration — **non** è il `DBPrefix` di CodeIgniter: `database.default.DBPrefix` deve restare vuoto in `.env`, altrimenti le query cercherebbero `fb_fb_*`. Le tabelle legacy senza prefisso (`business_partner`, `trade`…) sono accessibili via `LegacyDatabase::withoutPrefix()`.
 - **Templating**: Twig 3
 - **Stile UI**: design system ispirato a shadcn
@@ -14,9 +14,8 @@ Web application modulare per la gestione di un'autorimessa/autofficina di pullma
 ## Requisiti
 
 - Docker + Docker Compose
-- Rete Docker esterna `caddy-net` già esistente (verrà creata automaticamente se mancante)
-- Container MariaDB già presente nella rete `caddy-net`, raggiungibile con hostname `mariaDB`
-- (Opzionale) Caddy come reverse proxy per `https://fairybus.localhost`
+- Rete Docker esterna `caddy-net` già esistente (`docker network create caddy-net`)
+- (Opzionale) Caddy come reverse proxy per `https://fairybus-mysql.localhost`
 
 ---
 
@@ -24,24 +23,27 @@ Web application modulare per la gestione di un'autorimessa/autofficina di pullma
 
 ```bash
 # 1. Entra nella cartella del progetto
-cd /home/massimiliano/docker/apache/fata
+cd fairybus/mysql
 
 # 2. Crea la rete Docker se non esiste
 docker network create caddy-net 2>/dev/null || true
 
-# 3. Avvia il container
+# 3. Configura le credenziali del database usate da docker-compose
+cp .env.example .env   # poi modifica MYSQL_ROOT_PASSWORD e DB_PASSWORD
+
+# 4. Avvia i container (app + db + phpMyAdmin)
 docker compose up -d --build
 
-# 4. Entra nel container per gestire dipendenze e comandi CI4
-docker compose exec -w /var/www/html fairy-bus bash
+# 5. Entra nel container per gestire dipendenze e comandi CI4
+docker compose exec -w /var/www/html fairybus-mysql bash
 
-# 5. All'interno del container, installa le dipendenze (già presenti dopo primo build)
+# 6. All'interno del container, installa le dipendenze
 composer install
 
-# 6. Copia e personalizza l'ambiente se necessario
+# 7. Copia e personalizza l'ambiente applicativo
 cp env .env
 
-# 7. Esegui le migrazioni (quando il DB è disponibile)
+# 8. Esegui le migrazioni (quando il DB è disponibile)
 php spark migrate --all
 ```
 
@@ -52,8 +54,8 @@ php spark migrate --all
 Se usi Caddy, aggiungi questo snippet al tuo `Caddyfile`:
 
 ```caddy
-fairybus.localhost {
-    reverse_proxy fairy-bus:80 {
+fairybus-mysql.localhost {
+    reverse_proxy fairybus-mysql:80 {
         header_up Host {host}
         header_up X-Real-IP {remote}
         header_up X-Forwarded-For {remote}
@@ -63,12 +65,14 @@ fairybus.localhost {
 }
 ```
 
-Poi apri: `https://fairybus.localhost/admin/dashboard`
+Poi apri: `https://fairybus-mysql.localhost/admin/dashboard`
+
+phpMyAdmin è raggiungibile su `https://fairybus-mysql.localhost/pma/` (login `root` + `MYSQL_ROOT_PASSWORD` da `.env`).
 
 In alternativa, per test interno dentro il container:
 
 ```bash
-docker compose exec fairy-bus curl -s http://localhost/admin/dashboard
+docker compose exec fairybus-mysql curl -s http://localhost/admin/dashboard
 ```
 
 ---
@@ -76,12 +80,19 @@ docker compose exec fairy-bus curl -s http://localhost/admin/dashboard
 
 ## Struttura del progetto
 
+- `bin/` — script di utilità: `flush-cache-twig.sh`, `make-patch.sh` (patch zip / immagine dist), `set-ci4-permissions.sh`, `set-env-ci4.sh`, `cat-slow.sh`/`read-slow.sh` (slow query log), `fb-vm-forward.sh`, entrypoint dei container
+- `conf/` — configurazioni montate nei container: `000-default.conf` (vhost), `apache-cache.conf`, `pma-proxy.conf` (proxy `/pma/`), `my.cnf`, `php.ini`, `php.ini.dist`
+- `sql/` — script SQL di manutenzione/normalizzazione
+- `docs/` — documentazione operativa
+- `docker-compose.yml`, `Dockerfile`, `Dockerfile.dist` — stack dev e immagine di distribuzione (`Dockerfile.dist.dockerignore` filtra il context)
+- `.env` / `.env.example` — credenziali DB per compose (`.env` non versionato)
 - `www/` — applicazione CodeIgniter 4
 - `www/app/Modules/FairyBus/` — modulo principale (controller, modelli, viste, migrazioni)
 - `www/app/Libraries/Twig.php` — wrapper Twig per CI4
 - `www/public/assets/fairy-bus/` — asset CSS/JS/immagini e librerie locali
-- `docker/` — configurazione Apache, PHP e entrypoint
-- `summary.md` — piano di lavoro, scelte tecniche e snippet riutilizzabili
+- `dist/` — pacchetto installer offline (compose, `install.sh`, `update.sh`, DB factory `db-init/01-fairybus.sql`); gli artefatti `*.tar.gz`/`*.zip` non sono versionati
+- `site/` — landing page del pacchetto di installazione
+- `db_data/` — dati runtime MariaDB (non versionato)
 
 ---
 
@@ -97,6 +108,17 @@ Al primo accesso sarai obbligato a cambiare la password.
 ---
 
 ## Changelog
+
+### 0.9.28 — 2026-11-11
+- **Manutenzione terzi — wizard guidato** (ex pagina Scarichi, `/admin/unloads`): scheda "Riepilogo Manutenzione terzi" con tab ordinati Informazioni → Manutenzioni → Movimenti. Box evidenziato Cliente + Automezzo obbligatori in cima a Informazioni; numero documento da progressivo di sistema (`fb_configuration.unload_doc_counter`, avanzato solo dopo insert riuscito, endpoint `GET api/documents/next-number`) e data odierna precompilati; bottone **SUCCESSIVO** tra i tab con blocco navigazione diretta e **SALVA** disabilitato finché manca cliente/targa o almeno una scheda. Tab Manutenzioni: elenco delle sole schede del veicolo non ancora registrate (`id_document IS NULL`, non fatturate). Tab Movimenti: riepilogo read-only delle righe copiate (ricambi + manodopera valorizzata) — nessun inserimento manuale, nessun movimento di magazzino. Al salvataggio `fb_maintenance.id_document` viene flaggato e le schede escono dall'elenco disponibili (`syncMaintenances` in `api/documents/{id}/maintenances`).
+- **Riepilogo = documento fiscale**: quantità e valori sempre positivi (`abs()` in copia e `|abs` in stampa); rimossi bottone "associa a fattura", colonna Fattura e filtro "Senza fattura" dalla pagina; dialog vista e stampa intitolati "Documento di riepilogo" con Destinatario, poi Numero e Data, senza voce fattura.
+- **Manodopera a costo zero filtrata**: i task di manutenzione senza ore, tariffa €/h o importo (12.000+ righe "GENERAL" di rito) non generano più righe "Manodopera" a 0,00 € né nell'anteprima né nelle righe copiate; `tasks_count` dell'elenco schede allineato allo stesso filtro.
+- **Manutenzione: colonna Scheda con link riepilogo** — nuova colonna dopo il checkbox: codice scheda + stato ("Riepilogo N" link blu / "non riepilogata"); il click apre un `<dialog>` stilizzato con testata documento (cliente, numero, data), tabella movimenti completa con totale e bottone **Stampa PDF**. `listAll` espone `doc_number`/`doc_date` via join `fb_document`.
+- **Veicoli: fix salvataggio caratteristiche** — `features` era postata come stringa JSON (`{"4":"2"}`) e PHP la scartava (`is_array` fallito); ora i campi `features[N]` viaggiano flat e `setForVehicle` riceve l'array.
+- **Veicoli: fix upload immagini/documenti** — causa del 500: i modelli `FbVehicleImageModel`/`FbVehicleDocumentModel` (e in latenza `FbUserRoleModel`/`FbUserPermissionModel`) avevano `useTimestamps=true` su tabelle con solo `created_at` → insert su `updated_at` inesistente. Fix: `$updatedField = ''`. In più, dopo upload/delete la lista si aggiorna in-place (`refreshVehicleExtras`) invece di riaprire un secondo dialog sopra il primo.
+- **Immagini veicoli: layout e lightbox** — nel dialog modifica la griglia anteprime (più grande, in alto) e la zona upload compatta in basso; click sulla miniatura → lightbox centrato (`<dialog>` + backdrop scuro) sia nel form sia nella pagina dettaglio veicolo.
+- **Sottoscorta prodotti: prezzo e fornitore** — il dialog sottoscorta mostra l'ultimo prezzo d'acquisto in EUR con fornitore su seconda riga; la cella prezzo apre il documento di carico sorgente **in nuova tab** (`target="_blank"`) con il campo fornitore compilato (fix race condition: il deep-link `?open=` ora attende `loadOptions()`/`loadDocTypes()` prima di aprire la scheda).
+- **Progetto su GitHub** (`maxpalermo/fairybus`, pubblico): riorganizzazione `bin/` (script), `conf/` (apache/php/mysql), `sql/`, `docs/`; riferimenti aggiornati in compose e Dockerfile/Dockerfile.dist; credenziali compose esternalizzate in `.env` (`.env.example` versionato); `.gitignore` completo (`db_data/`, `www/vendor/`, `www/.env`, `public/uploads`, `writable` runtime, backup zip, artefatti `dist`/`site`).
 
 ### 0.9.27 — 2026-10-14
 - **Manutenzione: dialog prezzi d'acquisto con lotti residui** — il picker lente ricambi ("Acquisti del prodotto") mostra ora in cima la sezione **"In giacenza per prezzo d'acquisto"**: una riga per lotto residuo (prezzo, residuo, fornitore/data/documento dell'ultimo carico a quel prezzo, sconto, IVA) — sono gli stessi lotti elencati dal picker articolo in modalità "per prezzo" (es. 88806: €120 residuo 4 + €87 residuo 1, entrambi OFFICINE 977). Sotto resta lo storico "Ultimo acquisto per fornitore". `api/products/{id}/purchases` restituisce anche `lots` (logica `priceLots` condivisa). Selezionando una riga il prezzo si compila e il **badge giacenza si aggiorna al residuo di quel prezzo** (prima restava quello del lotto scelto nel picker). Il badge è stato sostituito da una **barra info a tutta larghezza sotto la riga di inserimento**: mostra fornitore + documento del carico selezionato e la giacenza residua (blu; rossa se la q.tà supera il residuo). **Aggancio scarico al carico**: la riga invia `id_load` (lotto residuo scelto o carico storico con residuo) e `addDetail` lo salva su `fb_maintenance_detail`; se assente/invalido il server aggancia il carico FIFO più vecchio con residuo>0 allo stesso prezzo (`findFifoLoad`) — gli scarichi non restano più "non associati".

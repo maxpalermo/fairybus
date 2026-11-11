@@ -18,6 +18,7 @@
 {% extends "print/layout.twig" %}
 
 {% block content %}
+    {% set is_out = (rows|first).id_customer is not empty %}
     <table class="data">
         <thead>
             <tr>
@@ -26,7 +27,7 @@
                 <th style="width: 15%;">Numero</th>
                 <th>Fornitore / Cliente</th>
                 <th style="width: 12%;">Tipo</th>
-                <th style="width: 15%;">Fattura</th>
+                <th style="width: 15%;">{{ is_out ? 'Targa' : 'Fattura' }}</th>
                 <th>Note</th>
             </tr>
         </thead>
@@ -38,7 +39,7 @@
                     <td>{{ row.number|default('—') }}</td>
                     <td>{{ row.supplier_name|default(row.customer_name)|default('—') }}</td>
                     <td>{{ row.type_name|default('—') }}</td>
-                    <td>{{ row.invoice_number|default('—') }}</td>
+                    <td>{{ is_out ? row.vehicle_plate|default('—') : row.invoice_number|default('—') }}</td>
                     <td class="muted">{{ row.note|default('—') }}</td>
                 </tr>
             {% else %}

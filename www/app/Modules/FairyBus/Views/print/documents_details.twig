@@ -37,8 +37,13 @@
                 <tr>
                     <td class="muted">Data</td>
                     <td>{{ document.date ? document.date|date('d/m/Y') : '—' }}</td>
-                    <td class="muted">Fattura</td>
-                    <td>{{ document.invoice_number|default('—') }}</td>
+                    {% if document.id_customer %}
+                        <td class="muted">Targa</td>
+                        <td>{{ document.vehicle_plate|default('—') }}</td>
+                    {% else %}
+                        <td class="muted">Fattura</td>
+                        <td>{{ document.invoice_number|default('—') }}</td>
+                    {% endif %}
                 </tr>
                 <tr>
                     <td class="muted">Tipo</td>

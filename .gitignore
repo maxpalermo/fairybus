@@ -1,0 +1,28 @@
+# Segreti e ambiente locale
+.env
+www/.env
+www/.env.*
+
+# Editor / OS
+*.code-workspace
+.DS_Store
+Thumbs.db
+
+# Dati runtime MariaDB (mai versionare)
+db_data/
+
+# Artefatti di distribuzione (troppo grandi per GitHub, vanno in Releases)
+site/*.zip
+dist/*.tar.gz
+dist/*.zip
+
+# Dipendenze Composer (si ricreano con `composer install`)
+www/vendor/
+
+# File caricati dagli utenti e cache runtime
+# (le altre sottocartelle di www/writable sono gia' coperte da www/.gitignore)
+www/public/uploads/
+www/writable/twig/
+www/writable/backups/*
+!www/writable/backups/.htaccess
+!www/writable/backups/index.html

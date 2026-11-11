@@ -1,0 +1,188 @@
+{#
+ * Copyright since 2026 Massimiliano Palermo
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Academic Free License version 3.0
+ * that is bundled with this package in the file LICENSE.md.
+ * It is also available through the world-wide-web at this URL:
+ * https://opensource.org/licenses/AFL-3.0
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to maxx.palermo@gmail.com so we can send you a copy immediately.
+ *
+ * @author    Massimiliano Palermo <maxx.palermo@gmail.com>
+ * @copyright Since 2026 Massimiliano Palermo
+ * @license   https://opensource.org/licenses/AFL-3.0 Academic Free License version 3.0
+#
+ # Storico riparazioni di un veicolo: dettaglio per manutenzione
+ # (ordine cronologico) + pagina di riepilogo finale.
+#}
+{% extends "print/layout.twig" %}
+
+{% block content %}
+    <table class="data" style="margin-bottom: 14pt;">
+        <tbody>
+            <tr>
+                <td style="width: 12%;" class="muted">Veicolo</td>
+                <td style="width: 30%;"><strong>{{ vehicle.plate|default('—') }}</strong>{% if vehicle.brand_name %} — {{ vehicle.brand_name }}{% endif %}</td>
+                <td style="width: 12%;" class="muted">Telaio</td>
+                <td>{{ vehicle.chassis_number|default('—') }}</td>
+                <td style="width: 12%;" class="muted">Km attuali</td>
+                <td>{{ vehicle.current_km is not null ? vehicle.current_km|number_format(0, ',', '.') ~ ' km' : '—' }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    {% for m in maintenances %}
+        <div style="margin-bottom: 18pt;">
+            <h3 style="margin: 0 0 4pt 0; font-size: 11pt; page-break-after: avoid;">
+                Manutenzione #{{ m.id_maintenance }} — {{ m.date ? m.date|date('d/m/Y') : '—' }}{% if m.km %} · {{ m.km|number_format(0, ',', '.') }} km{% endif %}
+            </h3>
+            {% if m.note %}
+                <p style="margin: 0 0 4pt 0; font-size: 8pt;" class="muted">{{ m.note }}</p>
+            {% endif %}
+            <table class="data">
+                <thead>
+                    <tr>
+                        <th style="width: 6%;" class="num">Q.tà</th>
+                        <th style="width: 11%;">Codice</th>
+                        <th>Articolo</th>
+                        <th style="width: 9%;" class="num">Prezzo</th>
+                        <th style="width: 6%;" class="num">Sconto</th>
+                        <th style="width: 9%;" class="num">Importo</th>
+                        <th style="width: 5%;" class="num">Ore</th>
+                        <th style="width: 8%;" class="num">€/h</th>
+                        <th style="width: 9%;" class="num">Manodopera</th>
+                        <th style="width: 7%;">I.v.a.</th>
+                        <th style="width: 9%;" class="num">Totale</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in m.lines %}
+                        <tr>
+                            <td class="num">{{ row.quantity|abs|number_format(3, ',', '.')|trim('0', 'right')|trim(',', 'right') ?: '0' }}</td>
+                            <td>{{ row.sku|default('—') }}</td>
+                            <td>{{ row.product_name|default('—') }}</td>
+                            <td class="num">&nbsp;{{ row.price|number_format(2, ',', '.') }}</td>
+                            <td class="num">{{ row.discount|default(0)|abs|number_format(0) }}%</td>
+                            <td class="num">&nbsp;{{ row._importo|number_format(2, ',', '.') }}</td>
+                            <td class="num">{{ row.labor_hours is not null ? row.labor_hours|abs|number_format(2, ',', '.')|trim('0', 'right')|trim(',', 'right') : '—' }}</td>
+                            <td class="num">{{ row.labor_price_per_hour is not null ? row.labor_price_per_hour|number_format(2, ',', '.') : '—' }}</td>
+                            <td class="num">{{ row.labor_manpower is not null ? row.labor_manpower|abs|number_format(2, ',', '.') : '—' }}</td>
+                            <td>{{ row.vat_rate is not null ? row.vat_rate|number_format(2, ',', '.') ~ '%' : '—' }}</td>
+                            <td class="num">&nbsp;{{ row._total|number_format(2, ',', '.') }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td class="num" style="border-top: 1.5pt solid #18181b;"><strong>{{ m.tot_qty|number_format(3, ',', '.')|trim('0', 'right')|trim(',', 'right') ?: '0' }}</strong></td>
+                        <td colspan="4" style="border-top: 1.5pt solid #18181b;"></td>
+                        <td class="num" style="border-top: 1.5pt solid #18181b;"><strong>&nbsp;{{ m.tot_parts|number_format(2, ',', '.') }}</strong></td>
+                        <td class="num" style="border-top: 1.5pt solid #18181b;"><strong>{{ m.tot_hours|number_format(2, ',', '.')|trim('0', 'right')|trim(',', 'right') ?: '0' }}</strong></td>
+                        <td style="border-top: 1.5pt solid #18181b;"></td>
+                        <td class="num" style="border-top: 1.5pt solid #18181b;"><strong>&nbsp;{{ m.tot_labor|number_format(2, ',', '.') }}</strong></td>
+                        <td class="muted" style="border-top: 1.5pt solid #18181b;">Totale</td>
+                        <td class="num" style="border-top: 1.5pt solid #18181b;"><strong>&nbsp;{{ m.total|number_format(2, ',', '.') }}</strong></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    {% else %}
+        <p class="muted">Nessuna riparazione registrata per questo veicolo.</p>
+    {% endfor %}
+
+    {% if maintenances|length > 0 %}
+        <div style="page-break-before: always;">
+            <h3 style="margin: 0 0 6pt 0; font-size: 12pt;">Riepilogo — {{ vehicle.plate|default('') }}</h3>
+
+            <table class="data" style="margin-bottom: 14pt;">
+                <thead>
+                    <tr>
+                        <th class="center">Schede manutenzione</th>
+                        <th class="center">Riparazioni</th>
+                        <th class="num">Pezzi di ricambio</th>
+                        <th class="num">Imponibile ricambi</th>
+                        <th class="num">Ore manodopera</th>
+                        <th class="num">Manodopera</th>
+                        <th class="num">Totale speso</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="center"><strong>{{ totals.repairs }}</strong></td>
+                        <td class="center"><strong>{{ totals.lines }}</strong></td>
+                        <td class="num"><strong>{{ totals.parts_qty|number_format(3, ',', '.')|trim('0', 'right')|trim(',', 'right') ?: '0' }}</strong></td>
+                        <td class="num">&nbsp;{{ totals.parts_amount|number_format(2, ',', '.') }}</td>
+                        <td class="num">{{ totals.labor_hours|number_format(2, ',', '.')|trim('0', 'right')|trim(',', 'right') ?: '0' }}</td>
+                        <td class="num">&nbsp;{{ totals.labor_amount|number_format(2, ',', '.') }}</td>
+                        <td class="num"><strong>&nbsp;{{ totals.grand_total|number_format(2, ',', '.') }}</strong></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3 style="margin: 0 0 6pt 0; font-size: 11pt;">Riepilogo per manutenzione</h3>
+            <table class="data" style="margin-bottom: 14pt;">
+                <thead>
+                    <tr>
+                        <th style="width: 10%;">Scheda</th>
+                        <th style="width: 12%;">Data</th>
+                        <th style="width: 12%;" class="num">Km</th>
+                        <th style="width: 8%;" class="num">Righe</th>
+                        <th style="width: 10%;" class="num">Pezzi</th>
+                        <th class="num">Ricambi</th>
+                        <th class="num">Manodopera</th>
+                        <th class="num">Totale</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for m in maintenances %}
+                        <tr>
+                            <td>#{{ m.id_maintenance }}</td>
+                            <td>{{ m.date ? m.date|date('d/m/Y') : '—' }}</td>
+                            <td class="num">{{ m.km ? m.km|number_format(0, ',', '.') : '—' }}</td>
+                            <td class="num">{{ m.lines|length }}</td>
+                            <td class="num">{{ m.tot_qty|number_format(3, ',', '.')|trim('0', 'right')|trim(',', 'right') ?: '0' }}</td>
+                            <td class="num">&nbsp;{{ m.tot_parts|number_format(2, ',', '.') }}</td>
+                            <td class="num">&nbsp;{{ m.tot_labor|number_format(2, ',', '.') }}</td>
+                            <td class="num"><strong>&nbsp;{{ m.total|number_format(2, ',', '.') }}</strong></td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            {% if parts_summary|length > 0 %}
+                <h3 style="margin: 0 0 6pt 0; font-size: 11pt;">Ricambi utilizzati</h3>
+                <table class="data">
+                    <thead>
+                        <tr>
+                            <th style="width: 15%;">Codice</th>
+                            <th>Articolo</th>
+                            <th style="width: 10%;" class="num">Q.tà</th>
+                            <th style="width: 12%;" class="num">Prezzo</th>
+                            <th style="width: 14%;" class="num">Imponibile</th>
+                            <th style="width: 14%;" class="num">Totale ivato</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in parts_summary %}
+                            <tr>
+                                <td>{{ row.sku }}</td>
+                                <td>{{ row.product_name }}</td>
+                                <td class="num">{{ row.qty|number_format(3, ',', '.')|trim('0', 'right')|trim(',', 'right') ?: '0' }}</td>
+                                <td class="num">&nbsp;{{ row.price|number_format(2, ',', '.') }}</td>
+                                <td class="num">&nbsp;{{ row.amount|number_format(2, ',', '.') }}</td>
+                                <td class="num">&nbsp;{{ row.total|number_format(2, ',', '.') }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% endif %}
+        </div>
+    {% endif %}
+{% endblock %}
+
+{% block footer %}
+    <span>{{ app_name|default('Fairy Bus') }} — {{ title|default('Storico riparazioni') }} — Schede: {{ maintenances|length }}</span>
+{% endblock %}

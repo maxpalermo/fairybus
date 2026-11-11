@@ -1,0 +1,13 @@
+db_data
+dist
+sqlite
+www/.env
+www/.env.*
+www/writable
+www/.git
+*.zip
+*.tar.gz
+*.sql
+backup-*
+**/*.log
+.git

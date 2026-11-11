@@ -1,0 +1,150 @@
+{#
+ * Copyright since 2026 Massimiliano Palermo
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Academic Free License version 3.0
+ * that is bundled with this package in the file LICENSE.md.
+ * It is also available through the world-wide-web at this URL:
+ * https://opensource.org/licenses/AFL-3.0
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to maxx.palermo@gmail.com so we can send you a copy immediately.
+ *
+ * @author    Massimiliano Palermo <maxx.palermo@gmail.com>
+ * @copyright Since 2026 Massimiliano Palermo
+ * @license   https://opensource.org/licenses/AFL-3.0 Academic Free License version 3.0
+#}
+{% extends "admin/layout.twig" %}
+
+{% block page_styles %}
+    <link rel="stylesheet" href="{{ asset('fairy-bus/css/pages/vehicles.css') }}?v=12">
+{% endblock %}
+
+{% block content %}
+    <section class="fb-page">
+        <div class="fb-page-header">
+            <div>
+                <h1 class="fb-page-title">Veicoli</h1>
+                <p class="fb-page-subtitle">Anagrafica mezzi: targhe, chilometri, caratteristiche, documenti e scadenze.</p>
+            </div>
+            <div class="fb-page-actions">
+                <span class="fb-muted fb-selected-count" id="vehicles-selected-count">0 selezionati</span>
+                <button type="button" class="fb-btn-icon fb-btn-icon-warning" data-action="print-vehicles" title="Stampa PDF (righe selezionate)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                </button>
+                <button type="button" class="fb-btn-icon fb-btn-icon-success" data-action="new-vehicle" title="Nuovo veicolo">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                </button>
+            </div>
+        </div>
+
+        <div class="fb-table-wrap">
+            <table id="vehicles-table" class="fb-table"></table>
+        </div>
+    </section>
+
+    <template id="tpl-vehicle-form">
+        <form class="fb-form" data-form="vehicle">
+            <input type="hidden" name="id_vehicle" value="">
+
+            <div class="fb-tabs fb-form-tabs" role="tablist">
+                <button type="button" class="fb-tab active" data-tab="info" role="tab" aria-selected="true">Informazioni</button>
+                <button type="button" class="fb-tab" data-tab="features" role="tab" aria-selected="false">Caratteristiche</button>
+                <button type="button" class="fb-tab" data-tab="images" role="tab" aria-selected="false">Immagini</button>
+                <button type="button" class="fb-tab" data-tab="documents" role="tab" aria-selected="false">Documenti</button>
+            </div>
+
+            <div class="fb-tab-panel active" data-panel="info" role="tabpanel">
+                <p class="fb-form-section">Anagrafica</p>
+                <div class="fb-form-grid">
+                    <div class="fb-form-group">
+                        <label class="fb-form-label" for="vehicle_plate">Targa*</label>
+                        <input type="text" id="vehicle_plate" name="plate" class="fb-form-input" required maxlength="50">
+                    </div>
+                    <div class="fb-form-group">
+                        <label class="fb-form-label" for="vehicle_brand">Marca</label>
+                        <select id="vehicle_brand" name="id_brand" class="fb-form-input">
+                            <option value="">—</option>
+                        </select>
+                    </div>
+                    <div class="fb-form-group">
+                        <label class="fb-form-label" for="vehicle_status">Stato</label>
+                        <select id="vehicle_status" name="status" class="fb-form-input" required></select>
+                    </div>
+                    <div class="fb-form-group">
+                        <label class="fb-form-label" for="vehicle_chassis">Numero telaio</label>
+                        <input type="text" id="vehicle_chassis" name="chassis_number" class="fb-form-input" maxlength="255">
+                    </div>
+                </div>
+
+                <p class="fb-form-section">Percorrenza e date</p>
+                <div class="fb-form-grid fb-form-grid-3">
+                    <div class="fb-form-group">
+                        <label class="fb-form-label" for="vehicle_km">KM attuali</label>
+                        <input type="number" id="vehicle_km" name="current_km" class="fb-form-input" min="0">
+                    </div>
+                    <div class="fb-form-group">
+                        <label class="fb-form-label" for="vehicle_start">Data inizio</label>
+                        <input type="date" id="vehicle_start" name="start_date" class="fb-form-input">
+                    </div>
+                    <div class="fb-form-group">
+                        <label class="fb-form-label" for="vehicle_end">Data fine</label>
+                        <input type="date" id="vehicle_end" name="end_date" class="fb-form-input">
+                    </div>
+                </div>
+
+                <p class="fb-form-section">Altro</p>
+                <div class="fb-form-group">
+                    <label class="fb-form-label" for="vehicle_description">Descrizione (classe veicolo)</label>
+                    <textarea id="vehicle_description" name="description" class="fb-form-input" rows="2"></textarea>
+                </div>
+                <div class="fb-form-group">
+                    <label class="fb-form-label" for="vehicle_note">Note</label>
+                    <textarea id="vehicle_note" name="note" class="fb-form-input" rows="2"></textarea>
+                </div>
+            </div>
+
+            <div class="fb-tab-panel" data-panel="features" role="tabpanel">
+                <div id="vehicle-features" class="fb-features-grid"></div>
+            </div>
+
+            <div class="fb-tab-panel" data-panel="images" role="tabpanel">
+                <div class="fb-upload-grid fb-upload-grid-lg" id="vehicle-images-list"></div>
+                <label class="fb-upload-zone fb-upload-zone-compact">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                    <span class="fb-upload-zone-title">Carica immagini</span>
+                    <span class="fb-upload-zone-hint">JPG, PNG o WebP — selezione multipla</span>
+                    <input type="file" name="image_upload" accept="image/*" multiple hidden>
+                </label>
+            </div>
+
+            <div class="fb-tab-panel" data-panel="documents" role="tabpanel">
+                <div class="fb-form-grid">
+                    <div class="fb-form-group">
+                        <label class="fb-form-label" for="document_description">Descrizione documento</label>
+                        <input type="text" id="document_description" name="document_description" class="fb-form-input" maxlength="255" placeholder="Es. libretto di circolazione, certificato di proprietà...">
+                    </div>
+                    <div class="fb-form-group">
+                        <label class="fb-form-label">Carica documento</label>
+                        <label class="fb-upload-zone fb-upload-zone-compact">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><polyline points="9 15 12 12 15 15"></polyline></svg>
+                            <span class="fb-upload-zone-title">Scegli file</span>
+                            <input type="file" name="document_upload" hidden>
+                        </label>
+                    </div>
+                </div>
+                <ul class="fb-document-list" id="vehicle-documents-list"></ul>
+            </div>
+
+            <div class="fb-form-actions">
+                <button type="submit" class="fb-btn fb-btn-primary">Salva veicolo</button>
+                <button type="button" class="fb-btn fb-btn-secondary" data-action="close">Annulla</button>
+            </div>
+        </form>
+    </template>
+{% endblock %}
+
+{% block page_scripts %}
+    <script type="module" src="{{ asset('fairy-bus/js/pages/vehicles.js') }}?v=12"></script>
+{% endblock %}

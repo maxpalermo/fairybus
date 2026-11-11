@@ -1,0 +1,86 @@
+{#
+ * Copyright since 2026 Massimiliano Palermo
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Academic Free License version 3.0
+ * that is bundled with this package in the file LICENSE.md.
+ * It is also available through the world-wide-web at this URL:
+ * https://opensource.org/licenses/AFL-3.0
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to maxx.palermo@gmail.com so we can send you a copy immediately.
+ *
+ * @author    Massimiliano Palermo <maxx.palermo@gmail.com>
+ * @copyright Since 2026 Massimiliano Palermo
+ * @license   https://opensource.org/licenses/AFL-3.0 Academic Free License version 3.0
+#}
+{% extends "admin/layout.twig" %}
+
+{% block page_styles %}
+    <link rel="stylesheet" href="{{ asset('fairy-bus/css/pages/stocks.css?v=22') }}">
+{% endblock %}
+
+{% block content %}
+    <section class="fb-page">
+        <div class="fb-page-header">
+            <div>
+                <h1 class="fb-page-title">Giacenze</h1>
+                <p class="fb-page-subtitle">Quantità disponibili a magazzino per ogni articolo.</p>
+            </div>
+            <div class="fb-page-actions">
+                <span class="fb-muted fb-selected-count" id="stocks-selected-count">0 selezionati</span>
+                <button type="button" class="fb-btn-icon fb-btn-icon-info" data-action="run-filters" title="Cerca: applica i filtri delle colonne">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                </button>
+                <button type="button" class="fb-btn-icon fb-btn-icon-success" data-action="align-quantities" title="Allinea quantità: corregge i segni dei movimenti e ricalcola le giacenze">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>
+                </button>
+                <button type="button" class="fb-btn-icon fb-btn-icon-warning" data-action="print-stocks" title="Stampa PDF (righe selezionate, max 500)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                </button>
+            </div>
+        </div>
+
+        <div class="fb-table-wrap">
+            <table id="stocks-table" class="fb-table"></table>
+        </div>
+    </section>
+
+    <template id="tpl-stock-form">
+        <form class="fb-form" data-form="stock">
+            <input type="hidden" name="id_stock" value="">
+            <div class="fb-stock-product" data-field="product-label"></div>
+            <div class="fb-form-grid">
+                <div class="fb-form-group">
+                    <label class="fb-form-label" for="stock_quantity">Quantità</label>
+                    <input type="number" id="stock_quantity" name="quantity" class="fb-form-input" step="0.001" min="0" value="0">
+                </div>
+                <div class="fb-form-group">
+                    <label class="fb-form-label" for="stock_unit">Unità di misura</label>
+                    <select id="stock_unit" name="unit" class="fb-form-input">
+                        {% for value, label in unit_labels %}
+                            <option value="{{ value }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="fb-form-group">
+                    <label class="fb-form-label" for="stock_limit">Soglia di avviso</label>
+                    <input type="number" id="stock_limit" name="notification_limit" class="fb-form-input" step="0.001" min="0" placeholder="Vuoto = nessun avviso">
+                </div>
+                <div class="fb-form-group">
+                    <label class="fb-form-label" for="stock_note">Nota</label>
+                    <input type="text" id="stock_note" name="note" class="fb-form-input" maxlength="255">
+                </div>
+            </div>
+            <div class="fb-form-actions">
+                <button type="submit" class="fb-btn fb-btn-primary">Salva</button>
+                <button type="button" class="fb-btn fb-btn-secondary" data-action="close">Annulla</button>
+            </div>
+        </form>
+    </template>
+{% endblock %}
+
+{% block page_scripts %}
+    <script type="module" src="{{ asset('fairy-bus/js/pages/stocks.js?v=27') }}"></script>
+{% endblock %}

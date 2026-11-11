@@ -1,0 +1,57 @@
+{#
+ * Copyright since 2026 Massimiliano Palermo
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Academic Free License version 3.0
+ * that is bundled with this package in the file LICENSE.md.
+ * It is also available through the world-wide-web at this URL:
+ * https://opensource.org/licenses/AFL-3.0
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to maxx.palermo@gmail.com so we can send you a copy immediately.
+ *
+ * @author    Massimiliano Palermo <maxx.palermo@gmail.com>
+ * @copyright Since 2026 Massimiliano Palermo
+ * @license   https://opensource.org/licenses/AFL-3.0 Academic Free License version 3.0
+#}
+{% extends "print/layout.twig" %}
+
+{% block content %}
+    <table class="data">
+        <thead>
+            <tr>
+                <th style="width: 5%;" class="center">ID</th>
+                <th style="width: 22%;">Ragione sociale</th>
+                <th style="width: 12%;">P. IVA / CF</th>
+                <th style="width: 14%;">Referente</th>
+                <th style="width: 16%;">Email</th>
+                <th>Indirizzo</th>
+                <th style="width: 10%;">Città</th>
+                <th style="width: 6%;" class="center">Carburante</th>
+                <th style="width: 6%;" class="center">Attivo</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in rows %}
+                <tr>
+                    <td class="center muted">{{ row.id_supplier }}</td>
+                    <td>{{ row.company|default('—') }}</td>
+                    <td>{{ row.vat_number|default('—') }}</td>
+                    <td>{{ row.contact_name|default('—') }}</td>
+                    <td>{{ row.email|default('—') }}</td>
+                    <td class="muted">{{ [row.address1, row.address2]|join(' ')|trim|default('—') }}{% if row.postcode %}, {{ row.postcode }}{% endif %}</td>
+                    <td>{{ row.city|default('—') }}{% if row.state_name %} <span class="muted">({{ row.state_name }})</span>{% endif %}</td>
+                    <td class="center">{% if row.fuel == 1 %}Sì{% else %}—{% endif %}</td>
+                    <td class="center{% if row.active != 1 %} low{% endif %}">{% if row.active == 1 %}Sì{% else %}No{% endif %}</td>
+                </tr>
+            {% else %}
+                <tr><td colspan="9" class="center muted">Nessun fornitore presente.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}
+
+{% block footer %}
+    <span>{{ app_name|default('Fairy Bus') }} — {{ title|default('Documento') }} — Elementi: {{ rows|length }}</span>
+{% endblock %}

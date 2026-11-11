@@ -1,0 +1,717 @@
+/* Vehicles page */
+
+.fb-page {
+    padding: 1.5rem;
+}
+
+.fb-page-title {
+    margin: 0 0 1rem;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--fb-foreground);
+}
+
+.fb-toolbar {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.fb-table-wrap {
+    overflow-x: auto;
+}
+
+.fb-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8125rem;
+}
+
+.fb-table th,
+.fb-table td {
+    text-align: left;
+    padding: 0.5rem;
+    border-bottom: 1px solid var(--fb-border);
+    color: var(--fb-foreground);
+}
+
+.fb-table td .fb-btn {
+    margin-right: 0.25rem;
+    margin-bottom: 0.25rem;
+}
+
+.fb-dialog-wide {
+    max-width: 64rem;
+    width: calc(100vw - 2rem);
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.fb-form-tabs {
+    display: flex;
+    gap: 0.25rem;
+    border-bottom: 1px solid var(--fb-border);
+    margin-bottom: 1rem;
+}
+
+.fb-form-tabs .fb-tab {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--fb-muted-foreground);
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+}
+
+.fb-form-tabs .fb-tab.active {
+    color: var(--fb-foreground);
+    border-bottom-color: var(--fb-foreground);
+}
+
+.fb-tab-panel {
+    display: none;
+}
+
+.fb-tab-panel.active {
+    display: block;
+}
+
+.fb-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+}
+
+.fb-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    margin-bottom: 0.75rem;
+}
+
+.fb-form-label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--fb-foreground);
+}
+
+.fb-form-input {
+    height: 2.25rem;
+    padding: 0 0.75rem;
+    border: 1px solid var(--fb-input);
+    border-radius: var(--fb-radius);
+    background-color: var(--fb-background);
+    color: var(--fb-foreground);
+    font-size: 0.8125rem;
+    outline: none;
+}
+
+.fb-form-input:focus {
+    border-color: var(--fb-ring);
+    box-shadow: 0 0 0 1px var(--fb-ring);
+}
+
+textarea.fb-form-input {
+    height: auto;
+    padding: 0.5rem 0.75rem;
+    resize: vertical;
+}
+
+.fb-features-section-title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--fb-foreground);
+}
+
+.fb-features-groups {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 0.75rem;
+}
+
+.fb-features-group {
+    border: 1px solid var(--fb-border);
+    border-radius: var(--fb-radius);
+    padding: 1rem;
+    background-color: var(--fb-card);
+}
+
+.fb-features-group-title {
+    margin: 0 0 0.75rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--fb-foreground);
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+.fb-features-group-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+}
+
+.fb-feature-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+/* Zona upload (immagini/documenti) */
+.fb-upload-zone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    padding: 1.5rem 1rem;
+    margin-bottom: 1rem;
+    border: 1.5px dashed var(--fb-border);
+    border-radius: var(--fb-radius);
+    background-color: var(--fb-card);
+    color: var(--fb-muted-foreground);
+    cursor: pointer;
+    transition: border-color 150ms ease, background-color 150ms ease, color 150ms ease;
+    text-align: center;
+}
+
+.fb-upload-zone:hover {
+    border-color: var(--fb-primary);
+    background-color: var(--fb-accent, #f4f4f5);
+    color: var(--fb-primary);
+}
+
+.fb-upload-zone-title {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--fb-foreground);
+}
+
+.fb-upload-zone-hint {
+    font-size: 0.6875rem;
+}
+
+.fb-upload-zone-compact {
+    flex-direction: row;
+    gap: 0.5rem;
+    padding: 0.55rem 0.9rem;
+    margin-bottom: 0;
+}
+
+.fb-upload-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(6rem, 1fr));
+    gap: 0.5rem;
+}
+
+/* Griglia principale nella tab Immagini: anteprime piu' grandi */
+.fb-upload-grid-lg {
+    grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    min-height: 8rem;
+}
+
+.fb-upload-thumb img[data-action="zoom-image"] {
+    cursor: zoom-in;
+}
+
+/* Lightbox immagine ingrandita */
+.fb-lightbox {
+    border: none;
+    background: transparent;
+    padding: 0;
+    min-width: 0;
+    max-width: none;
+    box-shadow: none;
+    overflow: visible;
+}
+
+.fb-lightbox::backdrop {
+    background-color: rgb(0 0 0 / 0.8);
+    backdrop-filter: blur(2px);
+}
+
+.fb-lightbox img {
+    display: block;
+    max-width: 92vw;
+    max-height: 90vh;
+    border-radius: var(--fb-radius);
+    box-shadow: 0 20px 50px rgb(0 0 0 / 0.5);
+    cursor: zoom-out;
+}
+
+.fb-upload-thumb {
+    position: relative;
+    aspect-ratio: 1;
+    border: 1px solid var(--fb-border);
+    border-radius: var(--fb-radius);
+    overflow: hidden;
+}
+
+.fb-upload-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.fb-upload-delete {
+    position: absolute;
+    top: 0.25rem;
+    right: 0.25rem;
+    width: 1.5rem;
+    height: 1.5rem;
+    border: none;
+    border-radius: 50%;
+    background-color: var(--fb-destructive);
+    color: var(--fb-destructive-foreground);
+    font-size: 1rem;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.fb-document-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.fb-document-list li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    border: 1px solid var(--fb-border);
+    border-radius: var(--fb-radius);
+}
+
+.fb-document-list a {
+    color: var(--fb-foreground);
+    font-size: 0.8125rem;
+    word-break: break-all;
+}
+
+.fb-document-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    min-width: 0;
+}
+
+.fb-document-name {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+.fb-document-name svg {
+    flex-shrink: 0;
+    color: var(--fb-muted-foreground);
+}
+
+.fb-document-description {
+    font-size: 0.6875rem;
+    color: var(--fb-muted-foreground);
+}
+
+.fb-muted {
+    color: var(--fb-muted-foreground);
+    font-size: 0.8125rem;
+}
+
+.fb-form-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--fb-border);
+}
+
+.fb-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.125rem 0.5rem;
+    border-radius: 9999px;
+    background-color: var(--fb-muted);
+    color: var(--fb-muted-foreground);
+    font-size: 0.6875rem;
+    font-weight: 500;
+}
+
+.fb-badge-info {
+    background-color: #dbeafe;
+    color: #1d4ed8;
+}
+
+/* Badge tipo scadenza (come pagina scadenziario) */
+.fb-kind-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.125rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.fb-kind-km {
+    background: #e0f2fe;
+    color: #0369a1;
+}
+
+.fb-kind-date {
+    background: #fef3c7;
+    color: #b45309;
+}
+
+/* Badge stato occorrenza scadenza */
+.fb-state-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.125rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.fb-state-0 {
+    background: #f1f5f9;
+    color: #475569;
+}
+
+.fb-state-1 {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.fb-state-2 {
+    background: #ede9fe;
+    color: #6d28d9;
+}
+
+.fb-state-3 {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.fb-state-4 {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+/* Link alla scheda manutenzione (tabella riparazioni) */
+
+.fb-doc-link {
+    color: var(--fb-foreground);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.fb-doc-link:hover {
+    text-decoration: underline;
+    color: var(--fb-primary);
+}
+
+/* Documento di carico agganciato alla riga riparazione */
+
+.fb-doc-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+    line-height: 1.25;
+}
+
+.fb-load-link {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-decoration: none;
+    line-height: 1.2;
+}
+
+.fb-load-num {
+    color: #6366f1;
+    font-weight: 700;
+    font-size: 0.8125rem;
+}
+
+.fb-load-sup {
+    color: #94a3b8;
+    font-size: 0.75rem;
+    font-weight: 500;
+    max-width: 130px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.fb-load-link:hover .fb-load-num {
+    text-decoration: underline;
+    color: #4f46e5;
+}
+
+.fb-load-link:hover .fb-load-sup {
+    color: #64748b;
+}
+
+/* Totale riga riparazione enfatizzato */
+
+.fb-line-total {
+    font-weight: 700;
+    font-size: 0.9375rem;
+    color: #166534;
+}
+
+/* Scheda documento di carico (dialog riparazioni) */
+
+.fb-load-doc-info {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    padding: 0.875rem 1rem;
+    background: #f8fafc;
+    border: 1px solid var(--fb-border, #e2e8f0);
+    border-radius: 0.5rem;
+}
+
+.fb-load-doc-table {
+    overflow-x: auto;
+    border: 1px solid var(--fb-border, #e2e8f0);
+    border-radius: 0.5rem;
+}
+
+.fb-load-doc-table table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8125rem;
+}
+
+.fb-load-doc-table th {
+    text-align: left;
+    padding: 0.5rem 0.75rem;
+    background: #f1f5f9;
+    color: var(--fb-muted, #64748b);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-bottom: 1px solid var(--fb-border, #e2e8f0);
+}
+
+.fb-load-doc-table td {
+    padding: 0.4375rem 0.75rem;
+    border-bottom: 1px solid #f1f5f9;
+    vertical-align: top;
+}
+
+.fb-load-doc-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.fb-load-doc-table tbody tr:hover td {
+    background: #f8fafc;
+}
+
+.fb-load-doc-table .num {
+    text-align: right;
+    white-space: nowrap;
+}
+
+.fb-load-doc-table tfoot td {
+    padding: 0.5rem 0.75rem;
+    font-weight: 600;
+    background: #f8fafc;
+    border-top: 2px solid var(--fb-border, #e2e8f0);
+}
+
+.fb-load-empty {
+    text-align: center;
+    color: var(--fb-muted, #64748b);
+    padding: 1rem !important;
+}
+
+.fb-detail-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+.fb-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.fb-detail-features-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+}
+
+.fb-detail-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 0.5rem;
+    border: 1px solid var(--fb-border);
+    border-radius: var(--fb-radius);
+    background-color: var(--fb-card);
+}
+
+.fb-detail-label {
+    font-size: 0.6875rem;
+    color: var(--fb-muted-foreground);
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+.fb-detail-value {
+    font-size: 0.8125rem;
+    color: var(--fb-foreground);
+}
+
+@media (max-width: 768px) {
+
+    .fb-form-grid,
+    .fb-features-grid,
+    .fb-detail-grid,
+    .fb-detail-features-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .fb-detail-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+
+/* Badge stato veicolo */
+.fb-veh-status {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.15rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+.fb-veh-status-active {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.fb-veh-status-maintenance {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.fb-veh-status-retired {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.fb-veh-status-unknown {
+    background: var(--fb-muted, #f4f4f5);
+    color: var(--fb-muted-foreground, #64748b);
+}
+
+/* Riga veicolo disattivato */
+.fb-veh-row-retired>td {
+    background: #fafafa;
+    color: var(--fb-muted-foreground, #64748b);
+    font-style: italic;
+}
+
+.fb-veh-row-retired>td:first-child {
+    box-shadow: inset 3px 0 0 #94a3b8;
+}
+
+.fb-km-value {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+/* Toolbar pannello (tab riparazioni/scadenze del dettaglio veicolo) */
+.fb-panel-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.75rem;
+}
+
+.fb-stat-chips {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.fb-stat-chip {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 0.0625rem;
+    padding: 0.4rem 0.9rem;
+    border-radius: var(--fb-radius);
+    border: 1px solid var(--fb-border);
+    background-color: var(--fb-card);
+    min-width: 7.5rem;
+}
+
+.fb-stat-chip-value {
+    font-size: 1rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.2;
+}
+
+.fb-stat-chip-label {
+    font-size: 0.625rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--fb-muted-foreground);
+}
+
+.fb-stat-info {
+    border-left: 3px solid #2563eb;
+}
+
+.fb-stat-info .fb-stat-chip-value {
+    color: #1d4ed8;
+}
+
+.fb-stat-warning {
+    border-left: 3px solid #f59e0b;
+}
+
+.fb-stat-warning .fb-stat-chip-value {
+    color: #b45309;
+}
+
+.fb-stat-success {
+    border-left: 3px solid #16a34a;
+}
+
+.fb-stat-success .fb-stat-chip-value {
+    color: #15803d;
+}

@@ -1,0 +1,28 @@
+{
+    "generated": "2026-10-05T17:46:49+00:00",
+    "pages": 40,
+    "routes": {
+        "*": 4,
+        "admin/dashboard": 7,
+        "admin/customers": 9,
+        "admin/suppliers": 10,
+        "admin/locations": 11,
+        "admin/vehicles": 13,
+        "admin/brands": 15,
+        "admin/features": 16,
+        "admin/maintenance": 17,
+        "admin/expirations": 20,
+        "admin/calendar": 22,
+        "admin/documents": 24,
+        "admin/unloads": 26,
+        "admin/invoices": 27,
+        "admin/refuelling-stations": 30,
+        "admin/refuelling-load": 31,
+        "admin/refuelling": 32,
+        "admin/refuelling-stats": 34,
+        "admin/categories": 36,
+        "admin/products": 37,
+        "admin/stocks": 38,
+        "admin/settings": 39
+    }
+}

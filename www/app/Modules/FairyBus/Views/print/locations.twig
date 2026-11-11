@@ -1,0 +1,99 @@
+{#
+ * Copyright since 2026 Massimiliano Palermo
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Academic Free License version 3.0
+ * that is bundled with this package in the file LICENSE.md.
+ * It is also available through the world-wide-web at this URL:
+ * https://opensource.org/licenses/AFL-3.0
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to maxx.palermo@gmail.com so we can send you a copy immediately.
+ *
+ * @author    Massimiliano Palermo <maxx.palermo@gmail.com>
+ * @copyright Since 2026 Massimiliano Palermo
+ * @license   https://opensource.org/licenses/AFL-3.0 Academic Free License version 3.0
+#}
+{% extends "print/layout.twig" %}
+
+{% block content %}
+    <table class="data">
+        {% if type == 'countries' %}
+            <thead>
+                <tr>
+                    <th style="width: 10%;" class="center">ID</th>
+                    <th style="width: 10%;" class="center">ISO</th>
+                    <th>Nazione</th>
+                    <th style="width: 15%;" class="center">Prefisso</th>
+                    <th style="width: 12%;" class="center">Attiva</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                    <tr>
+                        <td class="center muted">{{ row.id_country }}</td>
+                        <td class="center">{{ row.iso_code }}</td>
+                        <td>{{ row.name|default('—') }}</td>
+                        <td class="center">+{{ row.call_prefix }}</td>
+                        <td class="center{% if row.active != 1 %} low{% endif %}">{% if row.active == 1 %}Sì{% else %}No{% endif %}</td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="5" class="center muted">Nessuna nazione presente.</td></tr>
+                {% endfor %}
+            </tbody>
+        {% elseif type == 'states' %}
+            <thead>
+                <tr>
+                    <th style="width: 10%;" class="center">ID</th>
+                    <th style="width: 10%;" class="center">ISO</th>
+                    <th>Provincia</th>
+                    <th style="width: 15%;" class="center">ID Nazione</th>
+                    <th style="width: 12%;" class="center">Attiva</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                    <tr>
+                        <td class="center muted">{{ row.id_state }}</td>
+                        <td class="center">{{ row.iso_code }}</td>
+                        <td>{{ row.name|default('—') }}</td>
+                        <td class="center muted">{{ row.id_country }}</td>
+                        <td class="center{% if row.active != 1 %} low{% endif %}">{% if row.active == 1 %}Sì{% else %}No{% endif %}</td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="5" class="center muted">Nessuna provincia presente.</td></tr>
+                {% endfor %}
+            </tbody>
+        {% else %}
+            <thead>
+                <tr>
+                    <th style="width: 10%;" class="center">ID</th>
+                    <th style="width: 10%;" class="center">CAP</th>
+                    <th>Città</th>
+                    <th style="width: 20%;">Provincia</th>
+                    <th style="width: 10%;" class="center">ISO</th>
+                    <th style="width: 10%;" class="center">Stato</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                    <tr>
+                        <td class="center muted">{{ row.id_city }}</td>
+                        <td class="center">{{ row.postcode }}</td>
+                        <td>{{ row.city|default('—') }}</td>
+                        <td class="muted">{{ row.state }}</td>
+                        <td class="center">{{ row.iso_code }}</td>
+                        <td class="center">{{ row.status }}</td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="6" class="center muted">Nessuna città presente.</td></tr>
+                {% endfor %}
+            </tbody>
+        {% endif %}
+    </table>
+{% endblock %}
+
+{% block footer %}
+    <span>{{ app_name|default('Fairy Bus') }} — {{ title|default('Documento') }} — Elementi: {{ rows|length }}</span>
+{% endblock %}

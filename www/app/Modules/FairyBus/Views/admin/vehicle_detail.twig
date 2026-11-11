@@ -1,0 +1,107 @@
+{#
+ * Copyright since 2026 Massimiliano Palermo
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Academic Free License version 3.0
+ * that is bundled with this package in the file LICENSE.md.
+ * It is also available through the world-wide-web at this URL:
+ * https://opensource.org/licenses/AFL-3.0
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to maxx.palermo@gmail.com so we can send you a copy immediately.
+ *
+ * @author    Massimiliano Palermo <maxx.palermo@gmail.com>
+ * @copyright Since 2026 Massimiliano Palermo
+ * @license   https://opensource.org/licenses/AFL-3.0 Academic Free License version 3.0
+#}
+{% extends "admin/layout.twig" %}
+
+{% block page_styles %}
+    <link rel="stylesheet" href="{{ asset('fairy-bus/css/pages/vehicles.css') }}?v=12">
+{% endblock %}
+
+{% block content %}
+    <section class="fb-page">
+        <div class="fb-page-header">
+            <div>
+                <h1 class="fb-page-title">Veicolo <span id="vehicle-plate"></span></h1>
+                <p class="fb-page-subtitle">Scheda anagrafica, documenti, scadenze e storico riparazioni.</p>
+            </div>
+            <div class="fb-page-actions">
+                <a href="{{ base_url('admin/vehicles') }}" class="fb-btn-icon fb-btn-icon-secondary" title="Torna all'elenco veicoli">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                </a>
+                <button type="button" class="fb-btn-icon fb-btn-icon-info" data-action="edit-vehicle" title="Modifica veicolo">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+                </button>
+            </div>
+        </div>
+
+        <div class="fb-tabs fb-form-tabs" role="tablist">
+            <button type="button" class="fb-tab active" data-tab="info" role="tab" aria-selected="true">Informazioni</button>
+            <button type="button" class="fb-tab" data-tab="images" role="tab" aria-selected="false">Immagini</button>
+            <button type="button" class="fb-tab" data-tab="documents" role="tab" aria-selected="false">Documenti</button>
+            <button type="button" class="fb-tab" data-tab="expirations" role="tab" aria-selected="false">Scadenze</button>
+            <button type="button" class="fb-tab" data-tab="repairs" role="tab" aria-selected="false">Riparazioni</button>
+        </div>
+
+        <div class="fb-tab-panel active" data-panel="info" role="tabpanel">
+            <div id="vehicle-detail-info" class="fb-detail-grid"></div>
+            <h2 class="fb-card-title">Caratteristiche</h2>
+            <div id="vehicle-detail-features" class="fb-detail-features-grid"></div>
+        </div>
+
+        <div class="fb-tab-panel" data-panel="images" role="tabpanel">
+            <div id="vehicle-detail-images" class="fb-upload-grid"></div>
+        </div>
+
+        <div class="fb-tab-panel" data-panel="documents" role="tabpanel">
+            <ul id="vehicle-detail-documents" class="fb-document-list"></ul>
+        </div>
+
+        <div class="fb-tab-panel" data-panel="expirations" role="tabpanel">
+            <div class="fb-table-wrap">
+                <table id="vehicle-expirations-table" class="fb-table"></table>
+            </div>
+        </div>
+
+        <div class="fb-tab-panel" data-panel="repairs" role="tabpanel">
+            <div class="fb-panel-toolbar">
+                <div class="fb-stat-chips">
+                    <div class="fb-stat-chip fb-stat-info">
+                        <span class="fb-stat-chip-value" id="rep-stat-count">0</span>
+                        <span class="fb-stat-chip-label">Riparazioni</span>
+                    </div>
+                    <div class="fb-stat-chip fb-stat-warning">
+                        <span class="fb-stat-chip-value" id="rep-stat-parts">0</span>
+                        <span class="fb-stat-chip-label">Pezzi di ricambio</span>
+                    </div>
+                    <div class="fb-stat-chip fb-stat-success">
+                        <span class="fb-stat-chip-value" id="rep-stat-total">0,00 €</span>
+                        <span class="fb-stat-chip-label">Totale speso</span>
+                    </div>
+                </div>
+                <div class="fb-page-actions">
+                    <button type="button" class="fb-btn-icon fb-btn-icon-info" data-action="repairs-search" title="Cerca: applica i filtri delle colonne">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    </button>
+                    <button type="button" class="fb-btn-icon fb-btn-icon-warning" data-action="print-repairs" title="Stampa report storico riparazioni (se ci sono righe selezionate stampa solo quelle; PDF con riepilogo)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="fb-table-wrap">
+                <table id="vehicle-repairs-table" class="fb-table"></table>
+            </div>
+        </div>
+    </section>
+
+{% endblock %}
+
+{% block page_scripts %}
+    <script>
+        window.FB.idVehicle = {{ id_vehicle|json_encode|raw }};
+    </script>
+    <script type="module" src="{{ asset('fairy-bus/js/pages/vehicle_detail.js') }}?v=13"></script>
+{% endblock %}

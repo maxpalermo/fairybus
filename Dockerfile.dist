@@ -1,0 +1,43 @@
+FROM php:8.3-apache
+
+RUN apt-get update && apt-get install -y \
+    libicu-dev \
+    libzip-dev \
+    libpng-dev \
+    libjpeg-dev \
+    libfreetype6-dev \
+    libonig-dev \
+    unzip \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install -j$(nproc) \
+        intl \
+        mysqli \
+        pdo_mysql \
+        zip \
+        gd \
+        mbstring \
+        opcache \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN pecl install apcu && docker-php-ext-enable apcu
+
+RUN a2enmod rewrite headers expires proxy proxy_http
+
+COPY conf/000-default.conf /etc/apache2/sites-available/000-default.conf
+COPY conf/apache-cache.conf /etc/apache2/conf-available/cache.conf
+COPY conf/pma-proxy.conf /etc/apache2/conf-available/pma-proxy.conf
+RUN a2enconf cache pma-proxy
+COPY conf/php.ini.dist /usr/local/etc/php/conf.d/99-custom.ini
+
+COPY www/ /var/www/html/
+COPY bin/entrypoint.dist.sh /usr/local/bin/fairybus-entrypoint.sh
+RUN chmod +x /usr/local/bin/fairybus-entrypoint.sh \
+    && chown -R www-data:www-data /var/www/html
+
+WORKDIR /var/www/html
+
+EXPOSE 80
+
+ENTRYPOINT ["/usr/local/bin/fairybus-entrypoint.sh"]
+CMD ["apache2-foreground"]

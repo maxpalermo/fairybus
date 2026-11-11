@@ -1,0 +1,229 @@
+/* Toast notifications */
+
+.fb-toast-container {
+    position: fixed;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    pointer-events: none;
+    max-width: min(28rem, calc(100vw - 2rem));
+}
+
+.fb-toast-pos-top-left {
+    top: 1rem;
+    left: 1rem;
+}
+
+.fb-toast-pos-top-center {
+    top: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.fb-toast-pos-top-right {
+    top: 1rem;
+    right: 1rem;
+}
+
+.fb-toast-pos-center {
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.fb-toast-pos-bottom-left {
+    bottom: 1rem;
+    left: 1rem;
+}
+
+.fb-toast-pos-bottom-center {
+    bottom: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.fb-toast-pos-bottom-right {
+    bottom: 1rem;
+    right: 1rem;
+}
+
+.fb-toast {
+    pointer-events: auto;
+    position: relative;
+    min-width: 20rem;
+    max-width: 28rem;
+    padding: 1rem 2.25rem 1rem 1rem;
+    border: 1px solid var(--fb-border);
+    border-left-width: 4px;
+    border-radius: var(--fb-radius);
+    background-color: var(--fb-background);
+    color: var(--fb-foreground);
+    box-shadow: 0 10px 25px -5px rgb(0 0 0 / 0.25), 0 8px 10px -6px rgb(0 0 0 / 0.2);
+    font-size: 0.8125rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    animation: fb-toast-in 200ms ease;
+}
+
+.fb-toast-out {
+    opacity: 0;
+    transform: translateY(0.5rem) scale(0.97);
+    transition: opacity 200ms ease, transform 200ms ease;
+}
+
+.fb-toast-icon {
+    flex-shrink: 0;
+    margin-top: 0.0625rem;
+}
+
+.fb-toast-content {
+    flex: 1;
+    line-height: 1.45;
+}
+
+.fb-toast-close {
+    position: absolute;
+    top: 0.375rem;
+    right: 0.375rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    padding: 0;
+    border: none;
+    border-radius: 0.375rem;
+    background: transparent;
+    color: var(--fb-muted-foreground);
+    cursor: pointer;
+}
+
+.fb-toast-close:hover {
+    background: rgb(0 0 0 / 0.06);
+    color: var(--fb-foreground);
+}
+
+/* Varianti per tipo */
+.fb-toast-notice,
+.fb-toast.info {
+    border-left-color: #3b82f6;
+}
+
+.fb-toast-notice .fb-toast-icon,
+.fb-toast.info .fb-toast-icon {
+    color: #3b82f6;
+}
+
+.fb-toast-success,
+.fb-toast.success {
+    border-left-color: #22c55e;
+}
+
+.fb-toast-success .fb-toast-icon,
+.fb-toast.success .fb-toast-icon {
+    color: #16a34a;
+}
+
+.fb-toast-warning,
+.fb-toast.warning {
+    border-left-color: #f59e0b;
+}
+
+.fb-toast-warning .fb-toast-icon,
+.fb-toast.warning .fb-toast-icon {
+    color: #d97706;
+}
+
+.fb-toast-error,
+.fb-toast.error {
+    border-left-color: var(--fb-destructive);
+}
+
+.fb-toast-error .fb-toast-icon,
+.fb-toast.error .fb-toast-icon {
+    color: #dc2626;
+}
+
+/* Tema banner: tutta larghezza, senza X, click-to-dismiss */
+.fb-toast-banner-wrap {
+    left: 0;
+    right: 0;
+    width: 100%;
+    max-width: none;
+    transform: none;
+    gap: 0;
+}
+
+.fb-toast-banner-wrap.fb-toast-pos-top {
+    top: 0;
+}
+
+.fb-toast-banner-wrap.fb-toast-pos-center {
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.fb-toast-banner-wrap.fb-toast-pos-bottom {
+    bottom: 0;
+}
+
+.fb-toast-banner {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    padding: 16px 0;
+    border: none;
+    border-top: 3px solid;
+    border-bottom: 3px solid;
+    border-radius: 0;
+    box-shadow: 0 10px 25px -5px rgb(0 0 0 / 0.3);
+    color: #fff;
+    cursor: pointer;
+    justify-content: center;
+}
+
+.fb-toast-banner .fb-toast-icon {
+    color: #fff;
+}
+
+/* il testo occupa al massimo il 40% e va a capo */
+.fb-toast-banner .fb-toast-content {
+    flex: 0 1 40%;
+    max-width: 40%;
+    text-align: center;
+    font-weight: 500;
+}
+
+.fb-toast-banner.fb-toast-notice {
+    background-color: #3b82f6;
+    border-color: #1e40af;
+}
+
+.fb-toast-banner.fb-toast-success {
+    background-color: #22c55e;
+    border-color: #15803d;
+}
+
+.fb-toast-banner.fb-toast-warning {
+    background-color: #f59e0b;
+    border-color: #b45309;
+}
+
+.fb-toast-banner.fb-toast-error {
+    background-color: #ef4444;
+    border-color: #b91c1c;
+}
+
+@keyframes fb-toast-in {
+    from {
+        opacity: 0;
+        transform: translateY(0.5rem) scale(0.97);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}

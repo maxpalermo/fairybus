@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fairy Bus — Gestionale per autoremmesse pullman</title>
+<meta name="description" content="Fairy Bus: gestionale self-hosted per flotte di pullman. Veicoli, magazzino ricambi, manutenzioni, scadenzario, rifornimenti. Installazione Docker con un comando.">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<style>
+    :root {
+        --ink: #2d3142;
+        --ink-soft: #5b6070;
+        --bg: #fdfbf7;
+        --peach: #ffe3cf;
+        --peach-strong: #ffb284;
+        --mint: #d9f0dc;
+        --mint-strong: #5bb98c;
+        --sky: #d9e9ff;
+        --sky-strong: #5b8def;
+        --lilac: #e8dfff;
+        --lilac-strong: #9b7ede;
+        --rose: #ffdde4;
+        --rose-strong: #ef6d8d;
+        --sun: #fff3c9;
+        --sun-strong: #e8b428;
+        --card: #ffffff;
+        --line: #efe9df;
+        --radius: 22px;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+        font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        color: var(--ink);
+        background: var(--bg);
+        line-height: 1.6;
+    }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+
+    /* ---------- nav ---------- */
+    nav {
+        position: sticky; top: 0; z-index: 50;
+        background: rgba(253,251,247,.85);
+        backdrop-filter: blur(12px);
+        border-bottom: 1px solid var(--line);
+    }
+    nav .wrap { display: flex; align-items: center; gap: 10px; height: 60px; }
+    nav img { width: 34px; height: 34px; }
+    nav .brand { font-weight: 800; font-size: 1.15rem; letter-spacing: .2px; }
+    nav .links { margin-left: auto; display: flex; gap: 4px; }
+    nav .links a {
+        color: var(--ink-soft); text-decoration: none; font-size: .92rem;
+        padding: 7px 14px; border-radius: 99px;
+    }
+    nav .links a:hover { background: var(--peach); color: var(--ink); }
+    @media (max-width: 720px) { nav .links { display: none; } }
+
+    /* ---------- hero ---------- */
+    .hero {
+        position: relative; overflow: hidden;
+        background:
+            radial-gradient(600px 300px at 15% 10%, var(--peach), transparent 70%),
+            radial-gradient(500px 280px at 85% 20%, var(--sky), transparent 70%),
+            radial-gradient(500px 320px at 50% 100%, var(--mint), transparent 70%),
+            var(--bg);
+        padding: 90px 0 70px;
+        text-align: center;
+    }
+    .hero .badge {
+        display: inline-block; background: var(--card); border: 1px solid var(--line);
+        border-radius: 99px; padding: 6px 16px; font-size: .85rem; color: var(--ink-soft);
+        margin-bottom: 22px;
+    }
+    .hero h1 { font-size: clamp(2.4rem, 5vw, 3.6rem); line-height: 1.12; font-weight: 850; }
+    .hero h1 .accent {
+        background: linear-gradient(90deg, var(--peach-strong), var(--rose-strong), var(--lilac-strong));
+        -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+    .hero p.sub { max-width: 620px; margin: 18px auto 32px; color: var(--ink-soft); font-size: 1.12rem; }
+    .btn {
+        display: inline-flex; align-items: center; gap: 9px;
+        background: var(--ink); color: #fff; border: 0; cursor: pointer;
+        padding: 14px 28px; border-radius: 99px; font-size: 1rem; font-weight: 650;
+        text-decoration: none; transition: transform .15s, box-shadow .15s;
+    }
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(45,49,66,.25); }
+    .btn.ghost { background: var(--card); color: var(--ink); border: 1.5px solid var(--line); }
+    .btn.ghost:hover { border-color: var(--peach-strong); }
+    .hero .meta { margin-top: 22px; font-size: .85rem; color: var(--ink-soft); }
+
+    /* ---------- sections ---------- */
+    section { padding: 70px 0; }
+    h2 { font-size: clamp(1.7rem, 3.2vw, 2.3rem); font-weight: 800; text-align: center; margin-bottom: 12px; }
+    .lead { text-align: center; color: var(--ink-soft); max-width: 640px; margin: 0 auto 44px; }
+
+    /* ---------- features ---------- */
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 18px; }
+    .feat {
+        background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+        padding: 26px; transition: transform .15s, box-shadow .15s;
+    }
+    .feat:hover { transform: translateY(-3px); box-shadow: 0 14px 34px rgba(45,49,66,.09); }
+    .feat .ico {
+        width: 46px; height: 46px; border-radius: 14px; display: flex;
+        align-items: center; justify-content: center; font-size: 1.35rem; margin-bottom: 14px;
+    }
+    .feat h3 { font-size: 1.06rem; margin-bottom: 6px; }
+    .feat p { font-size: .9rem; color: var(--ink-soft); }
+    .i-peach { background: var(--peach); } .i-mint { background: var(--mint); }
+    .i-sky { background: var(--sky); } .i-lilac { background: var(--lilac); }
+    .i-rose { background: var(--rose); } .i-sun { background: var(--sun); }
+
+    /* ---------- screenshots ---------- */
+    .shots { display: grid; grid-template-columns: repeat(auto-fill, minmax(480px, 1fr)); gap: 22px; }
+    @media (max-width: 560px) { .shots { grid-template-columns: 1fr; } }
+    .shot { border-radius: 18px; overflow: hidden; border: 1px solid var(--line); box-shadow: 0 10px 30px rgba(45,49,66,.10); background: var(--card); }
+    .shot img { width: 100%; display: block; }
+    .shot figcaption { padding: 12px 18px; font-size: .88rem; color: var(--ink-soft); }
+
+    /* ---------- download ---------- */
+    .dl-card {
+        background: linear-gradient(135deg, var(--sky) 0%, var(--lilac) 55%, var(--rose) 100%);
+        border-radius: 30px; padding: 52px 40px; text-align: center;
+    }
+    .dl-card h3 { font-size: 1.5rem; margin-bottom: 8px; }
+    .dl-card .file-info { color: var(--ink); opacity: .75; font-size: .92rem; margin-bottom: 26px; }
+    .dl-card .file-info code { background: rgba(255,255,255,.6); padding: 2px 8px; border-radius: 8px; }
+    .dl-list { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 26px; }
+    .dl-list span { background: rgba(255,255,255,.65); border-radius: 99px; padding: 6px 16px; font-size: .85rem; }
+
+    /* ---------- steps / code ---------- */
+    .steps { display: grid; gap: 22px; counter-reset: step; }
+    .step {
+        background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+        padding: 28px 30px 28px 78px; position: relative; counter-increment: step;
+    }
+    .step::before {
+        content: counter(step);
+        position: absolute; left: 26px; top: 26px;
+        width: 34px; height: 34px; border-radius: 12px;
+        background: var(--peach); font-weight: 800;
+        display: flex; align-items: center; justify-content: center;
+    }
+    .step:nth-child(2)::before { background: var(--mint); }
+    .step:nth-child(3)::before { background: var(--sky); }
+    .step:nth-child(4)::before { background: var(--lilac); }
+    .step h3 { margin-bottom: 8px; font-size: 1.1rem; }
+    .step p { color: var(--ink-soft); font-size: .95rem; margin-bottom: 10px; }
+    pre {
+        background: #26292f; color: #e8e6e3; border-radius: 14px;
+        padding: 18px 20px; overflow-x: auto; font-size: .86rem;
+        font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+        margin-top: 12px;
+    }
+    pre .c { color: #8a919e; }
+    code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: .88em; background: var(--sun); border-radius: 6px; padding: 1px 6px; }
+    pre code { background: none; padding: 0; }
+    table { width: 100%; border-collapse: collapse; margin-top: 14px; font-size: .9rem; }
+    th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+    th { font-size: .8rem; text-transform: uppercase; letter-spacing: .5px; color: var(--ink-soft); }
+
+    .note {
+        border-radius: var(--radius); padding: 20px 24px; margin-top: 18px; font-size: .92rem;
+        border: 1px solid var(--line);
+    }
+    .note.warn { background: var(--sun); }
+    .note.info { background: var(--sky); }
+    .note.ok { background: var(--mint); }
+    .note strong { display: block; margin-bottom: 4px; }
+
+    /* ---------- troubleshooting ---------- */
+    details {
+        background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+        padding: 16px 22px; margin-bottom: 12px;
+    }
+    details summary { cursor: pointer; font-weight: 650; }
+    details p, details pre { margin-top: 10px; }
+
+    footer {
+        border-top: 1px solid var(--line); padding: 34px 0 44px;
+        text-align: center; color: var(--ink-soft); font-size: .86rem;
+    }
+</style>
+</head>
+<body>
+
+<nav>
+    <div class="wrap">
+        <img src="assets/favicon.svg" alt="Fairy Bus">
+        <span class="brand">Fairy Bus</span>
+        <div class="links">
+            <a href="#caratteristiche">Caratteristiche</a>
+            <a href="#screenshot">Screenshot</a>
+            <a href="#download">Download</a>
+            <a href="#installazione">Installazione</a>
+            <a href="#troubleshooting">Problemi</a>
+        </div>
+    </div>
+</nav>
+
+<header class="hero">
+    <div class="wrap">
+        <span class="badge">Self-hosted · Docker · Offline-ready</span>
+        <h1>Il gestionale per la tua <span class="accent">autorimessa pullman</span></h1>
+        <p class="sub">Veicoli, magazzino ricambi, manutenzioni, scadenze, rifornimenti e fatture — tutto in un'unica applicazione web che installi sul tuo server e controlli al 100%.</p>
+        <a class="btn" href="fairybus-install-1.0.0.zip">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Scarica il pacchetto
+        </a>
+        <a class="btn ghost" href="#installazione">Guida all'installazione</a>
+        <p class="meta">fairybus-install-1.0.0.zip · ~534 MB · include app, database e phpMyAdmin — nessun download aggiuntivo richiesto</p>
+    </div>
+</header>
+
+<section id="caratteristiche">
+    <div class="wrap">
+        <h2>Tutto quello che serve a un'officina di linea</h2>
+        <p class="lead">Dalla scheda del singolo mezzo allo scadenzario completo, fino al magazzino ricambi con soglie di riordino.</p>
+        <div class="grid">
+            <div class="feat"><div class="ico i-peach">🚌</div><h3>Parco mezzi</h3><p>Anagrafica veicoli con targhe, chilometri, caratteristiche, documenti allegati e scadenze collegate.</p></div>
+            <div class="feat"><div class="ico i-mint">📦</div><h3>Magazzino ricambi</h3><p>Articoli, giacenze per magazzino, carichi da DDT fornitore, scarichi su interventi e avvisi di sottoscorta.</p></div>
+            <div class="feat"><div class="ico i-sky">🔧</div><h3>Officina</h3><p>Schede di manutenzione e commesse: ricambi scaricati automaticamente dal magazzino, manodopera e manutenzioni presso terzi.</p></div>
+            <div class="feat"><div class="ico i-lilac">📅</div><h3>Scadenzario</h3><p>Revisioni, cronotachigrafo, scadenze periodiche e chilometriche per veicolo — con calendario, avvisi e storico.</p></div>
+            <div class="feat"><div class="ico i-rose">⛽</div><h3>Rifornimenti</h3><p>Litri erogati per veicolo e stazione, import da file, statistiche sui consumi e andamento mensile.</p></div>
+            <div class="feat"><div class="ico i-sun">🧾</div><h3>Documenti e fatture</h3><p>Carichi, scarichi e fatture con numerazione, selezione multipla e stampa PDF professionale.</p></div>
+            <div class="feat"><div class="ico i-peach">📊</div><h3>Dashboard</h3><p>KPI in tempo reale: mezzi attivi, scadenze aperte, ricambi sottoscorta, trend di consumi e manutenzioni.</p></div>
+            <div class="feat"><div class="ico i-mint">👥</div><h3>Utenti e permessi</h3><p>Utenti multipli con ruoli e permessi granulari: ognuno vede e tocca solo ciò che gli compete.</p></div>
+            <div class="feat"><div class="ico i-sky">💾</div><h3>Backup integrato</h3><p>Creazione, download e ripristino del database dall'interfaccia — anche schedulabile da riga di comando.</p></div>
+            <div class="feat"><div class="ico i-lilac">🗄️</div><h3>phpMyAdmin incluso</h3><p>Accesso diretto al database da <code>/pma/</code>, visibile solo agli amministratori, senza porte extra esposte.</p></div>
+            <div class="feat"><div class="ico i-rose">🏠</div><h3>Dati in casa tua</h3><p>Self-hosted al 100%: MariaDB + Docker, nessun servizio cloud esterno, nessun abbonamento.</p></div>
+            <div class="feat"><div class="ico i-sun">📴</div><h3>Installazione offline</h3><p>Il pacchetto contiene tutte le immagini Docker: si installa anche su server senza accesso a internet.</p></div>
+        </div>
+    </div>
+</section>
+
+<section id="screenshot" style="background: linear-gradient(180deg, transparent, var(--sky) 30%, var(--mint) 100%);">
+    <div class="wrap">
+        <h2>Dentro l'applicazione</h2>
+        <p class="lead">Interfaccia italiana, tabelle filtrabili, selezione multipla e stampa — i dati reali sono sfocati per privacy.</p>
+        <div class="shots">
+            <figure class="shot"><img src="assets/shots/dashboard.jpg" alt="Dashboard" loading="lazy"><figcaption>Dashboard: KPI, andamento annuale, scadenze e sottoscorta</figcaption></figure>
+            <figure class="shot"><img src="assets/shots/vehicles.jpg" alt="Veicoli" loading="lazy"><figcaption>Parco mezzi con filtri per colonna e azioni di riga</figcaption></figure>
+            <figure class="shot"><img src="assets/shots/maintenance.jpg" alt="Manutenzione" loading="lazy"><figcaption>Interventi di manutenzione e tagliandi</figcaption></figure>
+            <figure class="shot"><img src="assets/shots/calendar.jpg" alt="Scadenzario" loading="lazy"><figcaption>Scadenzario: avvisi, periodiche, chilometriche e calendario</figcaption></figure>
+            <figure class="shot"><img src="assets/shots/documents.jpg" alt="Documenti" loading="lazy"><figcaption>Documenti di carico (DDT fornitori e carichi manuali)</figcaption></figure>
+            <figure class="shot"><img src="assets/shots/expirations.jpg" alt="Voci di scadenza" loading="lazy"><figcaption>Voci di scadenza configurabili: chilometriche o a data</figcaption></figure>
+        </div>
+    </div>
+</section>
+
+<section id="download">
+    <div class="wrap">
+        <h2>Scarica e installa</h2>
+        <p class="lead">Un unico pacchetto, un comando. Serve solo un server Linux con Docker.</p>
+        <div class="dl-card">
+            <h3>fairybus-install-1.0.0.zip</h3>
+            <div class="file-info">~534 MB · <code>SHA</code> verificabile dopo il download</div>
+            <a class="btn" href="fairybus-install-1.0.0.zip">Scarica ora</a>
+            <div class="dl-list">
+                <span>📦 App Fairy Bus</span>
+                <span>🐬 MariaDB 10.11</span>
+                <span>🗄️ phpMyAdmin 5.2.3</span>
+                <span>⚙️ Installer interattivo</span>
+                <span>📖 README incluso</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="installazione">
+    <div class="wrap">
+        <h2>Installazione su un server pulito</h2>
+        <p class="lead">Procedura testata su Debian 13: circa 15 minuti, di cui 10 di attesa dei container.</p>
+
+        <div class="steps">
+            <div class="step">
+                <h3>Installa Docker</h3>
+                <p>Su Debian/Ubuntu basta lo script ufficiale. Servono privilegi di root (o <code>sudo</code>):</p>
+                <pre><code><span class="c"># come root o con sudo</span>
+curl -fsSL https://get.docker.com | sh
+
+<span class="c"># per usare docker senza sudo (opzionale):</span>
+usermod -aG docker $USER   <span class="c"># poi riloggati</span>
+
+<span class="c"># verifica:</span>
+docker --version
+docker compose version   <span class="c"># serve il plugin Compose v2</span></code></pre>
+                <div class="note info"><strong>Senza <code>curl</code>?</strong> Installa i minimi: <code>apt update && apt install -y curl unzip ca-certificates</code></div>
+            </div>
+
+            <div class="step">
+                <h3>Scarica e scompatta il pacchetto</h3>
+                <p>Copia lo zip sul server (SCP, chiavetta, o <code>wget</code> se il server è online) ed estrailo:</p>
+                <pre><code>unzip fairybus-install-1.0.0.zip
+cd fairybus-install</code></pre>
+                <div class="note ok"><strong>Offline OK.</strong> Il pacchetto include tutte e tre le immagini Docker come archivi — il server non deve scaricare nulla da internet.</div>
+            </div>
+
+            <div class="step">
+                <h3>Lancia l'installer</h3>
+                <pre><code>./install.sh</code></pre>
+                <p>Quattro domande, poi è tutto automatico:</p>
+                <table>
+                    <tr><th>Domanda</th><th>Default</th><th>Note</th></tr>
+                    <tr><td>Porta HTTP</td><td><code>8080</code></td><td>La porta su cui l'app risponderà</td></tr>
+                    <tr><td>URL pubblico</td><td><code>http://localhost:8080/</code></td><td><strong>Importante:</strong> quello che gli utenti digiteranno nel browser (dominio o IP)</td></tr>
+                    <tr><td>Suffisso istanza</td><td><em>vuoto</em></td><td>Per più installazioni sullo stesso server (es. <code>-demo</code>)</td></tr>
+                    <tr><td>Email + password admin</td><td><code>admin@fairybus.local</code></td><td>La password, se vuota, viene generata e stampata a fine installazione</td></tr>
+                </table>
+                <div class="note warn"><strong>Attenzione all'URL pubblico:</strong> deve corrispondere a come raggiungi l'app nel browser, altrimenti la pagina si apre senza grafica (si corregge dopo in <code>app.env</code>, voce <code>app.baseURL</code>).</div>
+            </div>
+
+            <div class="step">
+                <h3>Accedi</h3>
+                <p>Apri <code>http://&lt;server&gt;:PORTA/login</code> con l'email e la password scelte. Trovi il database <em>factory</em>: pulito, con un solo utente admin e i dati di base già caricati (comuni, marche, categorie, tipi documento…).</p>
+                <div class="note info"><strong>phpMyAdmin:</strong> disponibile su <code>/pma/</code> (voce <em>PMA</em> nel menu, visibile solo agli admin). Login: <code>root</code> + <code>MYSQL_ROOT_PASSWORD</code> dal file <code>.env</code>.</div>
+            </div>
+        </div>
+
+        <h2 style="margin-top:70px">Dopo l'installazione</h2>
+        <p class="lead">Cosa puoi modificare e come aggiornare.</p>
+        <div class="grid">
+            <div class="feat"><div class="ico i-sky">⚙️</div><h3>Configurazione</h3><p><code>.env</code>: porta, password DB, timezone. <code>app.env</code>: baseURL, database, chiave di cifratura. Dopo le modifiche: <code>docker compose up -d</code>.</p></div>
+            <div class="feat"><div class="ico i-mint">🔒</div><h3>HTTPS</h3><p>L'app espone HTTP. Metti davanti un reverse proxy (Caddy, Nginx Proxy Manager) e aggiorna <code>app.baseURL</code> con l'URL https.</p></div>
+            <div class="feat"><div class="ico i-lilac">🔄</div><h3>Aggiornamenti</h3><p><code>./update.sh fairybus-patch-x.y.z.zip</code> per le patch leggere, <code>./update.sh fairybus-app-x.y.z.tar.gz</code> per le release complete. Migrazioni e pulizia cache automatiche.</p></div>
+            <div class="feat"><div class="ico i-rose">💾</div><h3>Backup</h3><p>Da Impostazioni → Backup, oppure schedulato: <code>docker compose exec app php spark fb:backup</code>. Il ripristino si fa dall'interfaccia.</p></div>
+            <div class="feat"><div class="ico i-sun">🏢</div><h3>Più istanze</h3><p>Scompatta in una seconda cartella e usa il suffisso istanza (es. <code>-demo</code>): container, volumi e rete restano separati.</p></div>
+            <div class="feat"><div class="ico i-peach">🧱</div><h3>Risorse</h3><p>~1.5 GB di RAM liberi bastano. Il buffer pool di MariaDB (2G di default) si riduce in <code>my.cnf</code> per macchine piccole.</p></div>
+        </div>
+    </div>
+</section>
+
+<section id="troubleshooting">
+    <div class="wrap">
+        <h2>Problemi comuni</h2>
+        <p class="lead">Le risposte ai casi più frequenti.</p>
+
+        <details>
+            <summary>La pagina si apre ma senza grafica (niente CSS)</summary>
+            <p>L'URL pubblico inserito all'installazione non corrisponde a quello del browser. Correggi <code>app.baseURL</code> in <code>app.env</code> e riavvia:</p>
+            <pre><code>sed -i 's|^app\.baseURL = .*|app.baseURL = http://mio-server:8080/|' app.env
+docker compose restart app
+docker compose exec app sh -c 'rm -rf /var/www/html/writable/cache/*'</code></pre>
+        </details>
+        <details>
+            <summary>L'app non risponde sulla porta scelta</summary>
+            <p>Controlla i log e che la porta sia libera:</p>
+            <pre><code>docker compose logs -f app
+docker compose ps            <span class="c"># i container devono essere "running/healthy"</span>
+ss -ltnp | grep 8080         <span class="c"># porta occupata? cambiala in .env → APP_PORT</span></code></pre>
+        </details>
+        <details>
+            <summary>Ho dimenticato la password admin</summary>
+            <p>Reimpostala dal container (genera un nuovo hash e aggiorna l'utente 1):</p>
+            <pre><code>HASH=$(docker compose exec -T -e FB_PASS="nuovaPassword" app php -r 'echo password_hash(getenv("FB_PASS"), PASSWORD_BCRYPT);')
+docker compose exec -T db sh -c "mariadb -uroot -p\"$MYSQL_ROOT_PASSWORD\" $DB_NAME -e \"UPDATE fb_users SET password_hash='$HASH' WHERE id=1;\""</code></pre>
+            <p>Le variabili <code>MYSQL_ROOT_PASSWORD</code> e <code>DB_NAME</code> sono nel file <code>.env</code> della cartella di installazione.</p>
+        </details>
+        <details>
+            <summary>Voglio reinstallare da zero</summary>
+            <pre><code>docker compose down -v   <span class="c"># ATTENZIONE: cancella database e upload</span>
+rm -f .env app.env
+rm -rf app-src
+./install.sh</code></pre>
+        </details>
+        <details>
+            <summary>Come importo un database esistente</summary>
+            <p>Usa la funzione Backup/Ripristina dell'app: crea uno zip che contiene un file <code>backup.sql</code> con nome <code>fb-backup-AAAAMMGG-OOmmSS.zip</code> e copialo nei backup:</p>
+            <pre><code>docker cp fb-backup-20261017-150604.zip fairybus-app:/var/www/html/writable/backups/
+docker compose exec app chown www-data:www-data /var/www/html/writable/backups/*.zip</code></pre>
+            <p>Poi Impostazioni → Backup → Ripristina. <strong>Sostituisce tutti i dati attuali.</strong></p>
+        </details>
+        <details>
+            <summary>Errore di connessione al database all'avvio</summary>
+            <p>MariaDB impiega ~30-60s al primo avvio (crea il database factory). Aspetta e ricontrolla: <code>docker compose logs db</code>. Se il volume era già stato creato con altre password, allinea <code>DB_PASSWORD</code> in <code>.env</code> a quella originale o ricrea il volume.</p>
+        </details>
+    </div>
+</section>
+
+<footer>
+    <div class="wrap">
+        <img src="assets/favicon.svg" alt="" width="40" style="opacity:.7"><br><br>
+        <strong>Fairy Bus</strong> — gestionale autoremmesa pullman<br>
+        Pacchetto <code>fairybus-install-1.0.0.zip</code> · Docker · MariaDB · self-hosted
+    </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,92 @@
+{#
+ * Copyright since 2026 Massimiliano Palermo
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Academic Free License version 3.0
+ * that is bundled with this package in the file LICENSE.md.
+ * It is also available through the world-wide-web at this URL:
+ * https://opensource.org/licenses/AFL-3.0
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to maxx.palermo@gmail.com so we can send you a copy immediately.
+ *
+ * @author    Massimiliano Palermo <maxx.palermo@gmail.com>
+ * @copyright Since 2026 Massimiliano Palermo
+ * @license   https://opensource.org/licenses/AFL-3.0 Academic Free License version 3.0
+#}
+{% extends "admin/layout.twig" %}
+
+{% block page_styles %}
+    <link rel="stylesheet" href="{{ asset('fairy-bus/css/pages/features.css') }}?v=1">
+{% endblock %}
+
+{% block content %}
+    <section class="fb-page">
+        <div class="fb-page-header">
+            <div>
+                <h1 class="fb-page-title">Caratteristiche</h1>
+                <p class="fb-page-subtitle">Attributi tecnici assegnabili ai veicoli.</p>
+            </div>
+            <div class="fb-page-actions">
+                <span class="fb-muted fb-selected-count" id="features-selected-count">0 selezionati</span>
+                <button type="button" class="fb-btn-icon fb-btn-icon-info" data-action="run-filters" title="Cerca: applica i filtri delle colonne">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                </button>
+                <button type="button" class="fb-btn-icon fb-btn-icon-warning" data-action="print-features" title="Stampa PDF (righe selezionate, max 500)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                </button>
+                <button type="button" class="fb-btn-icon fb-btn-icon-success" data-action="new-feature" title="Nuova caratteristica">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                </button>
+            </div>
+        </div>
+
+        <div class="fb-features-layout">
+            <div class="fb-card">
+                <h2 class="fb-card-title">Elenco caratteristiche</h2>
+                <div class="fb-table-wrap">
+                    <table id="features-table" class="fb-table"></table>
+                </div>
+            </div>
+
+            <div class="fb-card">
+                <h2 class="fb-card-title">Configurazione valori select</h2>
+                <div id="features-config-forms" class="fb-config-list">
+                    <p class="fb-muted">Caricamento in corso…</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <template id="tpl-feature-form">
+        <form class="fb-form" data-form="feature">
+            <input type="hidden" name="id_feature" value="">
+            <div class="fb-form-group">
+                <label class="fb-form-label" for="feature_label">Etichetta*</label>
+                <input type="text" id="feature_label" name="label" class="fb-form-input" required maxlength="255" placeholder="Es. Aria condizionata">
+            </div>
+            <div class="fb-form-group">
+                <label class="fb-form-label" for="feature_name">Nome tecnico*</label>
+                <input type="text" id="feature_name" name="name" class="fb-form-input" required maxlength="255" placeholder="Es. air_conditioned" pattern="[a-zA-Z0-9_\-]+">
+                <p class="fb-form-hint fb-muted">Solo lettere, numeri, trattini e underscore. Usato nei filtri e nelle configurazioni.</p>
+            </div>
+            <div class="fb-form-group">
+                <label class="fb-form-label" for="feature_type">Tipo*</label>
+                <select id="feature_type" name="type" class="fb-form-input" required>
+                    <option value="switch">Interruttore (sì/no)</option>
+                    <option value="select">Select (scelta da elenco)</option>
+                    <option value="value">Valore (numero/testo)</option>
+                </select>
+            </div>
+            <div class="fb-form-actions">
+                <button type="submit" class="fb-btn fb-btn-primary">Salva</button>
+                <button type="button" class="fb-btn fb-btn-secondary" data-action="close">Annulla</button>
+            </div>
+        </form>
+    </template>
+{% endblock %}
+
+{% block page_scripts %}
+    <script type="module" src="{{ asset('fairy-bus/js/pages/features.js') }}?v=2"></script>
+{% endblock %}

@@ -1,0 +1,152 @@
+{#
+ * Copyright since 2026 Massimiliano Palermo
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Academic Free License version 3.0
+ * that is bundled with this package in the file LICENSE.md.
+ * It is also available through the world-wide-web at this URL:
+ * https://opensource.org/licenses/AFL-3.0
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to maxx.palermo@gmail.com so we can send you a copy immediately.
+ *
+ * @author    Massimiliano Palermo <maxx.palermo@gmail.com>
+ * @copyright Since 2026 Massimiliano Palermo
+ * @license   https://opensource.org/licenses/AFL-3.0 Academic Free License version 3.0
+#
+ # Stampa dettagliata di piu' fatture: per ognuna i DDT collegati e/o le
+ # schede manutenzione, poi riepilogo articoli aggregato.
+#}
+{% extends "print/layout.twig" %}
+
+{% block content %}
+    {% for invoice in invoices %}
+        <div{% if not loop.last %} style="page-break-after: always;"{% endif %}>
+        <h3 style="margin: 0 0 6pt 0; font-size: 12pt;">
+            Fattura {{ invoice.number|default('#' ~ invoice.id_invoice) }} — {{ invoice.supplier_name|default(invoice.customer_name)|default('—') }}
+        </h3>
+        <table class="data" style="margin-bottom: 14pt;">
+            <tbody>
+                <tr>
+                    <td style="width: 18%;" class="muted">{{ invoice.id_customer ? 'Cliente' : 'Fornitore' }}</td>
+                    <td><strong>{{ invoice.supplier_name|default(invoice.customer_name)|default('—') }}</strong></td>
+                    <td style="width: 12%;" class="muted">Numero</td>
+                    <td>{{ invoice.number|default('—') }}</td>
+                </tr>
+                <tr>
+                    <td class="muted">Data</td>
+                    <td>{{ invoice.date ? invoice.date|date('d/m/Y') : '—' }}</td>
+                    <td class="muted">{{ invoice.id_customer ? 'Automezzo' : 'N. DDT' }}</td>
+                    <td>{{ invoice.id_customer ? (invoice.vehicle_plate|default('—')) : invoice.documents|length }}</td>
+                </tr>
+                {% set fees = (invoice.transport_fee|default(0)) + (invoice.collection_fee|default(0)) + (invoice.deposit|default(0)) %}
+                {% if fees != 0 %}
+                    <tr>
+                        <td class="muted">Spese trasporto</td>
+                        <td>&nbsp;{{ invoice.transport_fee|default(0)|number_format(2, ',', '.') }}</td>
+                        <td class="muted">Incasso / Acconto</td>
+                        <td>&nbsp;{{ invoice.collection_fee|default(0)|number_format(2, ',', '.') }} / &nbsp;{{ invoice.deposit|default(0)|number_format(2, ',', '.') }}</td>
+                    </tr>
+                {% endif %}
+                {% if invoice.note %}
+                    <tr>
+                        <td class="muted">Nota</td>
+                        <td colspan="3">{{ invoice.note }}</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+
+        {% for doc in invoice.documents %}
+            <h3 style="margin: 10pt 0 4pt;">DDT {{ doc.number|default(doc.id_document) }} del {{ doc.date ? doc.date|date('d/m/Y') : '—' }}</h3>
+            {% include 'print/partials/detail_table.twig' with {rows: doc.details, total_label: 'Totale DDT'} %}
+        {% endfor %}
+
+        {% for mnt in invoice.maintenances|default([]) %}
+            <h3 style="margin: 10pt 0 4pt;">Scheda manutenzione del {{ mnt.date ? mnt.date|date('d/m/Y') : '—' }}{% if mnt.plate %} — {{ mnt.plate }}{% endif %}</h3>
+            {% include 'print/partials/detail_table.twig' with {rows: mnt.details, total_label: 'Totale scheda'} %}
+        {% endfor %}
+
+        {% if invoice.documents|length == 0 and invoice.maintenances|length == 0 %}
+            <p class="muted">Nessun contenuto collegato.</p>
+        {% else %}
+            <table class="data" style="margin-top: 10pt;">
+                <tbody>
+                    <tr>
+                        <td class="muted"><strong>Totale fattura</strong></td>
+                        <td class="num" style="width: 15%;"><strong>&nbsp;{{ invoice.invoice_total|number_format(2, ',', '.') }}</strong></td>
+                    </tr>
+                </tbody>
+            </table>
+        {% endif %}
+        </div>
+    {% endfor %}
+
+    {% if invoices|length > 1 %}
+        <div style="page-break-before: always;">
+            <h3 style="margin: 0 0 6pt 0; font-size: 12pt;">Riepilogo fatture</h3>
+            <table class="data" style="margin-bottom: 14pt;">
+                <thead>
+                    <tr>
+                        <th style="width: 18%;">Numero</th>
+                        <th>Soggetto</th>
+                        <th style="width: 14%;">Data</th>
+                        <th style="width: 15%;" class="num">Totale</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for invoice in invoices %}
+                        <tr>
+                            <td>{{ invoice.number|default('#' ~ invoice.id_invoice) }}</td>
+                            <td>{{ invoice.supplier_name|default(invoice.customer_name)|default('—') }}</td>
+                            <td>{{ invoice.date ? invoice.date|date('d/m/Y') : '—' }}</td>
+                            <td class="num">&nbsp;{{ invoice.invoice_total|number_format(2, ',', '.') }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <h3 style="margin: 0 0 6pt 0; font-size: 12pt;">Riepilogo articoli</h3>
+            <table class="data">
+                <thead>
+                    <tr>
+                        <th style="width: 15%;">Codice</th>
+                        <th>Articolo</th>
+                        <th style="width: 10%;" class="num">Q.tà</th>
+                        <th style="width: 13%;" class="num">Prezzo medio</th>
+                        <th style="width: 14%;" class="num">Imponibile</th>
+                        <th style="width: 14%;" class="num">Totale ivato</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in summary %}
+                        <tr>
+                            <td>{{ row.sku }}</td>
+                            <td>{{ row.product_name }}</td>
+                            <td class="num">{{ row.qty|abs|number_format(3, ',', '.')|trim('0', 'right')|trim(',', 'right') ?: '0' }}</td>
+                            <td class="num">&nbsp;{{ (row.qty > 0 ? row.amount / row.qty : 0)|number_format(2, ',', '.') }}</td>
+                            <td class="num">&nbsp;{{ row.amount|number_format(2, ',', '.') }}</td>
+                            <td class="num">&nbsp;{{ row.total|number_format(2, ',', '.') }}</td>
+                        </tr>
+                    {% else %}
+                        <tr><td colspan="6" class="center muted">Nessun articolo.</td></tr>
+                    {% endfor %}
+                </tbody>
+                {% if summary|length > 0 %}
+                    <tfoot>
+                        <tr>
+                            <td colspan="4" style="border-top: 1.5pt solid #18181b;"></td>
+                            <td class="muted" style="border-top: 1.5pt solid #18181b;">Totale generale</td>
+                            <td class="num" style="border-top: 1.5pt solid #18181b;"><strong>&nbsp;{{ grand_total|number_format(2, ',', '.') }}</strong></td>
+                        </tr>
+                    </tfoot>
+                {% endif %}
+            </table>
+        </div>
+    {% endif %}
+{% endblock %}
+
+{% block footer %}
+    <span>{{ app_name|default('Fairy Bus') }} — {{ title|default('Dettaglio fatture') }} — Fatture: {{ invoices|length }}</span>
+{% endblock %}

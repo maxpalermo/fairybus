@@ -1,0 +1,95 @@
+{#
+ * Copyright since 2026 Massimiliano Palermo
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Academic Free License version 3.0
+ * that is bundled with this package in the file LICENSE.md.
+ * It is also available through the world-wide-web at this URL:
+ * https://opensource.org/licenses/AFL-3.0
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to maxx.palermo@gmail.com so we can send you a copy immediately.
+ *
+ * @author    Massimiliano Palermo <maxx.palermo@gmail.com>
+ * @copyright Since 2026 Massimiliano Palermo
+ * @license   https://opensource.org/licenses/AFL-3.0 Academic Free License version 3.0
+#}
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page_title }} — Fairy Bus</title>
+    <link rel="icon" type="image/png" href="{{ asset('fairy-bus/img/favicon.png') }}">
+    <link rel="stylesheet" href="{{ asset('fairy-bus/css/theme.css') }}">
+    <link rel="stylesheet" href="{{ asset('fairy-bus/css/pages/login.css') }}">
+</head>
+<body>
+    <main class="fb-login-page">
+        <section class="fb-login-card" aria-labelledby="login-title">
+            <div class="fb-login-header">
+                <h1 id="login-title">Fairy Bus</h1>
+                <p>Gestionale autorimessa pullman</p>
+            </div>
+
+            {% if error %}
+                <div class="fb-alert fb-alert-error" role="alert">
+                    {{ error }}
+                </div>
+            {% endif %}
+
+            <form method="post" action="{{ base_url('login') }}" novalidate>
+                <input type="hidden" name="{{ csrf.name }}" value="{{ csrf.value }}">
+
+                <div class="fb-form-group">
+                    <label for="email" class="fb-form-label">Email</label>
+                    <input
+                        type="email"
+                        id="email"
+                        name="email"
+                        class="fb-form-input"
+                        placeholder="admin@fairybus.local"
+                        value="admin@fairybus.local"
+                        required
+                        autofocus
+                    >
+                </div>
+
+                <div class="fb-form-group">
+                    <label for="password" class="fb-form-label">Password</label>
+                    <div class="fb-input-group">
+                        <input
+                            type="password"
+                            id="password"
+                            name="password"
+                            class="fb-form-input"
+                            placeholder="••••••••"
+                            value="admin"
+                            required
+                        >
+                        <button type="button" class="fb-input-toggle" data-toggle-password="password" aria-label="Mostra password">
+                            <svg class="icon-eye" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                            <svg class="icon-eye-off" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
+                                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-3.72.72L3 3"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <button type="submit" class="fb-btn fb-btn-primary fb-login-submit">
+                    Accedi
+                </button>
+            </form>
+        </section>
+    </main>
+
+    <script type="module">
+        import PasswordToggle from "{{ asset('fairy-bus/js/core/PasswordToggle.js') }}";
+        PasswordToggle.init();
+    </script>
+</body>
+</html>

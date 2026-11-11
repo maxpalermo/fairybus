@@ -1,0 +1,131 @@
+{#
+ * Copyright since 2026 Massimiliano Palermo
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Academic Free License version 3.0
+ * that is bundled with this package in the file LICENSE.md.
+ * It is also available through the world-wide-web at this URL:
+ * https://opensource.org/licenses/AFL-3.0
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to maxx.palermo@gmail.com so we can send you a copy immediately.
+ *
+ * @author    Massimiliano Palermo <maxx.palermo@gmail.com>
+ * @copyright Since 2026 Massimiliano Palermo
+ * @license   https://opensource.org/licenses/AFL-3.0 Academic Free License version 3.0
+#
+ # Layout generico per le stampe PDF (Dompdf).
+ # Blocchi disponibili: styles, header_right, content.
+#}
+<!DOCTYPE html>
+<html lang="it">
+    <head>
+        <meta charset="utf-8">
+        <title>{{ title|default('Documento') }}</title>
+        <style>
+        @page {
+            margin: 20mm 16mm 24mm 16mm;
+        }
+        p, table, tr, td, th, div, span, h1, h2, h3, h4 {
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: 'DejaVu Sans', sans-serif;
+            font-size: 9pt;
+            color: #18181b;
+        }
+        .print-header {
+            width: 100%;
+            border-bottom: 2px solid #18181b;
+            padding-bottom: 6pt;
+            margin-bottom: 12pt;
+        }
+        .print-header table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .print-header td {
+            vertical-align: bottom;
+        }
+        .print-brand {
+            font-size: 14pt;
+            font-weight: bold;
+        }
+        .print-title {
+            font-size: 11pt;
+            font-weight: bold;
+            color: #3f3f46;
+            margin-top: 2pt;
+        }
+        .print-meta {
+            font-size: 8pt;
+            color: #71717a;
+            text-align: right;
+        }
+        .print-footer {
+            position: fixed;
+            bottom: -14mm;
+            left: 0;
+            right: 0;
+            border-top: 1px solid #d4d4d8;
+            padding-top: 4pt;
+            font-size: 7pt;
+            color: #71717a;
+        }
+        table.data {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        table.data thead {
+            display: table-header-group;
+        }
+        table.data th {
+            background: #f4f4f5;
+            border-bottom: 1.5pt solid #18181b;
+            font-size: 8pt;
+            text-align: left;
+            padding: 4pt 5pt;
+            text-transform: uppercase;
+            letter-spacing: 0.3pt;
+        }
+        table.data td {
+            border-bottom: 0.5pt solid #e4e4e7;
+            padding: 4pt 5pt;
+            vertical-align: top;
+        }
+        .num { text-align: right; }
+        .center { text-align: center; }
+        .muted { color: #71717a; }
+        .low { color: #dc2626; font-weight: bold; }
+        {% block styles %}{% endblock %}
+    </style>
+    </head>
+    <body>
+        <footer class="print-footer">
+            {% block footer %}<span>{{ app_name|default('Fairy Bus') }} — {{ title|default('Documento') }}</span>{% endblock %}
+        </footer>
+
+        <header class="print-header">
+            <table>
+                <tr>
+                    <td>
+                        <div class="print-brand">{{ app_name|default('Fairy Bus') }}</div>
+                        <div class="print-title">{{ title|default('Documento') }}</div>
+                    </td>
+                    <td class="print-meta">
+                        {% block header_right %}
+                            Stampato il {{ "now"|date("d/m/Y H:i") }}<br>
+                            {{ user.name|default('') }}
+                        {% endblock %}
+                    </td>
+                </tr>
+            </table>
+        </header>
+
+        <main>
+            {% block content %}{% endblock %}
+        </main>
+    </body>
+</html>

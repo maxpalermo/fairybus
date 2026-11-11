@@ -1,0 +1,76 @@
+services:
+  fairybus-mysql-db:
+    image: mariadb:10.11
+    container_name: fairybus-mysql-db
+    restart: unless-stopped
+    command:
+      - --max_connections=300
+      - --wait_timeout=300
+      - --interactive_timeout=300
+      - --connect_timeout=60
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: fairybus_db
+      MYSQL_USER: fairybus
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - ./db_data:/var/lib/mysql
+      - ./conf/my.cnf:/etc/mysql/conf.d/custom.cnf:ro    # Ottimizzazioni
+    networks:
+      caddy-net:
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  fairybus-mysql:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fairybus-mysql
+    hostname: fairybus-mysql
+    restart: unless-stopped
+    volumes:
+      - ./www:/var/www/html
+      - ./conf/php.ini:/usr/local/etc/php/conf.d/99-custom.ini:ro   # (nota il percorso)
+      - ./conf/000-default.conf:/etc/apache2/sites-available/000-default.conf:ro
+      - ./conf/apache-cache.conf:/etc/apache2/conf-available/cache.conf:ro   # Caching risorse
+    environment:
+      - TZ=Europe/Rome
+      - CI_ENVIRONMENT=production           # 🔥 Cambiato da development
+      - XDEBUG_MODE=off                     # 🔥 Forzato a OFF (inutile se xdebug non installato)
+      # Database (sarà letto da .env, ma li metto per chiarezza)
+      - database.default.hostname=fairybus-mysql-db
+      - database.default.database=fairybus_db
+      - database.default.username=fairybus
+      - database.default.password=${DB_PASSWORD}
+      - database.default.DBDriver=MySQLi
+      - database.default.DBPrefix=
+      - database.default.port=3306
+    depends_on:
+      fairybus-mysql-db:
+        condition: service_healthy
+    networks:
+      - caddy-net
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  fairybus-mysql-pma:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: fairybus-mysql-pma
+    restart: unless-stopped
+    environment:
+      PMA_HOST: fairybus-mysql-db
+      PMA_PORT: 3306
+      PMA_ABSOLUTE_URI: https://fairybus-mysql.localhost/pma/
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    depends_on:
+      fairybus-mysql-db:
+        condition: service_healthy
+    networks:
+      - caddy-net
+
+networks:
+  caddy-net:
+    external: true

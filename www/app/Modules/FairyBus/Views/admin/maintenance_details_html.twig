@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ title|default('Report manutenzioni') }}</title>
+<style>
+    * { box-sizing: border-box; }
+    body { font-family: 'DejaVu Sans', Arial, sans-serif; font-size: 11px; color: #18181b; margin: 0; padding: 1.5rem; }
+    h1 { font-size: 1.25rem; margin: 0 0 0.25rem; }
+    h3 { margin: 1.5rem 0 0.375rem; font-size: 0.95rem; }
+    .meta { color: #71717a; font-size: 0.8125rem; margin-bottom: 1rem; }
+    .muted { color: #71717a; }
+    .center { text-align: center; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 0.5rem; }
+    th, td { border: 1px solid #e4e4e7; padding: 4px 6px; text-align: left; vertical-align: top; }
+    th { background: #f4f4f5; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.03em; }
+    .num { text-align: right; white-space: nowrap; }
+    .tot-row td, tfoot th { font-weight: 700; border-top: 2px solid #18181b; }
+    .doc { margin-bottom: 1.5rem; }
+    .doc-break { page-break-before: always; }
+    .toolbar { position: sticky; top: 0; display: flex; gap: 0.5rem; align-items: center; background: #fff; padding: 0.5rem 0; border-bottom: 1px solid #e4e4e7; margin-bottom: 1rem; z-index: 10; }
+    .toolbar button { height: 2.25rem; padding: 0 0.875rem; border: 1px solid #18181b; border-radius: 0.375rem; background: #18181b; color: #fff; font-size: 0.8125rem; font-weight: 600; cursor: pointer; }
+    .toolbar button.secondary { background: #fff; color: #18181b; }
+    @media print {
+        .toolbar { display: none; }
+        body { padding: 0; }
+        tr { page-break-inside: avoid; }
+        thead { display: table-header-group; }
+    }
+</style>
+</head>
+<body>
+    <div class="toolbar">
+        <button type="button" onclick="window.print()">Stampa / Salva PDF</button>
+        <button type="button" class="secondary" onclick="window.close()">Chiudi</button>
+        <span class="meta">{{ maintenances|length }} manutenzioni{% if period_label %} — periodo {{ period_label }}{% endif %}</span>
+    </div>
+
+    <h1>{{ title|default('Report manutenzioni') }}</h1>
+    <div class="meta">Generato il {{ "now"|date('d/m/Y H:i') }}{% if user and user.name %} — {{ user.name }}{% endif %}</div>
+
+    {% for m in maintenances %}
+        <div class="doc{% if not loop.first %} doc-break{% endif %}">
+            <h3>
+                Manutenzione #{{ m.id_maintenance }} — {{ m.vehicle_plate|default('—') }}{% if m.brand_name %} · {{ m.brand_name }}{% endif %}
+            </h3>
+            <table>
+                <tbody>
+                    <tr>
+                        <td style="width: 18%;" class="muted">Veicolo</td>
+                        <td><strong>{{ m.vehicle_plate|default('—') }}</strong>{% if m.brand_name %} — {{ m.brand_name }}{% endif %}</td>
+                        <td style="width: 12%;" class="muted">Data</td>
+                        <td>{{ m.date ? m.date|date('d/m/Y') : '—' }}</td>
+                    </tr>
+                    <tr>
+                        <td class="muted">Km</td>
+                        <td>{{ m.km is not null ? m.km|number_format(0, ',', '.') ~ ' km' : '—' }}</td>
+                        <td class="muted">Fatture</td>
+                        <td>
+                            {% for inv in m.invoices %}
+                                {{ inv.invoice_number|default('s.n.') }}{% if not loop.last %}, {% endif %}
+                            {% else %}
+                                —
+                            {% endfor %}
+                        </td>
+                    </tr>
+                    {% if m.note %}
+                        <tr>
+                            <td class="muted">Nota</td>
+                            <td colspan="3">{{ m.note }}</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+
+            {% if m.tasks|length > 0 %}
+                <h3>Lavoro eseguito</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Descrizione</th>
+                            <th style="width: 12%;" class="num">Ore</th>
+                            <th style="width: 15%;" class="num">Manodopera</th>
+                            <th style="width: 15%;" class="num">Prezzo orario</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% set tot_hours, tot_manpower = 0, 0 %}
+                        {% for t in m.tasks %}
+                            {% set tot_hours = tot_hours + t.hours %}
+                            {% set tot_manpower = tot_manpower + t.manpower %}
+                            <tr>
+                                <td>{{ t.description|default('—') }}</td>
+                                <td class="num">{{ t.hours }}</td>
+                                <td class="num">{{ t.manpower|number_format(2, ',', '.') }}</td>
+                                <td class="num">{{ t.price_per_hour|number_format(2, ',', '.') }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <th>Totale manodopera</th>
+                            <th class="num">{{ tot_hours }}</th>
+                            <th class="num">{{ tot_manpower|number_format(2, ',', '.') }}</th>
+                            <th></th>
+                        </tr>
+                    </tfoot>
+                </table>
+            {% endif %}
+
+            <h3>Ricambi utilizzati</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 8%;" class="num">Q.tà</th>
+                        <th style="width: 15%;">Codice</th>
+                        <th>Articolo</th>
+                        <th style="width: 11%;" class="num">Prezzo</th>
+                        <th style="width: 9%;" class="num">Sconto</th>
+                        <th style="width: 12%;" class="num">Importo</th>
+                        <th style="width: 10%;">I.v.a.</th>
+                        <th style="width: 12%;" class="num">Totale</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% set total = 0 %}
+                    {% set totalQty = 0 %}
+                    {% for row in m.details %}
+                        {% set qty = row.quantity|abs %}
+                        {% set importo = qty * row.price * (1 - (row.discount|default(0)|abs) / 100) %}
+                        {% set vat = row.vat_rate is not null ? row.vat_rate : 0 %}
+                        {% set rowTotal = importo * (1 + vat / 100) %}
+                        {% set total = total + rowTotal %}
+                        {% set totalQty = totalQty + qty %}
+                        <tr>
+                            <td class="num">{{ qty|number_format(3, ',', '.')|trim('0', 'right')|trim(',', 'right') ?: '0' }} {{ row.unit_abbr|default('pz') }}</td>
+                            <td>{{ row.sku|default('—') }}</td>
+                            <td>{{ row.product_name|default('—') }}</td>
+                            <td class="num">{{ row.price|number_format(2, ',', '.') }}</td>
+                            <td class="num">{{ row.discount|default(0)|abs|number_format(0) }}%</td>
+                            <td class="num">{{ importo|number_format(2, ',', '.') }}</td>
+                            <td>{% if row.vat_rate is not null or row.vat_code is not null %}{{ (row.vat_rate ?? row.vat_code)|number_format(2, ',', '.') }}%{% else %}—{% endif %}</td>
+                            <td class="num">{{ rowTotal|number_format(2, ',', '.') }}</td>
+                        </tr>
+                    {% else %}
+                        <tr><td colspan="8" class="center muted">Nessun ricambio.</td></tr>
+                    {% endfor %}
+                </tbody>
+                {% if m.details|length > 0 %}
+                    <tfoot>
+                        <tr>
+                            <th class="num">{{ totalQty|number_format(3, ',', '.')|trim('0', 'right')|trim(',', 'right') ?: '0' }}</th>
+                            <th colspan="4"></th>
+                            <th class="muted">Totale ricambi</th>
+                            <th></th>
+                            <th class="num">{{ total|number_format(2, ',', '.') }}</th>
+                        </tr>
+                    </tfoot>
+                {% endif %}
+            </table>
+        </div>
+    {% endfor %}
+
+    {% if maintenances|length > 1 %}
+        <div class="doc-break">
+            <h3>Riepilogo ricambi utilizzati</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 15%;">Codice</th>
+                        <th>Articolo</th>
+                        <th style="width: 10%;" class="num">Q.tà</th>
+                        <th style="width: 13%;" class="num">Prezzo medio</th>
+                        <th style="width: 14%;" class="num">Imponibile</th>
+                        <th style="width: 14%;" class="num">Totale ivato</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in summary %}
+                        <tr>
+                            <td>{{ row.sku }}</td>
+                            <td>{{ row.product_name }}</td>
+                            <td class="num">{{ row.qty|abs|number_format(3, ',', '.')|trim('0', 'right')|trim(',', 'right') ?: '0' }} {{ row.unit_abbr|default('pz') }}</td>
+                            <td class="num">{{ (row.qty > 0 ? row.amount / row.qty : 0)|number_format(2, ',', '.') }}</td>
+                            <td class="num">{{ row.amount|number_format(2, ',', '.') }}</td>
+                            <td class="num">{{ row.total|number_format(2, ',', '.') }}</td>
+                        </tr>
+                    {% else %}
+                        <tr><td colspan="6" class="center muted">Nessun articolo.</td></tr>
+                    {% endfor %}
+                </tbody>
+                {% if summary|length > 0 %}
+                    <tfoot>
+                        <tr>
+                            <th colspan="4"></th>
+                            <th class="muted">Totale generale</th>
+                            <th class="num">{{ grand_total|number_format(2, ',', '.') }}</th>
+                        </tr>
+                    </tfoot>
+                {% endif %}
+            </table>
+        </div>
+    {% endif %}
+</body>
+</html>

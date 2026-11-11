@@ -1,0 +1,487 @@
+<!doctype html>
+<html lang="it">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Fairy Bus — Test su VM con GNOME Boxes</title>
+        <style>
+            :root {
+                --fb-primary: #2563eb;
+                --fb-text: #0f172a;
+                --fb-muted: #64748b;
+                --fb-border: #e2e8f0;
+                --fb-bg: #f8fafc;
+                --fb-code-bg: #0f172a;
+                --fb-warn-bg: #fffbeb;
+                --fb-warn-border: #f59e0b;
+                --fb-ok-bg: #f0fdf4;
+                --fb-ok-border: #16a34a;
+            }
+            * {
+                box-sizing: border-box;
+            }
+            body {
+                font-family:
+                    ui-sans-serif,
+                    system-ui,
+                    -apple-system,
+                    "Segoe UI",
+                    Roboto,
+                    sans-serif;
+                color: var(--fb-text);
+                background: var(--fb-bg);
+                margin: 0;
+                line-height: 1.6;
+            }
+            .page {
+                max-width: 860px;
+                margin: 0 auto;
+                padding: 48px 24px 80px;
+            }
+            header {
+                border-bottom: 2px solid var(--fb-border);
+                padding-bottom: 24px;
+                margin-bottom: 32px;
+            }
+            h1 {
+                font-size: 1.75rem;
+                margin: 0 0 8px;
+                letter-spacing: -0.02em;
+            }
+            .subtitle {
+                color: var(--fb-muted);
+                font-size: 1.05rem;
+                margin: 0;
+            }
+            h2 {
+                font-size: 1.25rem;
+                margin: 40px 0 16px;
+                padding: 10px 14px;
+                background: #fff;
+                border: 1px solid var(--fb-border);
+                border-left: 4px solid var(--fb-primary);
+                border-radius: 8px;
+            }
+            h3 {
+                font-size: 1.02rem;
+                margin: 24px 0 8px;
+            }
+            p,
+            li {
+                font-size: 0.95rem;
+            }
+            code {
+                font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+                font-size: 0.85em;
+                background: #eef2ff;
+                padding: 2px 6px;
+                border-radius: 4px;
+            }
+            pre {
+                background: var(--fb-code-bg);
+                color: #e2e8f0;
+                padding: 14px 16px;
+                border-radius: 8px;
+                overflow-x: auto;
+                font-size: 0.85rem;
+                line-height: 1.55;
+            }
+            pre code {
+                background: none;
+                padding: 0;
+                color: inherit;
+            }
+            pre .c {
+                color: #64748b;
+            }
+            .box {
+                border-radius: 8px;
+                padding: 12px 16px;
+                margin: 16px 0;
+                font-size: 0.92rem;
+            }
+            .box.warn {
+                background: var(--fb-warn-bg);
+                border: 1px solid var(--fb-warn-border);
+            }
+            .box.ok {
+                background: var(--fb-ok-bg);
+                border: 1px solid var(--fb-ok-border);
+            }
+            table {
+                border-collapse: collapse;
+                width: 100%;
+                margin: 16px 0;
+                font-size: 0.92rem;
+            }
+            th,
+            td {
+                border: 1px solid var(--fb-border);
+                padding: 8px 12px;
+                text-align: left;
+            }
+            th {
+                background: #f1f5f9;
+                font-weight: 600;
+            }
+            ol.steps > li {
+                margin-bottom: 12px;
+            }
+            .kbd {
+                border: 1px solid var(--fb-border);
+                border-bottom-width: 2px;
+                border-radius: 4px;
+                padding: 1px 6px;
+                background: #fff;
+                font-family: inherit;
+                font-size: 0.85em;
+            }
+            footer {
+                margin-top: 56px;
+                padding-top: 16px;
+                border-top: 1px solid var(--fb-border);
+                color: var(--fb-muted);
+                font-size: 0.85rem;
+            }
+            @media print {
+                body {
+                    background: #fff;
+                }
+                .page {
+                    padding: 0;
+                }
+                h2 {
+                    break-after: avoid;
+                }
+                pre,
+                .box,
+                table {
+                    break-inside: avoid;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="page">
+            <header>
+                <h1>Test Fairy Bus su macchina virtuale</h1>
+                <p class="subtitle">Guida alla creazione di un server minimale con GNOME Boxes, installazione di Docker e deploy del pacchetto <code>fairybus-install-1.0.0.zip</code></p>
+            </header>
+
+            <h2>1. Creazione della VM in GNOME Boxes</h2>
+
+            <ol class="steps">
+                <li>Apri <strong>GNOME Boxes</strong> → <span class="kbd">+</span> → <em>Crea macchina virtuale</em>.</li>
+                <li>
+                    Nell'elenco dei sistemi operativi scorri <strong>in fondo</strong> e scegli <em>File immagine del sistema operativo</em> → seleziona la ISO Debian scaricata (riquadro sotto).<br />
+                    <em>Evita il download automatico dall'elenco: il registry di Boxes punta a una point-release archiviata e fallisce con "Scaricamento non riuscito".</em>
+                </li>
+            </ol>
+
+            <div class="box warn">
+                <strong>Download manuale della ISO</strong> (già eseguito su questa macchina):
+                <pre><code><span class="c"># scarica la netinst Debian corrente (~756 MB)</span>
+mkdir -p ~/iso
+cd ~/iso
+curl -fSL -o debian-13.7.0-amd64-netinst.iso \
+  https://cdimage.debian.org/debian-cd/current/amd64/iso-cd/debian-13.7.0-amd64-netinst.iso</code></pre>
+                La ISO si trova già in <code>/home/massimiliano/iso/debian-13.7.0-amd64-netinst.iso</code>.<br />
+                Per versioni future: indice su <code>cdimage.debian.org/debian-cd/current/amd64/iso-cd/</code> (scegli il <code>debian-*-amd64-netinst.iso</code> più recente).
+            </div>
+
+            <ol class="steps" start="3">
+                <li>
+                    Alla schermata <em>Personalizza</em> imposta le risorse:
+
+                    <table>
+                        <tr>
+                            <th>Risorsa</th>
+                            <th>Valore</th>
+                            <th>Note</th>
+                        </tr>
+                        <tr>
+                            <td>CPU</td>
+                            <td>2 core</td>
+                            <td>4 consigliati se disponibili</td>
+                        </tr>
+                        <tr>
+                            <td>RAM</td>
+                            <td><strong>6 GB</strong></td>
+                            <td>minimo 4 GB: MariaDB usa 2 GB di buffer pool + PHP 2 GB di memory limit</td>
+                        </tr>
+                        <tr>
+                            <td>Disco</td>
+                            <td><strong>25 GB</strong></td>
+                            <td>le 3 immagini Docker occupano ~1,7 GB decompressi + database</td>
+                        </tr>
+                    </table>
+                </li>
+                <li>Conferma e avvia: l'installer Debian parte nella finestra della VM.</li>
+            </ol>
+
+            <h2>2. Installazione di Debian</h2>
+
+            <ol class="steps">
+                <li>Scegli <em>Install</em> (grafica non necessaria) e procedi: lingua, tastiera, hostname (es. <code>fbtest</code>).</li>
+                <li>Imposta password <strong>root</strong> e crea un utente normale (es. <code>fb</code>).</li>
+                <li>Partizionamento: <em>Guidato — usa l'intero disco</em>, tutto in una partizione.</li>
+                <li>
+                    Alla schermata <strong>Selezione software</strong> (tasksel):
+                    <ul>
+                        <li><strong>togli</strong> la spunta da <em>Debian desktop environment</em></li>
+                        <li><strong>spunta</strong> <em>SSH server</em> ← fondamentale per il passo 6</li>
+                        <li>tieni <em>standard system utilities</em></li>
+                    </ul>
+                </li>
+                <li>Installa GRUB sul disco virtuale, riavvia e togli la ISO quando richiesto.</li>
+            </ol>
+
+            <div class="box ok"><strong>Risultato:</strong> un server minimale, senza interfaccia grafica, con SSH attivo — identico a un VPS reale.</div>
+
+            <h3>2.1 Problemi comuni dopo l'installazione</h3>
+
+            <h3 style="margin-top: 20px">Comandi base mancanti (<code>sudo</code>, <code>curl</code>, <code>unzip</code>)</h3>
+            <p>L'installazione minimale non include <code>sudo</code> e <code>curl</code>. Si installano da root:</p>
+            <pre><code>su -                                      <span class="c"># password ROOT, non quella utente</span>
+apt update
+apt install -y curl sudo unzip ca-certificates
+usermod -aG sudo NOMEUTENTE               <span class="c"># es. fb</span>
+exit
+<span class="c"># poi riloggati o esegui: newgrp sudo</span></code></pre>
+
+            <h3>Password di root dimenticata</h3>
+            <p>Attenzione: l'installer chiede <strong>due password</strong> — root e utente. Se <code>su -</code> fallisce con <em>Autenticazione non riuscita</em>, riprova con la password di root. Se proprio non la ricordi:</p>
+            <ol>
+                <li>Riavvia la VM → al menu <strong>GRUB</strong> premi <span class="kbd">e</span> sulla voce Debian</li>
+                <li>Trova la riga <code>linux /boot/vmlinuz-... root=UUID=...</code> e aggiungi in fondo: <code>init=/bin/bash</code></li>
+                <li>
+                    <span class="kbd">Ctrl</span>+<span class="kbd">X</span> → shell root diretta, poi:
+                    <pre><code>mount -o remount,rw /
+passwd root          <span class="c"># nuova password</span>
+exec /sbin/init      <span class="c"># continua il boot</span></code></pre>
+                </li>
+            </ol>
+
+            <h3>Voce sintetizzata che parla a ogni azione</h3>
+            <p>Causa: al menu di boot non è stato premuto un tasto entro il countdown → l'installer è partito in <strong>modalità accessibilità</strong> e il sistema installato ha <code>espeakup</code> attivo.</p>
+            <pre><code>sudo systemctl disable --now espeakup     <span class="c"># ferma e disabilita</span>
+<span class="c"># oppure rimozione completa:</span>
+sudo apt purge -y espeakup
+<span class="c"># se parla anche prima del login:</span>
+sudo modprobe -r speakup_soft
+echo "blacklist speakup_soft" | sudo tee /etc/modprobe.d/no-speakup.conf</code></pre>
+            <p>Se reinstalli: al menu di boot premi subito un tasto per fermare il countdown, poi scegli <em>Install</em>.</p>
+
+            <h2>3. Installazione di Docker nella VM</h2>
+
+            <p>Login nella console della VM (o via SSH), poi:</p>
+
+            <pre><code>curl -fsSL https://get.docker.com | sudo sh
+sudo usermod -aG docker $USER</code></pre>
+
+            <p><strong>Ricollegati</strong> (logout/login) e verifica:</p>
+
+            <pre><code>docker --version          # Docker 2x.x
+docker compose version    # plugin compose v2.x &lt;-- richiesto da install.sh</code></pre>
+
+            <h2>4. Trasferire il pacchetto nella VM</h2>
+
+            <p><strong>Sull'host</strong> (questa macchina), nella cartella del progetto:</p>
+
+            <pre><code>cd /home/massimiliano/docker/fairybus/mysql
+python3 -m http.server 8000</code></pre>
+
+            <p><strong>Nella VM:</strong></p>
+
+            <pre><code>wget http://10.0.2.2:8000/fairybus-install-1.0.0.zip
+unzip fairybus-install-1.0.0.zip
+cd fairybus-install</code></pre>
+
+            <div class="box warn"><code>10.0.2.2</code> è l'indirizzo con cui la VM vede sempre l'host sulla rete slirp di Boxes (NAT user-mode). Funziona in uscita dalla VM; <strong>non</strong> è possibile raggiungere la VM dall'host via IP — per quello serve il port-forward del passo 6.</div>
+
+            <h2>5. Installazione dell'app</h2>
+
+            <pre><code>./install.sh</code></pre>
+
+            <p>L'installer chiede in sequenza (premere Invio per i default):</p>
+
+            <table>
+                <tr>
+                    <th>Prompt</th>
+                    <th>Default</th>
+                    <th>Note per il test</th>
+                </tr>
+                <tr>
+                    <td>Porta HTTP</td>
+                    <td><code>8080</code></td>
+                    <td>lascia 8080</td>
+                </tr>
+                <tr>
+                    <td>URL pubblico</td>
+                    <td><code>http://localhost:8080/</code></td>
+                    <td>
+                        <strong>in VM metti <code>http://localhost:8890/</code></strong> — la porta che userai nel browser dell'host tramite il forward
+                    </td>
+                </tr>
+                <tr>
+                    <td>Suffisso istanza</td>
+                    <td><em>vuoto</em></td>
+                    <td>vuoto = <code>fairybus-app/-db/-pma</code>; <code>-demo</code> per una seconda istanza</td>
+                </tr>
+                <tr>
+                    <td>Email admin</td>
+                    <td><code>admin@fairybus.local</code></td>
+                    <td>utenza di login</td>
+                </tr>
+                <tr>
+                    <td>Password admin</td>
+                    <td><em>generata</em></td>
+                    <td>annota quella stampata a fine install</td>
+                </tr>
+            </table>
+
+            <p>Al termine lo script mostra URL e credenziali.</p>
+
+            <h2>6. Aprire l'app dal browser dell'host</h2>
+
+            <p>Boxes usa rete <strong>slirp</strong> (NAT user-mode): la VM ha IP interno <code>10.0.2.15</code> raggiungibile solo in uscita — <strong>l'host non può aprire connessioni verso la VM</strong>. Il tunnel <code>ssh -L</code> non funziona: serve un <em>hostfwd</em> aggiunto a caldo sul netdev QEMU.</p>
+
+            <pre><code><span class="c"># sull'host, a VM accesa (comandi già pronti in fb-vm-forward.sh):</span>
+export LIBVIRT_DEFAULT_URI=qemu:///session
+virsh qemu-monitor-command debian13 --hmp 'hostfwd_add hostnet0 tcp::8890-:8080'
+virsh qemu-monitor-command debian13 --hmp 'hostfwd_add hostnet0 tcp::2222-:22'</code></pre>
+
+            <p>Poi dall'host: <code>ssh -p 2222 &lt;utente&gt;@localhost</code> per la shell, e nel browser:</p>
+
+            <table>
+                <tr>
+                    <th>Servizio</th>
+                    <th>URL</th>
+                </tr>
+                <tr>
+                    <td>App</td>
+                    <td><code>http://localhost:8890/login</code></td>
+                </tr>
+                <tr>
+                    <td>phpMyAdmin</td>
+                    <td><code>http://localhost:8890/pma/</code> (o voce <strong>PMA</strong> nel menu, solo admin)</td>
+                </tr>
+            </table>
+
+            <div class="box warn">
+                <strong>Note sul forward:</strong>
+                <ul style="margin: 6px 0 0">
+                    <li>
+                        <strong><code>Connection refused</code> su <code>ssh -p 2222</code>:</strong> i forward si azzerano a ogni riavvio/spegnimento della VM → rilancia <code>./fb-vm-forward.sh</code>
+                    </li>
+                    <li><strong>Non persistente:</strong> va rilanciato a ogni avvio della VM → <code>./fb-vm-forward.sh</code></li>
+                    <li><strong>Porta host:</strong> qui 8890 perché la 8080 dell'host era occupata da un altro container — scegline una libera</li>
+                    <li><strong>URI:</strong> <code>qemu:///session</code> — i domini di Boxes non si vedono con <code>virsh</code> di sistema</li>
+                </ul>
+            </div>
+
+            <div class="box ok"><strong>Verifica finale:</strong> login con l'email/password dell'installazione → dashboard vuota (database factory), menu laterale con PMA in fondo, phpMyAdmin raggiungibile a <code>/pma/</code>.</div>
+
+            <h2>7. Importare un backup del database (ripristino)</h2>
+
+            <p>Per caricare nell'app un database esistente si usa la funzione <strong>Backup/Ripristina</strong> di Impostazioni: l'app legge gli archivi dalla cartella <code>writable/backups</code> del container, che è un named volume Docker — il file va copiato con <code>docker cp</code>, non nel filesystem della VM.</p>
+
+            <h3>Formato richiesto</h3>
+            <ul>
+                <li>Il nome del file deve seguire il pattern <code>fb-backup-AAAAMMGG-OOmmSS.zip</code> (es. <code>fb-backup-20261017-150604.zip</code>)</li>
+                <li>Lo ZIP deve contenere un file <code>backup.sql</code> nella radice — non un <code>.sql</code> sciolto né altri nomi</li>
+            </ul>
+
+            <h3>Se hai già uno ZIP prodotto dall'app</h3>
+            <p>Un <code>fb-backup-*.zip</code> scaricato da un'altra installazione è già pronto:</p>
+            <pre><code><span class="c"># nella VM, dalla cartella dove si trova lo zip</span>
+docker cp fb-backup-20261017-150604.zip fairybus-app:/var/www/html/writable/backups/
+docker compose exec app chown www-data:www-data /var/www/html/writable/backups/fb-backup-20261017-150604.zip</code></pre>
+
+            <h3>Se hai un dump .sql esterno (mysqldump, phpMyAdmin…)</h3>
+            <p>Va incapsulato nel formato atteso dall'app:</p>
+            <pre><code>mv mio-dump.sql backup.sql
+zip fb-backup-20261017-150604.zip backup.sql
+docker cp fb-backup-20261017-150604.zip fairybus-app:/var/www/html/writable/backups/
+docker compose exec app chown www-data:www-data /var/www/html/writable/backups/fb-backup-20261017-150604.zip</code></pre>
+
+            <p>Verifica che l'app lo veda:</p>
+            <pre><code>docker compose exec app ls -l /var/www/html/writable/backups/</code></pre>
+
+            <h3>Ripristino</h3>
+            <ol class="steps">
+                <li>Apri <code>http://localhost:8890/admin/settings</code> → tab <strong>Backup</strong></li>
+                <li>Il file copiato compare in elenco → pulsante <strong>Ripristina</strong></li>
+            </ol>
+
+            <div class="box warn">
+                <strong>Attenzione:</strong>
+                <ul style="margin: 6px 0 0">
+                    <li>Il ripristino esegue <code>DROP TABLE</code> su tutte le tabelle — <strong>sostituisce completamente i dati attuali</strong></li>
+                    <li>Se hai installato con suffisso (es. <code>-demo</code>), il container è <code>fairybus-app-demo</code> — controlla con <code>docker ps --format '{{.Names}}'</code></li>
+                    <li>Il dump viene eseguito statement-per-statement: dump creati dall'app o da <code>mysqldump</code> funzionano; formati esotici possono fallire a metà — in tal caso importa via phpMyAdmin (<code>/pma/</code>) o <code>docker exec fairybus-db mariadb …</code></li>
+                </ul>
+            </div>
+
+            <h2>8. Aggiornare l'app (patch e release)</h2>
+
+            <p>Il codice dell'app è montato dalla cartella <code>./app-src</code> (bind mount su <code>/var/www/html</code>), popolata dall'immagine al primo avvio. Gli aggiornamenti si applicano con <code>./update.sh</code> <strong>senza reinstallare</strong> e senza toccare dati (DB, upload, sessioni).</p>
+
+            <table>
+                <tr>
+                    <th>Pacchetto</th>
+                    <th>Quando usarlo</th>
+                    <th>Comando</th>
+                </tr>
+                <tr>
+                    <td><code>fairybus-patch-X.Y.Z.zip</code></td>
+                    <td>Fix rapidi: contiene solo i file modificati (KB/MB)</td>
+                    <td><code>./update.sh fairybus-patch-1.0.1.zip</code></td>
+                </tr>
+                <tr>
+                    <td><code>fairybus-app-X.Y.Z.tar.gz</code></td>
+                    <td>Release complete: nuova immagine Docker (~200 MB)</td>
+                    <td><code>./update.sh fairybus-app-1.0.1.tar.gz</code></td>
+                </tr>
+            </table>
+
+            <p>In entrambi i casi <code>update.sh</code> esegue automaticamente: estrazione/sincronizzazione del codice in <code>app-src</code>, migrazioni DB (<code>spark migrate</code>), pulizia cache Twig e riavvio del container — necessario perché l'opcache PHP non rivalida i file.</p>
+
+            <div class="box warn">
+                <strong>Attenzione:</strong>
+                <ul style="margin: 6px 0 0">
+                    <li>Eventuali modifiche manuali ai file in <code>app-src</code> vengono <strong>sovrascritte</strong> dagli aggiornamenti</li>
+                    <li>Le patch zip devono contenere i file con path relativi alla radice del progetto (es. <code>app/Config/App.php</code>, <code>public/assets/…</code>) — li genera lo script <code>make-patch.sh</code> in ambiente di sviluppo</li>
+                    <li>Per copiare il pacchetto nella VM usa lo stesso canale del paragrafo 4 (<code>http://10.0.2.2:8000/…</code>) o <code>scp -P 2222</code></li>
+                </ul>
+            </div>
+
+            <h2>9. Note e risoluzione problemi</h2>
+
+            <ul>
+                <li><strong>Seconda istanza di test:</strong> scompatta lo zip in un'altra cartella, riesegui <code>install.sh</code> con porta diversa (es. 8081) e suffisso <code>-demo</code>.</li>
+                <li>
+                    <strong>Reinstallare da zero:</strong>
+                    <code>docker compose down -v &amp;&amp; rm -f .env app.env &amp;&amp; ./install.sh</code>
+                    (cancella database e upload).
+                </li>
+                <li><strong>Log:</strong> <code>docker compose logs -f app</code> oppure <code>db</code>/<code>pma</code>.</li>
+                <li><strong>phpMyAdmin login:</strong> <code>root</code> + <code>MYSQL_ROOT_PASSWORD</code> dal file <code>.env</code> della cartella di installazione.</li>
+                <li><strong>RAM insufficiente:</strong> se la VM ha solo 4 GB e va in swap, riduci <code>innodb_buffer_pool_size</code> in <code>my.cnf</code> a 512M e <code>docker compose up -d</code>.</li>
+                <li><strong>Pacchetto offline:</strong> tutte e 3 le immagini Docker sono nel file — la VM non ha bisogno di scaricare nulla da Docker Hub.</li>
+                <li>
+                    <strong><code>ssh -p 2222</code> → "Connection refused":</strong> la VM è stata riavviata/spenta e i port-forward slirp sono andati persi → riesegui <code>./fb-vm-forward.sh</code>. Se persiste: verifica che la VM sia accesa (<code>virsh -c qemu:///session domstate debian13</code>) e che sshd sia installato (<code>systemctl status ssh</code> nella console).
+                </li>
+                <li>
+                    <strong>La pagina si apre ma senza grafica (no CSS):</strong> l'URL pubblico inserito nell'installer non corrisponde a quello digitato nel browser — l'app genera i link degli asset con <code>app.baseURL</code> (es. <code>localhost:8080</code> invece di <code>localhost:8890</code>). Fix dalla cartella di installazione, nella VM:
+                    <pre><code>sed -i 's|^app\.baseURL = .*|app.baseURL = http://localhost:8890/|' app.env
+docker compose restart app
+docker compose exec app rm -rf /var/www/html/writable/cache/*</code></pre>
+                    poi ricarica con <code>Ctrl+F5</code>. Regola: l'URL pubblico va sempre scritto come appare nella barra del browser.
+                </li>
+            </ul>
+
+            <footer>Fairy Bus — pacchetto <code>fairybus-install-1.0.0.zip</code> · documento generato il 17/10/2026</footer>
+        </div>
+    </body>
+</html>

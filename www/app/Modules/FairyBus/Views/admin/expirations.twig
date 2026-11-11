@@ -1,0 +1,165 @@
+{#
+ * Copyright since 2026 Massimiliano Palermo
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Academic Free License version 3.0
+ * that is bundled with this package in the file LICENSE.md.
+ * It is also available through the world-wide-web at this URL:
+ * https://opensource.org/licenses/AFL-3.0
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to maxx.palermo@gmail.com so we can send you a copy immediately.
+ *
+ * @author    Massimiliano Palermo <maxx.palermo@gmail.com>
+ * @copyright Since 2026 Massimiliano Palermo
+ * @license   https://opensource.org/licenses/AFL-3.0 Academic Free License version 3.0
+#}
+{% extends "admin/layout.twig" %}
+
+{% block page_styles %}
+    <link rel="stylesheet" href="{{ asset('fairy-bus/css/pages/expirations.css') }}">
+{% endblock %}
+
+{% block content %}
+    <section class="fb-page">
+        <div class="fb-page-header">
+            <div>
+                <h1 class="fb-page-title">Voci di scadenza</h1>
+                <p class="fb-page-subtitle">Etichette delle scadenze e loro tipo (chilometrico o a data).</p>
+            </div>
+            <div class="fb-page-actions">
+                <span class="fb-muted fb-selected-count" id="tags-selected-count">0 selezionati</span>
+                <button type="button" class="fb-btn-icon fb-btn-icon-warning" data-action="print-tags" title="Stampa PDF (righe selezionate, max 500)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                </button>
+                <button type="button" class="fb-btn-icon fb-btn-icon-success" data-action="new-tag" title="Nuova voce di scadenza">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                </button>
+            </div>
+        </div>
+
+        <div class="fb-table-wrap">
+            <table id="expiration-tags-table" class="fb-table"></table>
+        </div>
+
+        <div class="fb-page-header fb-exp-section">
+            <div>
+                <h2 class="fb-page-title">Scadenze veicoli</h2>
+                <p class="fb-page-subtitle">Scadenze assegnate ai veicoli: periodiche o una tantum.</p>
+            </div>
+        </div>
+        <div class="fb-table-wrap">
+            <table id="expirations-table" class="fb-table"></table>
+        </div>
+    </section>
+
+    <template id="tpl-tag-form">
+        <form class="fb-form fb-tag-form" data-form="tag">
+            <div class="fb-form-group">
+                <label class="fb-form-label" for="tag_name">Nome</label>
+                <input type="text" id="tag_name" name="name" class="fb-form-input" maxlength="255" required>
+            </div>
+            <div class="fb-form-grid">
+                <div class="fb-form-group">
+                    <label class="fb-form-label" for="tag_kind">Tipo scadenza</label>
+                    <select id="tag_kind" name="kind" class="fb-form-input">
+                        <option value="date">Data</option>
+                        <option value="km">Km</option>
+                    </select>
+                </div>
+                <div class="fb-form-group">
+                    <label class="fb-form-label" for="tag_interval">Intervallo</label>
+                    <input type="number" id="tag_interval" name="interval_value" class="fb-form-input" min="0" step="1" placeholder="es. 20000">
+                </div>
+            </div>
+            <div class="fb-form-group" data-field="unit-wrap">
+                <label class="fb-form-label" for="tag_unit">Unità intervallo</label>
+                <select id="tag_unit" name="interval_unit" class="fb-form-input">
+                    <option value="days">Giorni</option>
+                    <option value="months" selected>Mesi</option>
+                    <option value="years">Anni</option>
+                    <option value="km">Km</option>
+                </select>
+            </div>
+            <div class="fb-form-group">
+                <label class="fb-form-label" for="tag_note">Nota</label>
+                <input type="text" id="tag_note" name="note" class="fb-form-input" maxlength="255">
+            </div>
+            <div class="fb-form-actions">
+                <button type="submit" class="fb-btn fb-btn-primary">Salva</button>
+                <button type="button" class="fb-btn fb-btn-secondary" data-action="close">Annulla</button>
+            </div>
+        </form>
+    </template>
+
+    <template id="tpl-expiration-form">
+        <form class="fb-form fb-expiration-form" data-form="expiration">
+            <input type="hidden" name="id_expiration" value="">
+            <div class="fb-form-grid">
+                <div class="fb-form-group">
+                    <label class="fb-form-label">Veicolo</label>
+                    <input type="text" class="fb-form-input" data-field="vehicle" disabled>
+                </div>
+                <div class="fb-form-group">
+                    <label class="fb-form-label" for="exp_tag">Voce di scadenza</label>
+                    <select id="exp_tag" name="id_expiration_tag" class="fb-form-input" data-field="tag"></select>
+                </div>
+            </div>
+            <div class="fb-form-grid">
+                <div class="fb-form-group">
+                    <label class="fb-form-label" for="exp_kind">Tipo</label>
+                    <select id="exp_kind" name="kind" class="fb-form-input">
+                        <option value="date">Data</option>
+                        <option value="km">Km</option>
+                    </select>
+                </div>
+                <div class="fb-form-group">
+                    <label class="fb-form-label" for="exp_periodicity">Periodicità</label>
+                    <select id="exp_periodicity" name="periodicity" class="fb-form-input">
+                        <option value="once">Una tantum</option>
+                        <option value="yearly">Annuale</option>
+                        <option value="days">Ogni N giorni</option>
+                        <option value="km">Chilometrica</option>
+                    </select>
+                </div>
+            </div>
+            <div class="fb-form-grid">
+                <div class="fb-form-group">
+                    <label class="fb-form-label" for="exp_date">Scadenza (data)</label>
+                    <input type="date" id="exp_date" name="expiration_date" class="fb-form-input">
+                </div>
+                <div class="fb-form-group">
+                    <label class="fb-form-label" for="exp_km">Scadenza (km)</label>
+                    <input type="number" id="exp_km" name="expires_atkm" class="fb-form-input" min="0" step="1">
+                </div>
+            </div>
+            <div class="fb-form-grid fb-form-grid-3">
+                <div class="fb-form-group">
+                    <label class="fb-form-label" for="exp_everyxdays">Ogni (giorni)</label>
+                    <input type="number" id="exp_everyxdays" name="everyxdays" class="fb-form-input" min="0" step="1">
+                </div>
+                <div class="fb-form-group">
+                    <label class="fb-form-label" for="exp_ymonth">Mese (annuale)</label>
+                    <input type="number" id="exp_ymonth" name="yearly_month" class="fb-form-input" min="1" max="12" step="1">
+                </div>
+                <div class="fb-form-group">
+                    <label class="fb-form-label" for="exp_yday">Giorno (annuale)</label>
+                    <input type="number" id="exp_yday" name="yearly_day" class="fb-form-input" min="1" max="31" step="1">
+                </div>
+            </div>
+            <div class="fb-form-group">
+                <label class="fb-form-label" for="exp_desc">Descrizione</label>
+                <input type="text" id="exp_desc" name="description" class="fb-form-input" maxlength="255">
+            </div>
+            <div class="fb-form-actions">
+                <button type="submit" class="fb-btn fb-btn-primary">Salva</button>
+                <button type="button" class="fb-btn fb-btn-secondary" data-action="close">Annulla</button>
+            </div>
+        </form>
+    </template>
+{% endblock %}
+
+{% block page_scripts %}
+    <script type="module" src="{{ asset('fairy-bus/js/pages/expirations.js') }}"></script>
+{% endblock %}

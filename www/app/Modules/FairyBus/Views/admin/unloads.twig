@@ -1,0 +1,163 @@
+{#
+ * Copyright since 2026 Massimiliano Palermo
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Academic Free License version 3.0
+ * that is bundled with this package in the file LICENSE.md.
+ * It is also available through the world-wide-web at this URL:
+ * https://opensource.org/licenses/AFL-3.0
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to maxx.palermo@gmail.com so we can send you a copy immediately.
+ *
+ * @author    Massimiliano Palermo <maxx.palermo@gmail.com>
+ * @copyright Since 2026 Massimiliano Palermo
+ * @license   https://opensource.org/licenses/AFL-3.0 Academic Free License version 3.0
+#}
+{% extends "admin/layout.twig" %}
+
+{% block page_styles %}
+    <link rel="stylesheet" href="{{ asset('fairy-bus/css/pages/documents.css') }}?v=6">
+{% endblock %}
+
+{% block content %}
+    <section class="fb-page">
+        <div class="fb-page-header">
+            <div>
+                <h1 class="fb-page-title">Manutenzione terzi</h1>
+                <p class="fb-page-subtitle">Riepiloghi di manutenzione verso clienti: raggruppano le schede officina già eseguite su un automezzo, senza movimenti di magazzino.</p>
+            </div>
+            <div class="fb-page-actions">
+                <span class="fb-muted fb-selected-count" id="documents-selected-count">0 selezionati</span>
+                <button type="button" class="fb-btn-icon fb-btn-icon-success" data-action="print-report" data-direction="out" title="Report sintetico (una riga per documento — selezionati o mese/anno, PDF o HTML)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="8" y1="13" x2="16" y2="13"></line><line x1="8" y1="17" x2="13" y2="17"></line></svg>
+                </button>
+                <button type="button" class="fb-btn-icon fb-btn-icon-warning" data-action="print-documents" title="Stampa PDF (righe selezionate, max 500)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                </button>
+                <button type="button" class="fb-btn-icon fb-btn-icon-success" data-action="new-document" title="Nuovo riepilogo manutenzione terzi">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                </button>
+            </div>
+        </div>
+
+        <div class="fb-table-wrap">
+            <table id="documents-table" class="fb-table" data-direction="out"></table>
+        </div>
+    </section>
+
+    <template id="tpl-document-form">
+        <form class="fb-form fb-document-form" data-form="document">
+            <input type="hidden" name="id_document" value="">
+
+            <div class="fb-tabs fb-form-tabs" role="tablist">
+                <button type="button" class="fb-tab active" data-tab="info" role="tab" aria-selected="true">Informazioni</button>
+                <button type="button" class="fb-tab" data-tab="manutenzioni" role="tab" aria-selected="false">Manutenzioni</button>
+                <button type="button" class="fb-tab" data-tab="movimenti" role="tab" aria-selected="false">Movimenti</button>
+            </div>
+
+            <div class="fb-tab-panel active" data-panel="info" role="tabpanel">
+                <div class="fb-mnt-target" data-field="target-box">
+                    <div class="fb-mnt-target-title">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><rect x="1" y="3" width="15" height="13" rx="2"></rect><path d="M16 8h4l3 5v3h-7z"></path><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
+                        Cliente e automezzo <span class="fb-req">*</span>
+                    </div>
+                    <div class="fb-form-grid">
+                        <div class="fb-form-group">
+                            <label class="fb-form-label" for="doc_customer">Cliente</label>
+                            <select id="doc_customer" name="id_customer" class="fb-form-input" data-field="supplier"></select>
+                        </div>
+                        <div class="fb-form-group">
+                            <label class="fb-form-label" for="doc_vehicle">Automezzo (targa)</label>
+                            <select id="doc_vehicle" name="id_vehicle" class="fb-form-input" data-field="vehicle"></select>
+                        </div>
+                    </div>
+                </div>
+                <div class="fb-form-grid">
+                    <div class="fb-form-group">
+                        <label class="fb-form-label" for="doc_number">Numero</label>
+                        <input type="text" id="doc_number" name="number" class="fb-form-input" maxlength="255" placeholder="automatico">
+                    </div>
+                    <div class="fb-form-group">
+                        <label class="fb-form-label" for="doc_date">Data</label>
+                        <input type="date" id="doc_date" name="date" class="fb-form-input">
+                    </div>
+                    <div class="fb-form-group">
+                        <label class="fb-form-label" for="doc_type">Tipo documento</label>
+                        <select id="doc_type" name="type" class="fb-form-input" data-field="type"></select>
+                    </div>
+                </div>
+                <div class="fb-form-group">
+                    <label class="fb-form-label" for="doc_note">Nota</label>
+                    <input type="text" id="doc_note" name="note" class="fb-form-input" maxlength="255">
+                </div>
+            </div>
+
+            <div class="fb-tab-panel" data-panel="manutenzioni" role="tabpanel">
+                <p class="fb-muted" style="margin: 0 0 0.35rem; font-size: 0.8125rem;">Schede manutenzione dell'automezzo selezionato in Informazioni, non ancora registrate su un riepilogo o su una fattura cliente.</p>
+                <div class="fb-mnt-list" data-field="mnt-list"></div>
+                <p class="fb-muted fb-detail-hint" data-field="mnt-hint">Seleziona l'automezzo nella scheda Informazioni.</p>
+            </div>
+
+            <div class="fb-tab-panel" data-panel="movimenti" role="tabpanel">
+                <div class="fb-kpi-grid">
+                    <div class="fb-kpi fb-kpi-success">
+                        <span class="fb-kpi-value" data-kpi="total">0,00&nbsp;€</span>
+                        <span class="fb-kpi-label">Prezzo totale</span>
+                    </div>
+                    <div class="fb-kpi fb-kpi-danger">
+                        <span class="fb-kpi-value" data-kpi="qty">0</span>
+                        <span class="fb-kpi-label">Totale colli</span>
+                    </div>
+                    <div class="fb-kpi fb-kpi-warning">
+                        <span class="fb-kpi-value" data-kpi="rows">0</span>
+                        <span class="fb-kpi-label">Numero movimenti</span>
+                    </div>
+                </div>
+
+                <table class="fb-table fb-details-table">
+                    <thead>
+                        <tr>
+                            <th class="num">Q.tà</th>
+                            <th>Codice</th>
+                            <th>Articolo</th>
+                            <th class="num">Prezzo</th>
+                            <th class="num">Sconto</th>
+                            <th class="num">Importo</th>
+                            <th>I.v.a.</th>
+                            <th class="num">Totale</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody data-field="details-body"></tbody>
+                </table>
+
+                <div class="fb-detail-add" data-field="detail-add">
+                    <select class="fb-form-input" data-field="detail-product"></select>
+                    <input type="number" class="fb-form-input" data-field="detail-qty" placeholder="Q.tà" step="0.001" min="0">
+                    <div class="fb-price-field">
+                        <input type="number" class="fb-form-input" data-field="detail-price" placeholder="Prezzo" step="0.0001" min="0">
+                        <button type="button" class="fb-btn-price-search" data-action="search-price" title="Ultimo acquisto per fornitore">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                        </button>
+                    </div>
+                    <input type="number" class="fb-form-input" data-field="detail-discount" placeholder="Sconto %" step="0.01" min="0">
+                    <input type="number" class="fb-form-input" data-field="detail-vat" placeholder="IVA %" step="0.01" min="0">
+                    <button type="button" class="fb-btn fb-btn-secondary fb-btn-sm" data-action="add-detail">Aggiungi</button>
+                </div>
+                <p class="fb-muted fb-detail-hint" data-field="detail-hint">Salva prima il documento per aggiungere movimenti.</p>
+            </div>
+
+            <div class="fb-form-actions">
+                <button type="button" class="fb-btn fb-btn-secondary" data-action="next" style="display:none">Successivo</button>
+                <button type="submit" class="fb-btn fb-btn-primary" data-action="save">Salva</button>
+                <button type="button" class="fb-btn fb-btn-secondary" data-action="close">Annulla</button>
+            </div>
+        </form>
+    </template>
+{% endblock %}
+
+{% block page_scripts %}
+    <script type="module" src="{{ asset('fairy-bus/js/pages/documents.js?v=31') }}"></script>
+{% endblock %}

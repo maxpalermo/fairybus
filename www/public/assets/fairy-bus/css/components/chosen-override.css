@@ -1,0 +1,14 @@
+/* Fix Chosen dropdown inside relative containers */
+.chosen-container .chosen-drop {
+    position: absolute;
+    z-index: 1060;
+}
+
+.chosen-container-active.chosen-with-drop .chosen-single {
+    border-color: var(--fb-input);
+}
+
+.chosen-container .chosen-results li.highlighted {
+    background-color: var(--fb-primary);
+    color: var(--fb-primary-foreground);
+}

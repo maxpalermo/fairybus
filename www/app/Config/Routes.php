@@ -153,6 +153,7 @@ $routes->get('api/maintenance/(:num)/details', '\FairyBus\Controllers\Api\Mainte
 $routes->post('api/maintenance/details/(:num)/delete', '\FairyBus\Controllers\Api\Maintenance::deleteDetail/$1');
 $routes->post('api/maintenance/(:num)/link-invoice', '\FairyBus\Controllers\Api\Maintenance::linkInvoice/$1');
 $routes->post('api/maintenance/(:num)/unlink-invoice', '\FairyBus\Controllers\Api\Maintenance::unlinkInvoice/$1');
+$routes->post('api/maintenance/(:num)/link-document', '\FairyBus\Controllers\Api\Maintenance::linkDocument/$1');
 $routes->get('api/expiration-tags', '\FairyBus\Controllers\Api\Expirations::tags');
 $routes->post('api/expiration-tags', '\FairyBus\Controllers\Api\Expirations::createTag');
 $routes->post('api/expiration-tags/(:num)/update', '\FairyBus\Controllers\Api\Expirations::updateTag/$1');

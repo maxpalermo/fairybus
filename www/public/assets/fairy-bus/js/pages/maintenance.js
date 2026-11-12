@@ -80,7 +80,7 @@ function sheetDocCell(value, row) {
 function formatActions(value, row) {
     // I link manutenzione<->fattura generati tramite documento di scarico
     // (id_document) si gestiscono dal flusso scarico->fattura: niente bottoni manuali.
-    const linkBtn = Number(row.invoices_count || 0) === 0 && !row.id_document ? `<button type="button" class="fb-btn-icon fb-btn-icon-success" title="Associa a fattura" data-action="assign-invoice" data-id="${row.id_maintenance}">${ICONS.link}</button>` : "";
+    const linkBtn = Number(row.invoices_count || 0) === 0 && !row.id_document ? `<button type="button" class="fb-btn-icon fb-btn-icon-success" title="Associa a riepilogo" data-action="assign-document" data-id="${row.id_maintenance}">${ICONS.link}</button>` : "";
     const unlinkBtn = Number(row.invoices_count || 0) > 0 && !row.id_document ? `<button type="button" class="fb-btn-icon fb-btn-icon-warning" title="Dissocia dalla fattura" data-action="unlink-invoice" data-id="${row.id_maintenance}">${ICONS.unlink}</button>` : "";
     return `
         <div class="fb-btn-group">
@@ -101,9 +101,9 @@ window.maintenanceActionsEvents = {
         ev.stopPropagation();
         openMaintenanceForm(row);
     },
-    "click [data-action=assign-invoice]": function (ev, value, row) {
+    "click [data-action=assign-document]": function (ev, value, row) {
         ev.stopPropagation();
-        openAssignInvoiceDialog(row);
+        openAssignDocumentDialog(row);
     },
     "click [data-action=view-doc]": function (ev, value, row) {
         ev.stopPropagation();
@@ -141,18 +141,31 @@ window.maintenanceActionsEvents = {
 };
 
 /**
- * Picker delle fatture cliente per associare la scheda direttamente dalla
- * riga tabella (stesso endpoint link-invoice del tab Fatture del form).
+ * Picker dei documenti di riepilogo della stessa targa: associa la scheda
+ * al riepilogo scelto, che viene aggiornato con le righe della scheda
+ * (ricambi + manodopera) tramite l'endpoint link-document.
  */
-function openAssignInvoiceDialog(row) {
-    const invoices = (invoicesCache || []).filter((i) => Number(i.id_customer || 0) > 0);
+async function openAssignDocumentDialog(row) {
+    let documents;
+    try {
+        const res = await FetchHelper.get(`${window.FB.baseUrl}api/documents`, { direction: "out" });
+        documents = (res.rows || []).filter((doc) => Number(doc.id_vehicle) === Number(row.id_vehicle));
+    } catch (err) {
+        await dialog.error(err);
+        return;
+    }
 
     const d = document.createElement("dialog");
     d.className = "fb-dialog";
     d.innerHTML = `
-        <div class="fb-dialog-header"><h3 class="fb-dialog-title">Associa a fattura — scheda del ${fmtDate(row.date)} ${escapeHtml(row.vehicle_plate || "")}</h3></div>
+        <div class="fb-dialog-header"><h3 class="fb-dialog-title">Associa a Riepilogo</h3></div>
         <div class="fb-dialog-body">
-            <input type="search" class="fb-form-input fb-picker-search" placeholder="Cerca per numero, cliente, targa o data…" data-field="search">
+            <dl class="fb-view-grid">
+                ${viewItem("Scheda", row.id_maintenance, { icon: "wrench" })}
+                ${viewItem("Data", fmtDate(row.date))}
+                ${viewItem("Targa", row.vehicle_plate)}
+            </dl>
+            <input type="search" class="fb-form-input fb-picker-search" placeholder="Cerca per numero, cliente o data…" data-field="search">
             <div class="fb-picker-list" data-field="list"></div>
             <div class="fb-form-actions">
                 <button type="button" class="fb-btn fb-btn-secondary" data-action="close">Annulla</button>
@@ -163,19 +176,19 @@ function openAssignInvoiceDialog(row) {
     d.showModal();
 
     const list = d.querySelector('[data-field="list"]');
-    if (invoices.length === 0) {
-        list.innerHTML = '<div class="fb-picker-item fb-muted" style="cursor:default">Nessuna fattura cliente disponibile.</div>';
+    if (documents.length === 0) {
+        list.innerHTML = '<div class="fb-picker-item fb-muted" style="cursor:default">Nessun riepilogo per questa targa.</div>';
     }
-    for (const inv of invoices) {
+    for (const doc of documents) {
         const btn = document.createElement("button");
         btn.type = "button";
         btn.className = "fb-picker-item";
-        btn.dataset.id = inv.id_invoice;
+        btn.dataset.id = doc.id_document;
         btn.innerHTML = `
-            <span class="fb-picker-main">${escapeHtml(inv.number || "s.n.")}${inv.vehicle_plate ? ` · ${escapeHtml(inv.vehicle_plate)}` : ""}</span>
-            <span class="fb-picker-sub">${escapeHtml(inv.customer_name || "")} — ${fmtDate(inv.date)}</span>
+            <span class="fb-picker-main">Riepilogo ${escapeHtml(doc.number || "s.n.")}</span>
+            <span class="fb-picker-sub">${escapeHtml(doc.customer_name || "")} — ${fmtDate(doc.date)}</span>
         `;
-        btn.dataset.search = `${inv.number || ""} ${inv.customer_name || ""} ${inv.vehicle_plate || ""} ${inv.date || ""} ${fmtDate(inv.date)}`.toLowerCase();
+        btn.dataset.search = `${doc.number || ""} ${doc.customer_name || ""} ${doc.date || ""} ${fmtDate(doc.date)}`.toLowerCase();
         list.appendChild(btn);
     }
 
@@ -192,7 +205,7 @@ function openAssignInvoiceDialog(row) {
             return;
         }
         try {
-            await FetchHelper.post(`${window.FB.baseUrl}api/maintenance/${row.id_maintenance}/link-invoice`, { id_invoice: item.dataset.id });
+            await FetchHelper.post(`${window.FB.baseUrl}api/maintenance/${row.id_maintenance}/link-document`, { id_document: item.dataset.id });
             d.close();
             refreshTable();
         } catch (err) {
@@ -208,6 +221,7 @@ function openAssignInvoiceDialog(row) {
 
 async function openDocumentDialog(idDocument) {
     let doc;
+    let mntRows = [];
     try {
         const res = await FetchHelper.get(`${window.FB.baseUrl}api/documents/${idDocument}`);
         doc = res.document;
@@ -215,6 +229,14 @@ async function openDocumentDialog(idDocument) {
         await dialog.error(err);
         return;
     }
+    try {
+        // Schede collegate al riepilogo, incluse quelle senza righe movimento
+        const res = await FetchHelper.get(`${window.FB.baseUrl}api/maintenance/available`, { document_id: idDocument });
+        mntRows = res.rows || [];
+    } catch {
+        mntRows = [];
+    }
+    const emptySheets = mntRows.filter((m) => Number(m.parts_count || 0) === 0 && Number(m.tasks_count || 0) === 0);
 
     let total = 0;
     const rowsHtml = (doc.details || [])
@@ -236,11 +258,21 @@ async function openDocumentDialog(idDocument) {
         `;
         })
         .join("");
+    const emptyRowsHtml = emptySheets
+        .map((s) => `<tr><td>Scheda ${s.id_maintenance} del ${fmtDate(s.date)}</td><td colspan="8" class="fb-muted" style="text-align:center">Nessun movimento</td></tr>`)
+        .join("");
 
     const dlg = document.createElement("dialog");
     dlg.className = "fb-dialog";
     dlg.innerHTML = `
-        <div class="fb-dialog-header"><h3 class="fb-dialog-title">Documento di riepilogo ${escapeHtml(doc.number || doc.id_document)}</h3></div>
+        <div class="fb-dialog-header">
+            <h3 class="fb-dialog-title">Documento di riepilogo ${escapeHtml(doc.number || doc.id_document)}</h3>
+            <label class="fb-switch" title="Elenca anche le schede riepilogate senza righe movimento">
+                <input type="checkbox" data-field="show-empty">
+                <span class="fb-switch-slider"></span>
+                <span class="fb-switch-text">Schede senza movimenti</span>
+            </label>
+        </div>
         <div class="fb-dialog-body">
             <dl class="fb-view-grid">
                 ${viewItem("Cliente", doc.customer_name || doc.supplier_name)}
@@ -248,6 +280,8 @@ async function openDocumentDialog(idDocument) {
                 ${viewItem("Numero", doc.number)}
                 ${viewItem("Data", fmtDate(doc.date))}
                 ${viewItem("Tipo", doc.type_name)}
+                ${viewItem("Schede riepilogate", mntRows.length)}
+                ${viewItem("Schede senza movimenti", emptySheets.length)}
                 ${viewItem("Nota", doc.note)}
             </dl>
             <div class="fb-details-scroll">
@@ -259,7 +293,7 @@ async function openDocumentDialog(idDocument) {
                             <th>I.v.a.</th><th class="num">Totale</th>
                         </tr>
                     </thead>
-                    <tbody>${rowsHtml || '<tr><td colspan="9" class="fb-muted" style="text-align:center">Nessun movimento.</td></tr>'}</tbody>
+                    <tbody data-field="view-tbody"></tbody>
                 </table>
             </div>
             <div class="fb-details-total"><span class="fb-muted">Totale documento</span><strong>${fmtMoney(total)}</strong></div>
@@ -272,8 +306,18 @@ async function openDocumentDialog(idDocument) {
     document.body.appendChild(dlg);
     dlg.showModal();
 
+    const showEmptyEl = dlg.querySelector('[data-field="show-empty"]');
+    const tbody = dlg.querySelector('[data-field="view-tbody"]');
+    const renderBody = () => {
+        tbody.innerHTML =
+            rowsHtml + (showEmptyEl.checked ? emptyRowsHtml : "") ||
+            '<tr><td colspan="9" class="fb-muted" style="text-align:center">Nessun movimento.</td></tr>';
+    };
+    showEmptyEl.addEventListener("change", renderBody);
+    renderBody();
+
     dlg.querySelector('[data-action="print"]').addEventListener("click", () => {
-        window.open(`${window.FB.baseUrl}admin/documents/${doc.id_document}/print`, "_blank");
+        window.open(`${window.FB.baseUrl}admin/documents/${doc.id_document}/print${showEmptyEl.checked ? "?empty=1" : ""}`, "_blank");
     });
     dlg.querySelector('[data-action="close"]').addEventListener("click", () => dlg.close());
     dlg.addEventListener("close", () => dlg.remove(), { once: true });
@@ -293,6 +337,9 @@ function initMaintenanceTable() {
         filterControl: true,
         sortable: true,
         locale: "it-IT",
+        // Schede senza movimenti (né ricambi né manodopera): riga arancione tenue.
+        rowStyle: (row) =>
+            Number(row.parts_count || 0) === 0 && Number(row.tasks_count || 0) === 0 ? { classes: "fb-row-empty" } : {},
         columns: [
             { field: "state", checkbox: true, align: "center", valign: "middle" },
             { field: "id_maintenance", title: "Scheda", sortable: true, formatter: sheetDocCell, events: window.maintenanceActionsEvents, filterControl: "input", filterCustomSearch: window.fbFilterSearch },

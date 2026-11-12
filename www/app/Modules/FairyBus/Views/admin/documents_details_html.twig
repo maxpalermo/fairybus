@@ -77,17 +77,20 @@
                 </tbody>
             </table>
 
+            {% set is_out = document.id_customer is not empty %}
+            {% set colw = is_out ? {qty: 6, code: 12, price: 10, disc: 7, amount: 10, vat: 8, tot: 10} : {qty: 8, code: 15, price: 11, disc: 9, amount: 12, vat: 10, tot: 12} %}
             <table>
                 <thead>
                     <tr>
-                        <th style="width: 8%;" class="num">Q.tà</th>
-                        <th style="width: 15%;">Codice</th>
+                        {% if is_out %}<th style="width: 19%;">Scheda</th>{% endif %}
+                        <th style="width: {{ colw.qty }}%;" class="num">Q.tà</th>
+                        <th style="width: {{ colw.code }}%;">Codice</th>
                         <th>Articolo</th>
-                        <th style="width: 11%;" class="num">Prezzo</th>
-                        <th style="width: 9%;" class="num">Sconto</th>
-                        <th style="width: 12%;" class="num">Importo</th>
-                        <th style="width: 10%;">I.v.a.</th>
-                        <th style="width: 12%;" class="num">Totale</th>
+                        <th style="width: {{ colw.price }}%;" class="num">Prezzo</th>
+                        <th style="width: {{ colw.disc }}%;" class="num">Sconto</th>
+                        <th style="width: {{ colw.amount }}%;" class="num">Importo</th>
+                        <th style="width: {{ colw.vat }}%;">I.v.a.</th>
+                        <th style="width: {{ colw.tot }}%;" class="num">Totale</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -101,6 +104,7 @@
                         {% set total = total + rowTotal %}
                         {% set totalQty = totalQty + qty %}
                         <tr>
+                            {% if is_out %}<td>{{ row.id_maintenance ? 'Scheda ' ~ row.id_maintenance ~ (row.maintenance_date ? ' del ' ~ row.maintenance_date|date('d/m/Y') : '') : '—' }}</td>{% endif %}
                             <td class="num">{{ qty|number_format(3, ',', '.')|trim('0', 'right')|trim(',', 'right') ?: '0' }}</td>
                             <td>{{ row.sku|default('—') }}</td>
                             <td>{{ row.product_name|default('—') }}</td>
@@ -111,12 +115,13 @@
                             <td class="num">{{ rowTotal|number_format(2, ',', '.') }}</td>
                         </tr>
                     {% else %}
-                        <tr><td colspan="8" class="center muted">Nessun movimento.</td></tr>
+                        <tr><td colspan="{{ is_out ? 9 : 8 }}" class="center muted">Nessun movimento.</td></tr>
                     {% endfor %}
                 </tbody>
                 {% if document.details|length > 0 %}
                     <tfoot>
                         <tr class="tot-row">
+                            {% if is_out %}<td></td>{% endif %}
                             <td class="num"><strong>{{ totalQty|number_format(3, ',', '.')|trim('0', 'right')|trim(',', 'right') ?: '0' }}</strong></td>
                             <td colspan="4"></td>
                             <td class="muted">Totale documento</td>

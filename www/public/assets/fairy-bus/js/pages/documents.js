@@ -156,6 +156,9 @@ async function initDocumentsTable() {
         url: window.FB.baseUrl + `api/documents?direction=${DIRECTION}`,
         sidePagination: "client",
         pagination: true,
+        // Riepiloghi (unloads): tagli pagina dedicati (smartDisplay attivo:
+        // i tagli oltre il numero di righe restano nascosti).
+        ...(DIRECTION === "out" ? { pageList: [10, 20, 50, 100, 200, 500, 1000] } : {}),
         search: false,
         filterControl: true,
         sortable: true,
@@ -252,39 +255,190 @@ function vatLabel(detail) {
     return isNaN(num) ? escapeHtml(String(vat)) : `${num.toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
 }
 
+// Raggruppa le righe movimento per codice+prezzo (sconto/IVA inclusi nella
+// chiave per non fondere righe con valori diversi): usata dalla tab
+// Movimenti dei riepiloghi sia in anteprima sia sul documento salvato.
+function aggregateDetailLines(lines) {
+    const groups = new Map();
+    for (const d of lines) {
+        const t = detailTotals(d);
+        const key = `${d.sku || ""}|${d.product_name || d.note || ""}|${Number(d.price || 0)}|${Math.abs(Number(d.discount || 0))}|${d.vat_rate ?? d.vat_code ?? ""}`;
+        if (!groups.has(key)) {
+            groups.set(key, { ...d, quantity: 0, importo: 0, totale: 0 });
+        }
+        const g = groups.get(key);
+        g.quantity = Number(g.quantity || 0) + Number(d.quantity || 0);
+        g.importo += t.importo;
+        g.totale += t.totale;
+    }
+    return [...groups.values()];
+}
+
+const aggRowHtml = (g) => `
+    <td class="num">${fmtQty(g.quantity)}</td>
+    <td>${escapeHtml(g.sku || "—")}</td>
+    <td>${escapeHtml(g.product_name || g.note || "—")}</td>
+    <td class="num">${fmtMoney(g.price)}</td>
+    <td class="num">${Math.abs(Number(g.discount || 0))}%</td>
+    <td class="num">${fmtMoney(g.importo)}</td>
+    <td>${vatLabel(g)}</td>
+    <td class="num">${fmtMoney(g.totale)}</td>
+`;
+
+// Tab "Movimenti per Scheda" dei riepiloghi: dettaglio riga per riga
+// raggruppato per scheda (la prima colonna copre tutte le righe del gruppo)
+// + KPI grid in testa. schedaCount = n. di schede riepilogate da mostrare
+// nel KPI (default: schede con almeno una riga; "Righe manuali" escluso).
+function renderSchedaGroups(form, groups, schedaCount) {
+    const schedaBody = form.querySelector('[data-field="scheda-body"]');
+    if (!schedaBody) {
+        return;
+    }
+    schedaBody.innerHTML = "";
+    let total = 0;
+    let qty = 0;
+    let rowCount = 0;
+    let groupsWithLines = 0;
+    for (const g of groups) {
+        if (!g.lines.length) {
+            // Scheda selezionata senza movimenti: resta nel report.
+            if (!g.manual) {
+                const tr = document.createElement("tr");
+                tr.innerHTML = `<td>${escapeHtml(g.label)}</td><td colspan="7" class="fb-muted" style="text-align:center">Nessun movimento</td>`;
+                schedaBody.appendChild(tr);
+            }
+            continue;
+        }
+        if (!g.manual) {
+            groupsWithLines++;
+        }
+        g.lines.forEach((d, i) => {
+            const t = detailTotals(d);
+            total += t.totale;
+            qty += Number(d.quantity || 0);
+            rowCount++;
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                ${i === 0 ? `<td rowspan="${g.lines.length}">${escapeHtml(g.label)}</td>` : ""}
+                <td class="num">${fmtQty(d.quantity)}</td>
+                <td>${escapeHtml(d.product_name || d.note || "—")}</td>
+                <td class="num">${fmtMoney(d.price)}</td>
+                <td class="num">${Math.abs(Number(d.discount || 0))}%</td>
+                <td class="num">${fmtMoney(t.importo)}</td>
+                <td>${vatLabel(d)}</td>
+                <td class="num">${fmtMoney(t.totale)}</td>
+            `;
+            schedaBody.appendChild(tr);
+        });
+    }
+    if (rowCount === 0 && schedaBody.children.length === 0) {
+        schedaBody.innerHTML = '<tr><td colspan="8" class="fb-muted" style="text-align:center">Nessun movimento.</td></tr>';
+    }
+    const setKpi = (name, value) => {
+        const el = form.querySelector(`[data-kpi="${name}"]`);
+        if (el) {
+            el.textContent = value;
+        }
+    };
+    setKpi("s-total", fmtMoney(total));
+    setKpi("s-qty", fmtQty(qty));
+    setKpi("s-rows", String(rowCount));
+    setKpi("s-schede", String(schedaCount ?? groupsWithLines));
+}
+
+// Tab "Movimenti per Scheda" in modifica: gruppi dalle righe salvate del
+// documento + le schede selezionate senza righe copiate (devono comunque
+// comparire nel report come "Nessun movimento").
+function renderSchedaFromDetails(form) {
+    if (DIRECTION !== "out" || !form._docDetails) {
+        return;
+    }
+    const byScheda = new Map();
+    const manual = { manual: true, lines: [] };
+    for (const d of form._docDetails) {
+        const idMnt = Number(d.id_maintenance || 0);
+        if (idMnt <= 0) {
+            manual.lines.push(d);
+            continue;
+        }
+        const key = `Scheda ${idMnt} del ${fmtDate(d.maintenance_date)}`;
+        if (!byScheda.has(key)) {
+            byScheda.set(key, { manual: false, lines: [] });
+        }
+        byScheda.get(key).lines.push(d);
+    }
+    const checked = form._mntChecked || new Set();
+    for (const id of checked) {
+        const m = (form._mntRows || []).find((r) => Number(r.id_maintenance) === Number(id));
+        if (!m) {
+            continue;
+        }
+        const key = `Scheda ${m.id_maintenance} del ${fmtDate(m.date)}`;
+        if (!byScheda.has(key)) {
+            byScheda.set(key, { manual: false, lines: [] });
+        }
+    }
+    if (manual.lines.length) {
+        byScheda.set("Righe manuali", manual);
+    }
+    renderSchedaGroups(form, [...byScheda.entries()].map(([label, g]) => ({ label, ...g })), checked.size || undefined);
+}
+
 function renderDetails(form, details) {
     const tbody = form.querySelector('[data-field="details-body"]');
     tbody.innerHTML = "";
 
     let total = 0;
     let qty = 0;
-    for (const d of details) {
-        const t = detailTotals(d);
-        total += t.totale;
-        qty += Number(d.quantity || 0);
-        const tr = document.createElement("tr");
-        const priceCell = DIRECTION === "out" ? fmtMoney(d.price) : `<div class="fb-price-edit"><input type="number" class="fb-price-input" step="0.01" min="0" value="${Number(d.price || 0).toFixed(2)}" data-id="${d.id_document_detail}"><button type="button" class="fb-btn-icon fb-btn-icon-success" title="Salva prezzo" data-action="upd-price" data-id="${d.id_document_detail}">${ICONS.check}</button></div>`;
-        const actionCell = DIRECTION === "out" ? (d.id_maintenance ? `<span class="fb-mnt-badge">sc.&nbsp;${d.id_maintenance}</span>` : "") : d.id_maintenance ? `<span class="fb-mnt-badge" title="Riga copiata dalla scheda manutenzione #${d.id_maintenance}: si rimuove dalla scheda Manutenzioni">sc.&nbsp;${d.id_maintenance}</span>` : `<button type="button" class="fb-btn fb-btn-secondary fb-btn-sm" data-action="del-detail" data-id="${d.id_document_detail}">✕</button>`;
-        tr.innerHTML = `
-            <td class="num">${fmtQty(d.quantity)}</td>
-            <td>${escapeHtml(d.sku || (d.id_maintenance ? `sc. ${d.id_maintenance}` : "—"))}</td>
-            <td>${escapeHtml(d.product_name || d.note || "—")}</td>
-            <td class="num">${priceCell}</td>
-            <td class="num">${Math.abs(Number(d.discount || 0))}%</td>
-            <td class="num">${fmtMoney(t.importo)}</td>
-            <td>${vatLabel(d)}</td>
-            <td class="num">${fmtMoney(t.totale)}</td>
-            <td>${actionCell}</td>
-        `;
-        tbody.appendChild(tr);
-    }
-    if (details.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="9" class="fb-muted" style="text-align:center">Nessun movimento.</td></tr>';
+    let rowCount = 0;
+    if (DIRECTION === "out") {
+        // Riepilogo: vista aggregata per codice+prezzo (lettura sola).
+        const groups = aggregateDetailLines(details);
+        rowCount = groups.length;
+        for (const g of groups) {
+            total += g.totale;
+            qty += Number(g.quantity || 0);
+            const tr = document.createElement("tr");
+            tr.innerHTML = aggRowHtml(g);
+            tbody.appendChild(tr);
+        }
+        if (groups.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="8" class="fb-muted" style="text-align:center">Nessun movimento.</td></tr>';
+        }
+        // Tab Movimenti per Scheda: righe salvate raggruppate per scheda
+        // (+ le schede selezionate senza righe, riportate comunque).
+        form._docDetails = details;
+        renderSchedaFromDetails(form);
+    } else {
+        rowCount = details.length;
+        for (const d of details) {
+            const t = detailTotals(d);
+            total += t.totale;
+            qty += Number(d.quantity || 0);
+            const tr = document.createElement("tr");
+            const priceCell = `<div class="fb-price-edit"><input type="number" class="fb-price-input" step="0.01" min="0" value="${Number(d.price || 0).toFixed(2)}" data-id="${d.id_document_detail}"><button type="button" class="fb-btn-icon fb-btn-icon-success" title="Salva prezzo" data-action="upd-price" data-id="${d.id_document_detail}">${ICONS.check}</button></div>`;
+            const actionCell = d.id_maintenance ? `<span class="fb-mnt-badge" title="Riga copiata dalla scheda manutenzione #${d.id_maintenance}: si rimuove dalla scheda Manutenzioni">sc.&nbsp;${d.id_maintenance}</span>` : `<button type="button" class="fb-btn fb-btn-secondary fb-btn-sm" data-action="del-detail" data-id="${d.id_document_detail}">✕</button>`;
+            tr.innerHTML = `
+                <td class="num">${fmtQty(d.quantity)}</td>
+                <td>${escapeHtml(d.sku || (d.id_maintenance ? `sc. ${d.id_maintenance}` : "—"))}</td>
+                <td>${escapeHtml(d.product_name || d.note || "—")}</td>
+                <td class="num">${priceCell}</td>
+                <td class="num">${Math.abs(Number(d.discount || 0))}%</td>
+                <td class="num">${fmtMoney(t.importo)}</td>
+                <td>${vatLabel(d)}</td>
+                <td class="num">${fmtMoney(t.totale)}</td>
+                <td>${actionCell}</td>
+            `;
+            tbody.appendChild(tr);
+        }
+        if (details.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="9" class="fb-muted" style="text-align:center">Nessun movimento.</td></tr>';
+        }
     }
 
     form.querySelector('[data-kpi="total"]').textContent = fmtMoney(total);
     form.querySelector('[data-kpi="qty"]').textContent = fmtQty(qty);
-    form.querySelector('[data-kpi="rows"]').textContent = String(details.length);
+    form.querySelector('[data-kpi="rows"]').textContent = String(rowCount);
 
     // Ultima aliquota usata nel documento: fallback per i prodotti senza IVA
     const last = details[details.length - 1];
@@ -335,51 +489,44 @@ async function loadMaintenanceSheets(form, idVehicle, idDocument) {
         form._mntRows = res.rows || [];
         form._mntChecked = new Set(form._mntRows.filter((m) => m.linked).map((m) => Number(m.id_maintenance)));
         renderMaintenanceList(form, form._mntRows);
+        renderSchedaFromDetails(form);
     } catch (err) {
         hint.textContent = "Errore caricamento schede.";
         await dialog.error(err);
     }
 }
 
-// Anteprima in sola lettura (scheda Movimenti del wizard scarichi):
-// riepilogo dei movimenti gia' eseguiti nelle schede selezionate.
+// Anteprima in sola lettura (tab Movimenti / Movimenti per Scheda del
+// wizard scarichi): Movimenti = riepilogo globale per codice+prezzo,
+// Movimenti per Scheda = dettaglio delle righe di ogni scheda selezionata.
 function renderMntSummary(form) {
     const tbody = form.querySelector('[data-field="details-body"]');
-    if (!tbody) {
-        return;
-    }
     const selected = form._mntChecked || new Set();
-    const lines = (form._mntRows || [])
-        .filter((m) => selected.has(Number(m.id_maintenance)))
-        .flatMap((m) => (m.lines || []).map((l) => ({ ...l, id_maintenance: m.id_maintenance })));
+    const selectedMnt = (form._mntRows || []).filter((m) => selected.has(Number(m.id_maintenance)));
+    const lines = selectedMnt.flatMap((m) => m.lines || []);
 
-    tbody.innerHTML = "";
-    let total = 0;
-    let qty = 0;
-    for (const d of lines) {
-        const t = detailTotals(d);
-        total += t.totale;
-        qty += Number(d.quantity || 0);
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-            <td class="num">${fmtQty(d.quantity)}</td>
-            <td>${escapeHtml(d.sku || "—")}</td>
-            <td>${escapeHtml(d.product_name || "—")}</td>
-            <td class="num">${fmtMoney(d.price)}</td>
-            <td class="num">${Math.abs(Number(d.discount || 0))}%</td>
-            <td class="num">${fmtMoney(t.importo)}</td>
-            <td>${vatLabel(d)}</td>
-            <td class="num">${fmtMoney(t.totale)}</td>
-            <td><span class="fb-mnt-badge">sc.&nbsp;${d.id_maintenance}</span></td>
-        `;
-        tbody.appendChild(tr);
+    const groups = aggregateDetailLines(lines);
+    if (tbody) {
+        tbody.innerHTML = "";
+        for (const g of groups) {
+            const tr = document.createElement("tr");
+            tr.innerHTML = aggRowHtml(g);
+            tbody.appendChild(tr);
+        }
+        if (groups.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="8" class="fb-muted" style="text-align:center">Nessun movimento: seleziona le manutenzioni nella scheda precedente.</td></tr>';
+        }
     }
-    if (lines.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="9" class="fb-muted" style="text-align:center">Nessun movimento: seleziona le manutenzioni nella scheda precedente.</td></tr>';
-    }
-    form.querySelector('[data-kpi="total"]').textContent = fmtMoney(total);
-    form.querySelector('[data-kpi="qty"]').textContent = fmtQty(qty);
-    form.querySelector('[data-kpi="rows"]').textContent = String(lines.length);
+
+    renderSchedaGroups(
+        form,
+        selectedMnt.map((m) => ({ label: `Scheda ${m.id_maintenance} del ${fmtDate(m.date)}`, lines: m.lines || [] })),
+        selectedMnt.length
+    );
+
+    form.querySelector('[data-kpi="total"]').textContent = fmtMoney(groups.reduce((s, g) => s + g.totale, 0));
+    form.querySelector('[data-kpi="qty"]').textContent = fmtQty(groups.reduce((s, g) => s + Number(g.quantity || 0), 0));
+    form.querySelector('[data-kpi="rows"]').textContent = String(groups.length);
 }
 
 function updateMntToolbar(form) {
@@ -389,6 +536,12 @@ function updateMntToolbar(form) {
     }
     const n = (form._mntChecked || new Set()).size;
     countEl.textContent = n > 0 ? `${n} selezionata${n === 1 ? "" : "e"}` : "";
+    // Il KPI "Totale schede riepilogate" rispecchia sempre la selezione:
+    // anche le schede senza righe movimento entrano nel riepilogo.
+    const schedaKpi = form.querySelector('[data-kpi="s-schede"]');
+    if (schedaKpi) {
+        schedaKpi.textContent = String(n);
+    }
 }
 
 function renderMaintenanceList(form, rows) {
@@ -435,7 +588,7 @@ function renderMaintenanceList(form, rows) {
         item.innerHTML = `
             <input type="checkbox" data-mnt-id="${m.id_maintenance}" ${isChecked ? "checked" : ""}>
             <span class="fb-mnt-item-main">
-                <strong>Scheda del ${String(m.date || "")
+                <strong>Scheda ${m.id_maintenance} del ${String(m.date || "")
                     .slice(0, 10)
                     .split("-")
                     .reverse()
@@ -570,7 +723,7 @@ function switchTabPanel(form, panelName) {
 function openDocumentForm(doc = null) {
     const tpl = document.getElementById("tpl-document-form");
     const form = tpl.content.cloneNode(true).querySelector("form");
-    const title = DIRECTION === "out" ? (doc ? `Riepilogo ${doc.number || doc.id_document}` : "Riepilogo Manutenzione terzi") : doc ? `${DOC_LABEL} ${doc.number || ""}` : `Nuovo ${DOC_LABEL.toLowerCase()}`;
+    const title = DIRECTION === "out" ? (doc ? `Riepilogo ${doc.number || doc.id_document} del ${fmtDate(doc.date)}${doc.vehicle_plate ? ` Targa ${escapeHtml(doc.vehicle_plate)}` : ""}` : "Riepilogo Manutenzione terzi") : doc ? `${DOC_LABEL} ${doc.number || ""}` : `Nuovo ${DOC_LABEL.toLowerCase()}`;
 
     populateSupplierSelect(form.querySelector('[data-field="supplier"]'), doc?.[PARTNER_FIELD]);
     const productSelEl = form.querySelector('[data-field="detail-product"]');
@@ -712,7 +865,7 @@ function openDocumentForm(doc = null) {
         form._updateSaveState = updateSaveState;
         const updateNextState = () => {
             const panel = activeTabPanel(form);
-            nextBtn.style.display = panel === "movimenti" ? "none" : "";
+            nextBtn.style.display = panel === "movimenti" || panel === "scheda" ? "none" : "";
         };
 
         nextBtn.style.display = "";
@@ -733,8 +886,11 @@ function openDocumentForm(doc = null) {
         }
 
         // Blocco navigazione in avanti senza i dati richiesti.
+        // Il tab "scheda" (Movimenti per Scheda) e' un output come Movimenti:
+        // stesso livello di gate.
+        const stepOf = (panelName) => (panelName === "scheda" ? 2 : WIZARD_STEPS.indexOf(panelName));
         form._canGoTo = (panelName) => {
-            const idx = WIZARD_STEPS.indexOf(panelName);
+            const idx = stepOf(panelName);
             if (idx >= 1 && !targetOk()) {
                 return false;
             }
@@ -744,7 +900,7 @@ function openDocumentForm(doc = null) {
             return true;
         };
         form._tabDenied = async (panelName) => {
-            if (WIZARD_STEPS.indexOf(panelName) >= 1 && !targetOk()) {
+            if (stepOf(panelName) >= 1 && !targetOk()) {
                 await dialog.alert("Seleziona prima il cliente e l'automezzo.", "Dati mancanti");
             } else {
                 await dialog.alert("Seleziona almeno una scheda manutenzione.", "Dati mancanti");
@@ -914,6 +1070,18 @@ async function openDocumentView(row) {
     }
 
     const isOut = DIRECTION === "out";
+    // Riepilogo: schede collegate al documento, incluse quelle senza righe.
+    let mntRows = [];
+    if (isOut) {
+        try {
+            const res = await FetchHelper.get(`${window.FB.baseUrl}api/maintenance/available`, { document_id: row.id_document });
+            mntRows = res.rows || [];
+        } catch {
+            mntRows = [];
+        }
+    }
+    const emptySheets = mntRows.filter((m) => Number(m.parts_count || 0) === 0 && Number(m.tasks_count || 0) === 0);
+
     const schedaCell = (d) => (d.id_maintenance ? `Scheda ${d.id_maintenance} del ${fmtDate(d.maintenance_date)}` : "—");
     let total = 0;
     const rowsHtml = (doc.details || [])
@@ -935,12 +1103,26 @@ async function openDocumentView(row) {
         `;
         })
         .join("");
+    const emptyRowsHtml = emptySheets
+        .map((s) => `<tr><td>Scheda ${s.id_maintenance} del ${fmtDate(s.date)}</td><td colspan="8" class="fb-muted" style="text-align:center">Nessun movimento</td></tr>`)
+        .join("");
 
     const dlgTitle = isOut ? `Documento di riepilogo ${escapeHtml(doc.number || doc.id_document)}` : `${DOC_LABEL} ${escapeHtml(doc.number || doc.id_document)}`;
     const dlg = document.createElement("dialog");
     dlg.className = "fb-dialog";
     dlg.innerHTML = `
-        <div class="fb-dialog-header"><h3 class="fb-dialog-title">${dlgTitle}</h3></div>
+        <div class="fb-dialog-header">
+            <h3 class="fb-dialog-title">${dlgTitle}</h3>
+            ${
+                isOut
+                    ? `<label class="fb-switch" title="Elenca anche le schede riepilogate senza righe movimento">
+                <input type="checkbox" data-field="show-empty">
+                <span class="fb-switch-slider"></span>
+                <span class="fb-switch-text">Schede senza movimenti</span>
+            </label>`
+                    : ""
+            }
+        </div>
         <div class="fb-dialog-body">
             <dl class="fb-view-grid">
                 ${viewItem(isOut ? "Cliente" : "Fornitore", doc.supplier_name || doc.customer_name)}
@@ -948,6 +1130,8 @@ async function openDocumentView(row) {
                 ${viewItem("Numero", doc.number)}
                 ${viewItem("Data", fmtDate(doc.date))}
                 ${viewItem("Tipo", doc.type_name)}
+                ${isOut ? viewItem("Schede riepilogate", mntRows.length) : ""}
+                ${isOut ? viewItem("Schede senza movimenti", emptySheets.length) : ""}
                 ${!isOut ? viewItem("Fattura", doc.invoice_number, { icon: "hash" }) : ""}
             </dl>
             <div class="fb-details-scroll">
@@ -960,7 +1144,7 @@ async function openDocumentView(row) {
                             <th>I.v.a.</th><th class="num">Totale</th>
                         </tr>
                     </thead>
-                    <tbody>${rowsHtml || `<tr><td colspan="${isOut ? 9 : 8}" class="fb-muted" style="text-align:center">Nessun movimento.</td></tr>`}</tbody>
+                    <tbody data-field="view-tbody"></tbody>
                 </table>
             </div>
             <div class="fb-details-total"><span class="fb-muted">Totale documento</span><strong>${fmtMoney(total)}</strong></div>
@@ -973,8 +1157,18 @@ async function openDocumentView(row) {
     document.body.appendChild(dlg);
     dlg.showModal();
 
+    const showEmptyEl = dlg.querySelector('[data-field="show-empty"]');
+    const tbody = dlg.querySelector('[data-field="view-tbody"]');
+    const renderBody = () => {
+        const extra = isOut && showEmptyEl.checked ? emptyRowsHtml : "";
+        tbody.innerHTML = rowsHtml + extra || `<tr><td colspan="${isOut ? 9 : 8}" class="fb-muted" style="text-align:center">Nessun movimento.</td></tr>`;
+    };
+    showEmptyEl?.addEventListener("change", renderBody);
+    renderBody();
+
     dlg.querySelector('[data-action="print"]').addEventListener("click", () => {
-        window.open(`${window.FB.baseUrl}admin/documents/${doc.id_document}/print`, "_blank");
+        const suffix = isOut && showEmptyEl?.checked ? "?empty=1" : "";
+        window.open(`${window.FB.baseUrl}admin/documents/${doc.id_document}/print${suffix}`, "_blank");
     });
     dlg.querySelector('[data-action="close"]').addEventListener("click", () => dlg.close());
     dlg.addEventListener("close", () => dlg.remove(), { once: true });

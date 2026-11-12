@@ -72,10 +72,30 @@ class Documents extends AdminController
 
         $document['details'] = (new \FairyBus\Models\FbDocumentDetailModel())->listByDocument($id);
 
+        // ?empty=1 → il PDF dei riepiloghi elenca anche le schede collegate
+        // che non hanno prodotto righe movimento (report completo).
+        $emptySheets = [];
+        if (!empty($document['id_customer']) && (string) $this->request->getGet('empty') === '1') {
+            $idsWithLines = array_values(array_filter(array_map(
+                static fn(array $d): int => (int) ($d['id_maintenance'] ?? 0),
+                $document['details']
+            )));
+            $qb = \Config\Database::connect()->table('fb_maintenance')
+                ->select('id_maintenance, date')
+                ->where('id_document', $id)
+                ->orderBy('date', 'DESC')
+                ->orderBy('id_maintenance', 'DESC');
+            if ($idsWithLines !== []) {
+                $qb->whereNotIn('id_maintenance', $idsWithLines);
+            }
+            $emptySheets = $qb->get()->getResultArray();
+        }
+
         $docKind = !empty($document['id_customer']) ? 'riepilogo' : 'carico';
         $pdf = PdfHelper::generate('print/document.twig', [
             'title' => "Documento di {$docKind} " . ($document['number'] ?? $document['id_document']),
             'document' => $document,
+            'empty_sheets' => $emptySheets,
             'user' => $this->getCurrentUser(),
         ], 'a4', 'portrait');
 

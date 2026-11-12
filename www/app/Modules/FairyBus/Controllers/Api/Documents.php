@@ -287,53 +287,9 @@ class Documents extends AdminController
             $db->table('fb_maintenance')->where('id_maintenance', $idMaintenance)->update(['id_document' => $id]);
             $linked++;
 
-            // ricambi della scheda -> righe documento (lo stock era gia'
-            // stato scaricato dalla manutenzione: nessun movimento extra)
-            $parts = $db->table('fb_maintenance_detail')->where('id_maintenance', $idMaintenance)->get()->getResultArray();
-            foreach ($parts as $part) {
-                // quantity positiva sulla copia: il documento e' un
-                // riepilogo, non muove magazzino (righe con id_maintenance)
-                $detailModel->insert([
-                    'id_document' => $id,
-                    'id_maintenance' => $idMaintenance,
-                    'id_product' => $part['id_product'] !== null ? (int) $part['id_product'] : null,
-                    'quantity' => abs((float) $part['quantity']),
-                    'price' => (float) ($part['price'] ?? 0),
-                    'discount' => abs((float) ($part['discount'] ?? 0)),
-                    'lot' => $part['lot'] ?? null,
-                    'vat_code' => $part['vat_code'] ?? null,
-                    'vat_rate' => $part['vat_rate'] !== null ? (float) $part['vat_rate'] : null,
-                    'type' => (int) ($document['type'] ?? 0),
-                    'note' => $part['note'] ?? null,
-                    'date_add' => date('Y-m-d H:i:s'),
-                ]);
-                $copied++;
-            }
-
-            // manodopera della scheda -> riga documento senza articolo
-            $tasks = $db->table('fb_maintenance_task')->where('id_maintenance', $idMaintenance)->get()->getResultArray();
-            foreach ($tasks as $task) {
-                $hours = (float) ($task['hours'] ?? 0);
-                $priceHour = (float) ($task['price_per_hour'] ?? 0);
-                $manpower = (float) ($task['manpower'] ?? 0);
-                $desc = trim((string) ($task['description'] ?? ''));
-                if ($hours <= 0 && $manpower <= 0 && $priceHour <= 0) {
-                    continue;
-                }
-                $detailModel->insert([
-                    'id_document' => $id,
-                    'id_maintenance' => $idMaintenance,
-                    'id_product' => null,
-                    'quantity' => $hours > 0 ? $hours : 1,
-                    'price' => $priceHour > 0 ? $priceHour : $manpower,
-                    'discount' => 0,
-                    'vat_rate' => $defaultVat > 0 ? $defaultVat : null,
-                    'type' => (int) ($document['type'] ?? 0),
-                    'note' => trim('Manodopera' . ($desc !== '' ? ': ' . $desc : '') . " (sc. #{$idMaintenance})"),
-                    'date_add' => date('Y-m-d H:i:s'),
-                ]);
-                $copied++;
-            }
+            // ricambi + manodopera della scheda -> righe documento (lo stock
+            // era gia' stato scaricato: nessun movimento extra)
+            $copied += $detailModel->importMaintenanceLines($id, $idMaintenance, (int) ($document['type'] ?? 0), $defaultVat);
         }
 
         // Registra sul documento il veicolo delle schede associate; se non

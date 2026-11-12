@@ -57,6 +57,8 @@ class FbMaintenanceModel extends Model
             ->select('m.*, v.plate AS vehicle_plate, b.name AS brand_name,
                 d.number AS doc_number, d.date AS doc_date,
                 (SELECT COUNT(*) FROM fb_maintenance_invoice mi WHERE mi.id_maintenance = m.id_maintenance) AS invoices_count')
+            ->select('(SELECT COUNT(*) FROM fb_maintenance_detail dt WHERE dt.id_maintenance = m.id_maintenance) AS parts_count', false)
+            ->select('(SELECT COUNT(*) FROM fb_maintenance_task t WHERE t.id_maintenance = m.id_maintenance AND (t.hours > 0 OR t.price_per_hour > 0 OR t.manpower > 0)) AS tasks_count', false)
             ->join('fb_vehicle v', 'v.id_vehicle = m.id_vehicle', 'left')
             ->join('fb_brand b', 'b.id_brand = v.id_brand', 'left')
             ->join('fb_document d', 'd.id_document = m.id_document', 'left')

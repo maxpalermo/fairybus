@@ -541,6 +541,56 @@ class Maintenance extends AdminController
         return $this->jsonResponse(['success' => true]);
     }
 
+    /**
+     * Associa una scheda libera a un documento di riepilogo esistente:
+     * flagga fb_maintenance.id_document e copia ricambi+manodopera nelle
+     * righe del documento (nessun movimento di magazzino).
+     */
+    public function linkDocument(int $id): ResponseInterface
+    {
+        if ($denied = $this->requirePermission('*')) {
+            return $denied;
+        }
+
+        $mnt = (new \FairyBus\Models\FbMaintenanceModel())->find($id);
+        if ($mnt === null) {
+            return $this->jsonResponse(['success' => false, 'error' => 'Manutenzione non trovata.'], 404);
+        }
+
+        $idDocument = (int) $this->request->getPost('id_document');
+        $document = (new \FairyBus\Models\FbDocumentModel())->find($idDocument);
+        if ($document === null) {
+            return $this->jsonResponse(['success' => false, 'error' => 'Documento non trovato.'], 404);
+        }
+        if (empty($document['id_customer'])) {
+            return $this->jsonResponse(['success' => false, 'error' => 'Le schede manutenzione si associano solo ai documenti di riepilogo.'], 422);
+        }
+        if (!empty($mnt['id_document'])) {
+            return $this->jsonResponse(['success' => false, 'error' => 'La scheda è già associata a un riepilogo.'], 422);
+        }
+        if ((int) ($document['id_vehicle'] ?? 0) > 0 && (int) $document['id_vehicle'] !== (int) ($mnt['id_vehicle'] ?? 0)) {
+            return $this->jsonResponse(['success' => false, 'error' => 'Il riepilogo è associato a un altro automezzo.'], 422);
+        }
+
+        $db = \Config\Database::connect();
+        $invoiced = $db->table('fb_maintenance_invoice')->where('id_maintenance', $id)->countAllResults() > 0;
+        if ($invoiced) {
+            return $this->jsonResponse(['success' => false, 'error' => 'La scheda è già associata a una fattura.'], 422);
+        }
+
+        $db->table('fb_maintenance')->where('id_maintenance', $id)->update(['id_document' => $idDocument]);
+
+        // il riepilogo eredita la targa della scheda se non ne ha una
+        if ((int) ($document['id_vehicle'] ?? 0) <= 0 && (int) ($mnt['id_vehicle'] ?? 0) > 0) {
+            $db->table('fb_document')->where('id_document', $idDocument)->update(['id_vehicle' => (int) $mnt['id_vehicle']]);
+        }
+
+        $defaultVat = (float) ((new \FairyBus\Models\FbConfigurationModel())->get('default_tax_rate')['value'] ?? 0);
+        $copied = (new \FairyBus\Models\FbDocumentDetailModel())->importMaintenanceLines($idDocument, $id, (int) ($document['type'] ?? 0), $defaultVat);
+
+        return $this->jsonResponse(['success' => true, 'rows_copied' => $copied]);
+    }
+
     /* ---------- Helpers ---------- */
 
     /**

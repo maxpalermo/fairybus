@@ -83,12 +83,70 @@ class FbDocumentDetailModel extends Model
         }
 
         return $this->db->table('fb_document_detail dd')
-            ->select('dd.*, p.sku, p.name AS product_name')
+            ->select('dd.*, p.sku, p.name AS product_name, m.date AS maintenance_date')
             ->join('fb_product p', 'p.id_product = dd.id_product', 'left')
+            ->join('fb_maintenance m', 'm.id_maintenance = dd.id_maintenance', 'left')
             ->whereIn('dd.id_document', $ids)
             ->orderBy('dd.id_document', 'ASC')
             ->orderBy('dd.id_document_detail', 'ASC')
             ->get()
             ->getResultArray();
+    }
+
+    /**
+     * Copia le righe di una scheda manutenzione (ricambi + manodopera
+     * valorizzata) in un documento di riepilogo: quantita' positive,
+     * nessun movimento di magazzino (righe con id_maintenance).
+     *
+     * @return int numero di righe copiate
+     */
+    public function importMaintenanceLines(int $idDocument, int $idMaintenance, int $docType, float $defaultVat): int
+    {
+        $copied = 0;
+
+        $parts = $this->db->table('fb_maintenance_detail')->where('id_maintenance', $idMaintenance)->get()->getResultArray();
+        foreach ($parts as $part) {
+            $this->insert([
+                'id_document' => $idDocument,
+                'id_maintenance' => $idMaintenance,
+                'id_product' => $part['id_product'] !== null ? (int) $part['id_product'] : null,
+                'quantity' => abs((float) $part['quantity']),
+                'price' => (float) ($part['price'] ?? 0),
+                'discount' => abs((float) ($part['discount'] ?? 0)),
+                'lot' => $part['lot'] ?? null,
+                'vat_code' => $part['vat_code'] ?? null,
+                'vat_rate' => $part['vat_rate'] !== null ? (float) $part['vat_rate'] : null,
+                'type' => $docType,
+                'note' => $part['note'] ?? null,
+                'date_add' => date('Y-m-d H:i:s'),
+            ]);
+            $copied++;
+        }
+
+        $tasks = $this->db->table('fb_maintenance_task')->where('id_maintenance', $idMaintenance)->get()->getResultArray();
+        foreach ($tasks as $task) {
+            $hours = (float) ($task['hours'] ?? 0);
+            $priceHour = (float) ($task['price_per_hour'] ?? 0);
+            $manpower = (float) ($task['manpower'] ?? 0);
+            $desc = trim((string) ($task['description'] ?? ''));
+            if ($hours <= 0 && $manpower <= 0 && $priceHour <= 0) {
+                continue;
+            }
+            $this->insert([
+                'id_document' => $idDocument,
+                'id_maintenance' => $idMaintenance,
+                'id_product' => null,
+                'quantity' => $hours > 0 ? $hours : 1,
+                'price' => $priceHour > 0 ? $priceHour : $manpower,
+                'discount' => 0,
+                'vat_rate' => $defaultVat > 0 ? $defaultVat : null,
+                'type' => $docType,
+                'note' => trim('Manodopera' . ($desc !== '' ? ': ' . $desc : '') . " (sc. #{$idMaintenance})"),
+                'date_add' => date('Y-m-d H:i:s'),
+            ]);
+            $copied++;
+        }
+
+        return $copied;
     }
 }

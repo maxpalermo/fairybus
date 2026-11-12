@@ -305,3 +305,12 @@
 .fb-sheet-nodoc {
     font-size: 0.75rem;
 }
+
+/* Righe delle schede senza movimenti (né ricambi né manodopera) */
+.bootstrap-table .table tbody tr.fb-row-empty td {
+    background-color: #ffedd5;
+}
+
+.bootstrap-table .table tbody tr.fb-row-empty:hover td {
+    background-color: #fed7aa;
+}

@@ -55,6 +55,7 @@
                 <button type="button" class="fb-tab active" data-tab="info" role="tab" aria-selected="true">Informazioni</button>
                 <button type="button" class="fb-tab" data-tab="manutenzioni" role="tab" aria-selected="false">Manutenzioni</button>
                 <button type="button" class="fb-tab" data-tab="movimenti" role="tab" aria-selected="false">Movimenti</button>
+                <button type="button" class="fb-tab" data-tab="scheda" role="tab" aria-selected="false">Movimenti per Scheda</button>
             </div>
 
             <div class="fb-tab-panel active" data-panel="info" role="tabpanel">
@@ -137,7 +138,6 @@
                             <th class="num">Importo</th>
                             <th>I.v.a.</th>
                             <th class="num">Totale</th>
-                            <th></th>
                         </tr>
                     </thead>
                     <tbody data-field="details-body"></tbody>
@@ -159,6 +159,43 @@
                 <p class="fb-muted fb-detail-hint" data-field="detail-hint">Salva prima il documento per aggiungere movimenti.</p>
             </div>
 
+            <div class="fb-tab-panel" data-panel="scheda" role="tabpanel">
+                <div class="fb-kpi-grid">
+                    <div class="fb-kpi fb-kpi-success">
+                        <span class="fb-kpi-value" data-kpi="s-total">0,00&nbsp;€</span>
+                        <span class="fb-kpi-label">Prezzo totale</span>
+                    </div>
+                    <div class="fb-kpi fb-kpi-danger">
+                        <span class="fb-kpi-value" data-kpi="s-qty">0</span>
+                        <span class="fb-kpi-label">Totale colli</span>
+                    </div>
+                    <div class="fb-kpi fb-kpi-warning">
+                        <span class="fb-kpi-value" data-kpi="s-rows">0</span>
+                        <span class="fb-kpi-label">Numero movimenti</span>
+                    </div>
+                    <div class="fb-kpi fb-kpi-info">
+                        <span class="fb-kpi-value" data-kpi="s-schede">0</span>
+                        <span class="fb-kpi-label">Totale schede riepilogate</span>
+                    </div>
+                </div>
+                <table class="fb-table fb-details-table">
+                    <thead>
+                        <tr>
+                            <th>Scheda</th>
+                            <th class="num">Q.tà</th>
+                            <th>Articolo</th>
+                            <th class="num">Prezzo</th>
+                            <th class="num">Sconto</th>
+                            <th class="num">Importo</th>
+                            <th>I.v.a.</th>
+                            <th class="num">Totale</th>
+                        </tr>
+                    </thead>
+                    <tbody data-field="scheda-body"></tbody>
+                </table>
+                <p class="fb-muted fb-detail-hint">Dettaglio dei movimenti per singola scheda manutenzione.</p>
+            </div>
+
             <div class="fb-form-actions">
                 <button type="button" class="fb-btn fb-btn-secondary" data-action="next" style="display:none">Successivo</button>
                 <button type="submit" class="fb-btn fb-btn-primary" data-action="save">Salva</button>
@@ -169,5 +206,5 @@
 {% endblock %}
 
 {% block page_scripts %}
-    <script type="module" src="{{ asset('fairy-bus/js/pages/documents.js?v=35') }}"></script>
+    <script type="module" src="{{ asset('fairy-bus/js/pages/documents.js?v=45') }}"></script>
 {% endblock %}

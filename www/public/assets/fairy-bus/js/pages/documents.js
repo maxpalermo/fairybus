@@ -194,7 +194,8 @@ async function initDocumentsTable() {
 }
 
 function updatePageKpis() {
-    const rows = window.$("#documents-table").bootstrapTable("getData", { useCurrentPage: false, includeHiddenRows: false }) || [];
+    // Righe attualmente visibili (pagina corrente dopo filtri/sort).
+    const rows = window.$("#documents-table").bootstrapTable("getData", { useCurrentPage: true, includeHiddenRows: false }) || [];
     const kpi = (name, text) => {
         const el = document.querySelector(`[data-page-kpi="${name}"]`);
         if (el) {

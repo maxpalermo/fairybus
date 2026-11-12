@@ -52,7 +52,7 @@
                         <th style="width: 6%;" class="num">Sconto</th>
                         <th style="width: 9%;" class="num">Importo</th>
                         <th style="width: 5%;" class="num">Ore</th>
-                        <th style="width: 8%;" class="num">€/h</th>
+                        <th style="width: 8%;" class="num">EUR/h</th>
                         <th style="width: 9%;" class="num">Manodopera</th>
                         <th style="width: 7%;">I.v.a.</th>
                         <th style="width: 9%;" class="num">Totale</th>
@@ -64,14 +64,14 @@
                             <td class="num">{{ row.quantity|abs|number_format(3, ',', '.')|trim('0', 'right')|trim(',', 'right') ?: '0' }}</td>
                             <td>{{ row.sku|default('—') }}</td>
                             <td>{{ row.product_name|default('—') }}</td>
-                            <td class="num">&nbsp;{{ row.price|number_format(2, ',', '.') }}</td>
+                            <td class="num">&nbsp;{{ row.price|eur }}</td>
                             <td class="num">{{ row.discount|default(0)|abs|number_format(0) }}%</td>
-                            <td class="num">&nbsp;{{ row._importo|number_format(2, ',', '.') }}</td>
+                            <td class="num">&nbsp;{{ row._importo|eur }}</td>
                             <td class="num">{{ row.labor_hours is not null ? row.labor_hours|abs|number_format(2, ',', '.')|trim('0', 'right')|trim(',', 'right') : '—' }}</td>
-                            <td class="num">{{ row.labor_price_per_hour is not null ? row.labor_price_per_hour|number_format(2, ',', '.') : '—' }}</td>
-                            <td class="num">{{ row.labor_manpower is not null ? row.labor_manpower|abs|number_format(2, ',', '.') : '—' }}</td>
+                            <td class="num">{{ row.labor_price_per_hour is not null ? row.labor_price_per_hour|eur : '—' }}</td>
+                            <td class="num">{{ row.labor_manpower is not null ? row.labor_manpower|abs|eur : '—' }}</td>
                             <td>{{ row.vat_rate is not null ? row.vat_rate|number_format(2, ',', '.') ~ '%' : '—' }}</td>
-                            <td class="num">&nbsp;{{ row._total|number_format(2, ',', '.') }}</td>
+                            <td class="num">&nbsp;{{ row._total|eur }}</td>
                         </tr>
                     {% endfor %}
                 </tbody>
@@ -79,12 +79,12 @@
                     <tr>
                         <td class="num" style="border-top: 1.5pt solid #18181b;"><strong>{{ m.tot_qty|number_format(3, ',', '.')|trim('0', 'right')|trim(',', 'right') ?: '0' }}</strong></td>
                         <td colspan="4" style="border-top: 1.5pt solid #18181b;"></td>
-                        <td class="num" style="border-top: 1.5pt solid #18181b;"><strong>&nbsp;{{ m.tot_parts|number_format(2, ',', '.') }}</strong></td>
+                        <td class="num" style="border-top: 1.5pt solid #18181b;"><strong>&nbsp;{{ m.tot_parts|eur }}</strong></td>
                         <td class="num" style="border-top: 1.5pt solid #18181b;"><strong>{{ m.tot_hours|number_format(2, ',', '.')|trim('0', 'right')|trim(',', 'right') ?: '0' }}</strong></td>
                         <td style="border-top: 1.5pt solid #18181b;"></td>
-                        <td class="num" style="border-top: 1.5pt solid #18181b;"><strong>&nbsp;{{ m.tot_labor|number_format(2, ',', '.') }}</strong></td>
+                        <td class="num" style="border-top: 1.5pt solid #18181b;"><strong>&nbsp;{{ m.tot_labor|eur }}</strong></td>
                         <td class="muted" style="border-top: 1.5pt solid #18181b;">Totale</td>
-                        <td class="num" style="border-top: 1.5pt solid #18181b;"><strong>&nbsp;{{ m.total|number_format(2, ',', '.') }}</strong></td>
+                        <td class="num" style="border-top: 1.5pt solid #18181b;"><strong>&nbsp;{{ m.total|eur }}</strong></td>
                     </tr>
                 </tfoot>
             </table>
@@ -114,10 +114,10 @@
                         <td class="center"><strong>{{ totals.repairs }}</strong></td>
                         <td class="center"><strong>{{ totals.lines }}</strong></td>
                         <td class="num"><strong>{{ totals.parts_qty|number_format(3, ',', '.')|trim('0', 'right')|trim(',', 'right') ?: '0' }}</strong></td>
-                        <td class="num">&nbsp;{{ totals.parts_amount|number_format(2, ',', '.') }}</td>
+                        <td class="num">&nbsp;{{ totals.parts_amount|eur }}</td>
                         <td class="num">{{ totals.labor_hours|number_format(2, ',', '.')|trim('0', 'right')|trim(',', 'right') ?: '0' }}</td>
-                        <td class="num">&nbsp;{{ totals.labor_amount|number_format(2, ',', '.') }}</td>
-                        <td class="num"><strong>&nbsp;{{ totals.grand_total|number_format(2, ',', '.') }}</strong></td>
+                        <td class="num">&nbsp;{{ totals.labor_amount|eur }}</td>
+                        <td class="num"><strong>&nbsp;{{ totals.grand_total|eur }}</strong></td>
                     </tr>
                 </tbody>
             </table>
@@ -144,9 +144,9 @@
                             <td class="num">{{ m.km ? m.km|number_format(0, ',', '.') : '—' }}</td>
                             <td class="num">{{ m.lines|length }}</td>
                             <td class="num">{{ m.tot_qty|number_format(3, ',', '.')|trim('0', 'right')|trim(',', 'right') ?: '0' }}</td>
-                            <td class="num">&nbsp;{{ m.tot_parts|number_format(2, ',', '.') }}</td>
-                            <td class="num">&nbsp;{{ m.tot_labor|number_format(2, ',', '.') }}</td>
-                            <td class="num"><strong>&nbsp;{{ m.total|number_format(2, ',', '.') }}</strong></td>
+                            <td class="num">&nbsp;{{ m.tot_parts|eur }}</td>
+                            <td class="num">&nbsp;{{ m.tot_labor|eur }}</td>
+                            <td class="num"><strong>&nbsp;{{ m.total|eur }}</strong></td>
                         </tr>
                     {% endfor %}
                 </tbody>
@@ -171,9 +171,9 @@
                                 <td>{{ row.sku }}</td>
                                 <td>{{ row.product_name }}</td>
                                 <td class="num">{{ row.qty|number_format(3, ',', '.')|trim('0', 'right')|trim(',', 'right') ?: '0' }}</td>
-                                <td class="num">&nbsp;{{ row.price|number_format(2, ',', '.') }}</td>
-                                <td class="num">&nbsp;{{ row.amount|number_format(2, ',', '.') }}</td>
-                                <td class="num">&nbsp;{{ row.total|number_format(2, ',', '.') }}</td>
+                                <td class="num">&nbsp;{{ row.price|eur }}</td>
+                                <td class="num">&nbsp;{{ row.amount|eur }}</td>
+                                <td class="num">&nbsp;{{ row.total|eur }}</td>
                             </tr>
                         {% endfor %}
                     </tbody>

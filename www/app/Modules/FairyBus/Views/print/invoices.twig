@@ -39,9 +39,9 @@
                     <td>{{ row.number|default('—') }}</td>
                     <td>{{ row.supplier_name|default(row.customer_name)|default('—') }}</td>
                     <td class="center">{{ row.documents_count|default(0) }}</td>
-                    <td class="num">{{ row.transport_fee|number_format(2, ',', '.') }}</td>
-                    <td class="num">{{ row.collection_fee|number_format(2, ',', '.') }}</td>
-                    <td class="num">{{ row.deposit|number_format(2, ',', '.') }}</td>
+                    <td class="num">{{ row.transport_fee|eur }}</td>
+                    <td class="num">{{ row.collection_fee|eur }}</td>
+                    <td class="num">{{ row.deposit|eur }}</td>
                 </tr>
             {% else %}
                 <tr><td colspan="8" class="center muted">Nessuna fattura presente.</td></tr>

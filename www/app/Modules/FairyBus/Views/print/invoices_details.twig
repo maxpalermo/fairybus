@@ -75,7 +75,7 @@
                 <tbody>
                     <tr>
                         <td class="muted"><strong>Totale fattura</strong></td>
-                        <td class="num" style="width: 15%;"><strong>&nbsp;{{ invoice.invoice_total|number_format(2, ',', '.') }}</strong></td>
+                        <td class="num" style="width: 15%;"><strong>&nbsp;{{ invoice.invoice_total|eur }}</strong></td>
                     </tr>
                 </tbody>
             </table>
@@ -101,7 +101,7 @@
                             <td>{{ invoice.number|default('#' ~ invoice.id_invoice) }}</td>
                             <td>{{ invoice.supplier_name|default(invoice.customer_name)|default('—') }}</td>
                             <td>{{ invoice.date ? invoice.date|date('d/m/Y') : '—' }}</td>
-                            <td class="num">&nbsp;{{ invoice.invoice_total|number_format(2, ',', '.') }}</td>
+                            <td class="num">&nbsp;{{ invoice.invoice_total|eur }}</td>
                         </tr>
                     {% endfor %}
                 </tbody>
@@ -125,9 +125,9 @@
                             <td>{{ row.sku }}</td>
                             <td>{{ row.product_name }}</td>
                             <td class="num">{{ row.qty|abs|number_format(3, ',', '.')|trim('0', 'right')|trim(',', 'right') ?: '0' }}</td>
-                            <td class="num">&nbsp;{{ (row.qty > 0 ? row.amount / row.qty : 0)|number_format(2, ',', '.') }}</td>
-                            <td class="num">&nbsp;{{ row.amount|number_format(2, ',', '.') }}</td>
-                            <td class="num">&nbsp;{{ row.total|number_format(2, ',', '.') }}</td>
+                            <td class="num">&nbsp;{{ (row.qty > 0 ? row.amount / row.qty : 0)|eur }}</td>
+                            <td class="num">&nbsp;{{ row.amount|eur }}</td>
+                            <td class="num">&nbsp;{{ row.total|eur }}</td>
                         </tr>
                     {% else %}
                         <tr><td colspan="6" class="center muted">Nessun articolo.</td></tr>
@@ -138,7 +138,7 @@
                         <tr>
                             <td colspan="4" style="border-top: 1.5pt solid #18181b;"></td>
                             <td class="muted" style="border-top: 1.5pt solid #18181b;">Totale generale</td>
-                            <td class="num" style="border-top: 1.5pt solid #18181b;"><strong>&nbsp;{{ grand_total|number_format(2, ',', '.') }}</strong></td>
+                            <td class="num" style="border-top: 1.5pt solid #18181b;"><strong>&nbsp;{{ grand_total|eur }}</strong></td>
                         </tr>
                     </tfoot>
                 {% endif %}

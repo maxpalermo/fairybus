@@ -1,9 +1,10 @@
 import FetchHelper from "../core/FetchHelper.js";
 import DialogHelper from "../core/DialogHelper.js";
+import { fmtMoney } from "../core/format.js?v=2";
 import PrintHelper from "../components/PrintHelper.js";
 import TableSelect from "../components/TableSelect.js?v=2";
 import SearchableSelect from "../components/SearchableSelect.js?v=5";
-import { openPurchasePicker, loadProductPurchases } from "../components/PurchasePicker.js?v=1";
+import { openPurchasePicker, loadProductPurchases } from "../components/PurchasePicker.js?v=4";
 import { viewItem } from "../components/ViewGrid.js";
 
 const dialog = new DialogHelper();
@@ -33,10 +34,6 @@ function fmtDate(value) {
     }
     const d = new Date(String(value).replace(" ", "T"));
     return isNaN(d) ? escapeHtml(value) : d.toLocaleDateString("it-IT");
-}
-
-function fmtMoney(value) {
-    return `${Number(value || 0).toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\u00A0€`;
 }
 
 function fmtQty(value) {
@@ -163,17 +160,51 @@ async function initDocumentsTable() {
         filterControl: true,
         sortable: true,
         locale: "it-IT",
-        columns: [
-            { field: "state", checkbox: true, align: "center", valign: "middle" },
-            { field: "date", title: "Data", sortable: true, formatter: (v) => fmtDate(v), filterControl: "input", filterCustomSearch: window.fbFilterSearch },
-            { field: "number", title: "Numero", sortable: true, formatter: (v) => (v ? escapeHtml(v) : "—"), filterControl: "input", filterCustomSearch: window.fbFilterSearch },
-            { field: "supplier_name", title: DIRECTION === "out" ? "Cliente" : "Fornitore", sortable: true, formatter: (v, row) => partnerName(row), filterControl: "input", filterCustomSearch: window.fbFilterSearch },
-            ...(DIRECTION === "out" ? [{ field: "vehicle_plate", title: "Targa", sortable: true, formatter: (v) => escapeHtml(v || "—"), filterControl: "select", filterData: "var:fbPlateOptions" }] : []),
-            ...(DIRECTION === "in" ? [{ field: "invoice_number", title: "Fattura", sortable: true, align: "center", formatter: invoiceBadge, filterControl: "input", filterCustomSearch: window.fbFilterSearch }] : []),
-            { field: "type", title: "Tipo", sortable: true, align: "center", formatter: (v, row) => escapeHtml(row.type_name || "—"), searchFormatter: false, filterControl: "select", filterData: "var:fbDocTypeOptions" },
-            { field: "actions", title: "Azioni", searchable: false, formatter: formatActions, events: window.documentActionsEvents },
-        ],
+        columns:
+            DIRECTION === "out"
+                ? [
+                      // Riepologhi manutenzione terzi: check|id|numero|data|targa|cliente|schede|importo|importo+IVA|azioni
+                      { field: "state", checkbox: true, align: "center", valign: "middle" },
+                      { field: "id_document", title: "ID", sortable: true, align: "right", filterControl: "input", filterCustomSearch: window.fbFilterSearch },
+                      { field: "number", title: "Numero", sortable: true, formatter: (v) => (v ? escapeHtml(v) : "—"), filterControl: "input", filterCustomSearch: window.fbFilterSearch },
+                      { field: "date", title: "Data", sortable: true, formatter: (v) => fmtDate(v), filterControl: "input", filterCustomSearch: window.fbFilterSearch },
+                      { field: "vehicle_plate", title: "Targa", sortable: true, formatter: (v) => escapeHtml(v || "—"), filterControl: "select", filterData: "var:fbPlateOptions" },
+                      { field: "supplier_name", title: "Cliente", sortable: true, formatter: (v, row) => partnerName(row), filterControl: "input", filterCustomSearch: window.fbFilterSearch },
+                      { field: "mnt_count", title: "Schede", sortable: true, align: "right", formatter: (v) => Number(v || 0).toLocaleString("it-IT"), filterControl: "input", filterCustomSearch: window.fbFilterSearch },
+                      { field: "total_amount", title: "Totale importo", sortable: true, align: "right", formatter: (v) => fmtMoney(v), filterControl: "input", filterCustomSearch: window.fbFilterSearch },
+                      { field: "total_amount_vat", title: "Totale importo (IVA inclusa)", sortable: true, align: "right", formatter: (v) => fmtMoney(v), filterControl: "input", filterCustomSearch: window.fbFilterSearch },
+                      { field: "actions", title: "Azioni", searchable: false, formatter: formatActions, events: window.documentActionsEvents },
+                  ]
+                : [
+                      { field: "state", checkbox: true, align: "center", valign: "middle" },
+                      { field: "date", title: "Data", sortable: true, formatter: (v) => fmtDate(v), filterControl: "input", filterCustomSearch: window.fbFilterSearch },
+                      { field: "number", title: "Numero", sortable: true, formatter: (v) => (v ? escapeHtml(v) : "—"), filterControl: "input", filterCustomSearch: window.fbFilterSearch },
+                      { field: "supplier_name", title: "Fornitore", sortable: true, formatter: (v, row) => partnerName(row), filterControl: "input", filterCustomSearch: window.fbFilterSearch },
+                      { field: "invoice_number", title: "Fattura", sortable: true, align: "center", formatter: invoiceBadge, filterControl: "input", filterCustomSearch: window.fbFilterSearch },
+                      { field: "type", title: "Tipo", sortable: true, align: "center", formatter: (v, row) => escapeHtml(row.type_name || "—"), searchFormatter: false, filterControl: "select", filterData: "var:fbDocTypeOptions" },
+                      { field: "actions", title: "Azioni", searchable: false, formatter: formatActions, events: window.documentActionsEvents },
+                  ],
     });
+
+    // KPI di pagina (solo riepiloghi): ricalcolati sulle righe filtrate
+    // a ogni variazione della tabella (caricamento, filtri, sort, pagina).
+    if (DIRECTION === "out") {
+        window.$("#documents-table").on("post-body.bs.table", updatePageKpis);
+    }
+}
+
+function updatePageKpis() {
+    const rows = window.$("#documents-table").bootstrapTable("getData", { useCurrentPage: false, includeHiddenRows: false }) || [];
+    const kpi = (name, text) => {
+        const el = document.querySelector(`[data-page-kpi="${name}"]`);
+        if (el) {
+            el.textContent = text;
+        }
+    };
+    kpi("rows", rows.length.toLocaleString("it-IT"));
+    kpi("schede", rows.reduce((s, r) => s + Number(r.mnt_count || 0), 0).toLocaleString("it-IT"));
+    kpi("total", fmtMoney(rows.reduce((s, r) => s + Number(r.total_amount || 0), 0)));
+    kpi("total-vat", fmtMoney(rows.reduce((s, r) => s + Number(r.total_amount_vat || 0), 0)));
 }
 
 function refreshTable() {
@@ -381,7 +412,11 @@ function renderSchedaFromDetails(form) {
     if (manual.lines.length) {
         byScheda.set("Righe manuali", manual);
     }
-    renderSchedaGroups(form, [...byScheda.entries()].map(([label, g]) => ({ label, ...g })), checked.size || undefined);
+    renderSchedaGroups(
+        form,
+        [...byScheda.entries()].map(([label, g]) => ({ label, ...g })),
+        checked.size || undefined,
+    );
 }
 
 function renderDetails(form, details) {
@@ -521,7 +556,7 @@ function renderMntSummary(form) {
     renderSchedaGroups(
         form,
         selectedMnt.map((m) => ({ label: `Scheda ${m.id_maintenance} del ${fmtDate(m.date)}`, lines: m.lines || [] })),
-        selectedMnt.length
+        selectedMnt.length,
     );
 
     form.querySelector('[data-kpi="total"]').textContent = fmtMoney(groups.reduce((s, g) => s + g.totale, 0));
@@ -536,7 +571,7 @@ function updateMntToolbar(form) {
     }
     const n = (form._mntChecked || new Set()).size;
     countEl.textContent = n > 0 ? `${n} selezionata${n === 1 ? "" : "e"}` : "";
-    // Il KPI "Totale schede riepilogate" rispecchia sempre la selezione:
+    // Il KPI "Schede" rispecchia sempre la selezione:
     // anche le schede senza righe movimento entrano nel riepilogo.
     const schedaKpi = form.querySelector('[data-kpi="s-schede"]');
     if (schedaKpi) {
@@ -1103,9 +1138,7 @@ async function openDocumentView(row) {
         `;
         })
         .join("");
-    const emptyRowsHtml = emptySheets
-        .map((s) => `<tr><td>Scheda ${s.id_maintenance} del ${fmtDate(s.date)}</td><td colspan="8" class="fb-muted" style="text-align:center">Nessun movimento</td></tr>`)
-        .join("");
+    const emptyRowsHtml = emptySheets.map((s) => `<tr><td>Scheda ${s.id_maintenance} del ${fmtDate(s.date)}</td><td colspan="8" class="fb-muted" style="text-align:center">Nessun movimento</td></tr>`).join("");
 
     const dlgTitle = isOut ? `Documento di riepilogo ${escapeHtml(doc.number || doc.id_document)}` : `${DOC_LABEL} ${escapeHtml(doc.number || doc.id_document)}`;
     const dlg = document.createElement("dialog");
@@ -1292,7 +1325,9 @@ function openReportDialog() {
     const now = new Date();
     const monthNames = ["Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno", "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"];
     const monthOpts = monthNames.map((m, i) => `<option value="${i + 1}" ${i === now.getMonth() ? "selected" : ""}>${m}</option>`).join("");
-    const yearOpts = Array.from({ length: 12 }, (_, i) => now.getFullYear() - i).map((y) => `<option value="${y}">${y}</option>`).join("");
+    const yearOpts = Array.from({ length: 12 }, (_, i) => now.getFullYear() - i)
+        .map((y) => `<option value="${y}">${y}</option>`)
+        .join("");
 
     const d = document.createElement("dialog");
     d.className = "fb-dialog fb-dialog-medium";

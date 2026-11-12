@@ -27,7 +27,7 @@
             <th>Alimentazione</th>
             <th>Operazione</th>
             <th class="text-right">Litri</th>
-            <th class="text-right">€/litro</th>
+            <th class="text-right">EUR/litro</th>
             <th class="text-right">Km</th>
             <th class="text-right">Km da ultimo</th>
             <th>Fornitore</th>
@@ -42,7 +42,7 @@
             <td>{{ row.fuel_type_name ?: '—' }}</td>
             <td class="text-center">{{ row.direction == 'in' ? 'Carico' : 'Scarico' }}</td>
             <td class="text-right">{{ row.liters|number_format(2, ',', '.') }}</td>
-            <td class="text-right">{{ row.price_per_liter > 0 ? row.price_per_liter|number_format(4, ',', '.') : '—' }}</td>
+            <td class="text-right">{{ row.price_per_liter > 0 ? row.price_per_liter|eur4 : '—' }}</td>
             <td class="text-right">{{ row.km_at_refuel ? row.km_at_refuel|number_format(0, ',', '.') : '—' }}</td>
             <td class="text-right">{{ row.km_since_last_refuel ? row.km_since_last_refuel|number_format(0, ',', '.') : '—' }}</td>
             <td>{{ row.supplier_name ?: '—' }}</td>

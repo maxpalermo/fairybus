@@ -18,7 +18,7 @@
 {% extends "admin/layout.twig" %}
 
 {% block page_styles %}
-    <link rel="stylesheet" href="{{ asset('fairy-bus/css/pages/documents.css') }}?v=7">
+    <link rel="stylesheet" href="{{ asset('fairy-bus/css/pages/documents.css') }}?v=8">
 {% endblock %}
 
 {% block content %}
@@ -39,6 +39,30 @@
                 <button type="button" class="fb-btn-icon fb-btn-icon-success" data-action="new-document" title="Nuovo riepilogo manutenzione terzi">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                 </button>
+            </div>
+        </div>
+
+        {# KPI di pagina: ricalcolati dal JS sulle righe attualmente filtrate in tabella #}
+        <div class="fb-kpi-grid">
+            <div class="fb-kpi fb-kpi-info">
+                <svg class="fb-kpi-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+                <span class="fb-kpi-value" data-page-kpi="rows">0</span>
+                <span class="fb-kpi-label">Totale righe</span>
+            </div>
+            <div class="fb-kpi fb-kpi-warning">
+                <svg class="fb-kpi-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
+                <span class="fb-kpi-value" data-page-kpi="schede">0</span>
+                <span class="fb-kpi-label">Totale schede riepilogate</span>
+            </div>
+            <div class="fb-kpi fb-kpi-secondary">
+                <svg class="fb-kpi-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                <span class="fb-kpi-value" data-page-kpi="total">0,00&nbsp;EUR</span>
+                <span class="fb-kpi-label">Totale senza IVA</span>
+            </div>
+            <div class="fb-kpi fb-kpi-success">
+                <svg class="fb-kpi-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="5" x2="5" y2="19"></line><circle cx="6.5" cy="6.5" r="2.5"></circle><circle cx="17.5" cy="17.5" r="2.5"></circle></svg>
+                <span class="fb-kpi-value" data-page-kpi="total-vat">0,00&nbsp;EUR</span>
+                <span class="fb-kpi-label">Totale con IVA</span>
             </div>
         </div>
 
@@ -114,7 +138,7 @@
             <div class="fb-tab-panel" data-panel="movimenti" role="tabpanel">
                 <div class="fb-kpi-grid">
                     <div class="fb-kpi fb-kpi-success">
-                        <span class="fb-kpi-value" data-kpi="total">0,00&nbsp;€</span>
+                        <span class="fb-kpi-value" data-kpi="total">0,00&nbsp;EUR</span>
                         <span class="fb-kpi-label">Prezzo totale</span>
                     </div>
                     <div class="fb-kpi fb-kpi-danger">
@@ -162,7 +186,7 @@
             <div class="fb-tab-panel" data-panel="scheda" role="tabpanel">
                 <div class="fb-kpi-grid">
                     <div class="fb-kpi fb-kpi-success">
-                        <span class="fb-kpi-value" data-kpi="s-total">0,00&nbsp;€</span>
+                        <span class="fb-kpi-value" data-kpi="s-total">0,00&nbsp;EUR</span>
                         <span class="fb-kpi-label">Prezzo totale</span>
                     </div>
                     <div class="fb-kpi fb-kpi-danger">
@@ -175,7 +199,7 @@
                     </div>
                     <div class="fb-kpi fb-kpi-info">
                         <span class="fb-kpi-value" data-kpi="s-schede">0</span>
-                        <span class="fb-kpi-label">Totale schede riepilogate</span>
+                        <span class="fb-kpi-label">Schede</span>
                     </div>
                 </div>
                 <table class="fb-table fb-details-table">
@@ -206,5 +230,5 @@
 {% endblock %}
 
 {% block page_scripts %}
-    <script type="module" src="{{ asset('fairy-bus/js/pages/documents.js?v=45') }}"></script>
+    <script type="module" src="{{ asset('fairy-bus/js/pages/documents.js?v=52') }}"></script>
 {% endblock %}

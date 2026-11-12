@@ -1,5 +1,6 @@
 import FetchHelper from "../core/FetchHelper.js";
 import DialogHelper from "../core/DialogHelper.js";
+import { fmtMoney } from "../core/format.js?v=2";
 import PrintHelper from "../components/PrintHelper.js";
 import { viewItem } from "../components/ViewGrid.js";
 import SearchableSelect from "../components/SearchableSelect.js?v=5";
@@ -21,10 +22,6 @@ function fmtDate(value) {
     }
     const d = new Date(String(value).replace(" ", "T"));
     return isNaN(d) ? escapeHtml(value) : d.toLocaleDateString("it-IT");
-}
-
-function fmtMoney(value) {
-    return `${Number(value || 0).toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\u00A0€`;
 }
 
 function fmtQty(value) {

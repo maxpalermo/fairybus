@@ -1,6 +1,7 @@
 import FetchHelper from "../core/FetchHelper.js";
 import DialogHelper from "../core/DialogHelper.js";
 import Toast from "../core/Toast.js";
+import { fmtMoney, fmtMoney4 } from "../core/format.js?v=2";
 import PrintHelper from "../components/PrintHelper.js";
 import RefuellingKpis from "../components/RefuellingKpis.js";
 import SearchableSelect from "../components/SearchableSelect.js?v=5";
@@ -67,10 +68,6 @@ function fmtLiters(v) {
     return v === null || v === undefined ? "—" : `${Number(v).toLocaleString("it-IT", { minimumFractionDigits: 2 })} l`;
 }
 
-function fmtMoney(v) {
-    return `€ ${Number(v || 0).toLocaleString("it-IT", { minimumFractionDigits: 2 })}`;
-}
-
 async function loadOptions() {
     const [optsRes, vehiclesRes, suppliersRes] = await Promise.all([FetchHelper.get(`${BASE}api/refuelling/options`), FetchHelper.get(`${BASE}api/vehicles`).catch(() => ({ rows: [] })), FetchHelper.get(`${BASE}api/suppliers`).catch(() => ({ rows: [] }))]);
     stationsCache = optsRes.stations || [];
@@ -117,7 +114,7 @@ function initTable() {
             { field: "station_name", title: "Stazione", sortable: true, formatter: (v) => escapeHtml(v || "—"), filterControl: "input", filterCustomSearch: window.fbFilterSearch },
             { field: "fuel_type_name", title: "Alimentazione", sortable: true, formatter: (v) => escapeHtml(v || "—"), filterControl: "input", filterCustomSearch: window.fbFilterSearch },
             { field: "liters", title: "Litri", sortable: true, align: "right", formatter: fmtLiters, filterControl: "input", filterCustomSearch: window.fbFilterSearch },
-            { field: "price_per_liter", title: "€/litro", sortable: true, align: "right", formatter: (v) => (Number(v) > 0 ? fmtMoney(v) : "—"), filterControl: "input", filterCustomSearch: window.fbFilterSearch },
+            { field: "price_per_liter", title: "EUR/litro", sortable: true, align: "right", formatter: (v) => (Number(v) > 0 ? fmtMoney4(v) : "—"), filterControl: "input", filterCustomSearch: window.fbFilterSearch },
             ...(PAGE_DIRECTION === "out"
                 ? [
                       { field: "km_prev", title: "Km precedenti", sortable: true, align: "right", formatter: fmtKm, filterControl: "input", filterCustomSearch: window.fbFilterSearch },
@@ -160,7 +157,7 @@ function openRefuellingView(row) {
             ${row.supplier_name ? viewItem("Fornitore", row.supplier_name) : ""}
             ${viewItem("Alimentazione", row.fuel_type_name)}
             ${viewItem("Quantità", fmtLiters(row.liters))}
-            ${viewItem("Prezzo al litro", Number(row.price_per_liter) > 0 ? fmtMoney(row.price_per_liter) : null)}
+            ${viewItem("Prezzo al litro", Number(row.price_per_liter) > 0 ? fmtMoney4(row.price_per_liter) : null)}
             ${viewItem("Importo", total > 0 ? fmtMoney(total) : null)}
             ${isLoad ? "" : viewItem("Km attuali", fmtKm(row.km_at_refuel))}
             ${isLoad ? "" : viewItem("Km precedenti", fmtKm(row.km_prev ?? row.km_since_last_refuel))}

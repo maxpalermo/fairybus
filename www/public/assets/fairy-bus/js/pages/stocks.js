@@ -1,5 +1,6 @@
 import FetchHelper from "../core/FetchHelper.js";
 import DialogHelper from "../core/DialogHelper.js";
+import { fmtMoney, fmtMoney4 } from "../core/format.js?v=2";
 import PrintHelper from "../components/PrintHelper.js";
 
 const dialog = new DialogHelper();
@@ -83,7 +84,7 @@ async function renderLotsCard($wrap, row) {
         const lots = (res && res.lots) || [];
         const um = escapeHtml(row.unit_label || "");
         const fmtQty = (v) => Number(v || 0).toLocaleString("it-IT", { maximumFractionDigits: 3 });
-        const fmtPrice = (v) => `${Number(v || 0).toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\u00A0€`;
+        const fmtPrice = fmtMoney;
 
         const purchaseCard = (title, cls, p) => {
             if (!p) {
@@ -193,7 +194,7 @@ function movementColumns(unitLabel) {
             sortable: true,
             align: "right",
             ...filter,
-            formatter: (v) => `${Number(v || 0).toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\u00A0€`,
+            formatter: (v) => fmtMoney(v),
         },
         {
             field: "discount",
@@ -246,7 +247,7 @@ function fmtQtyN(value) {
 }
 
 function fmtPriceN(value) {
-    return `${Number(value || 0).toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 4 })}\u00A0€`;
+    return fmtMoney4(value);
 }
 
 /* ---------- Riallineo scarichi ai carichi ---------- */
@@ -353,7 +354,7 @@ function openRealignDialog(productRow) {
                     )
                     .join("");
                 return `<div class="fb-rl-detail"><table class="fb-table"><thead><tr><th style="width:2rem"></th><th>Movimento</th><th>Targa</th><th>Data</th><th class="num">Q.tà</th><th class="num">Prezzo</th></tr></thead><tbody>${rows || '<tr><td colspan="6" class="fb-muted" style="text-align:center">Nessuno scarico agganciato.</td></tr>'}</tbody></table>
-                    <div class="fb-rl-detail-foot"><button type="button" class="fb-btn fb-btn-warning fb-btn-sm" data-action="detach-outs" disabled>Sgancia selezionati (prezzo 0,00 €)</button></div></div>`;
+                    <div class="fb-rl-detail-foot"><button type="button" class="fb-btn fb-btn-warning fb-btn-sm" data-action="detach-outs" disabled>Sgancia selezionati (prezzo 0,00 EUR)</button></div></div>`;
             },
             onCheck: updateButtons,
             onUncheck: updateButtons,
@@ -544,7 +545,7 @@ function openRealignDialog(productRow) {
         if (moves.length === 0) {
             return;
         }
-        if (!(await dialog.confirm(`Sganciare ${moves.length} scarich${moves.length === 1 ? "o" : "i"}? Il prezzo diventerà 0,00 € e ${moves.length === 1 ? "risulterà" : "risulteranno"} anomalo.`, "Conferma"))) {
+        if (!(await dialog.confirm(`Sganciare ${moves.length} scarich${moves.length === 1 ? "o" : "i"}? Il prezzo diventerà 0,00 EUR e ${moves.length === 1 ? "risulterà" : "risulteranno"} anomalo.`, "Conferma"))) {
             return;
         }
         try {

@@ -645,12 +645,7 @@ function initBackupTable(attempt = 0) {
             "click .backup-restore": async (e, value, row) => {
                 const ok = await dialog.confirm(`Ripristinare il backup <strong>${escapeHtml(row.name)}</strong> del ${escapeHtml(row.created_at)}?<br>` + "<strong>Il database corrente verrà completamente sovrascritto.</strong> L'operazione non è annullabile.", "Ripristina database");
                 if (!ok) return;
-                try {
-                    await FetchHelper.post(`${window.FB.baseUrl}api/settings/backups/${encodeURIComponent(row.name)}/restore`, {});
-                    toast.showToastSuccess("Database ripristinato. Ricarica la pagina per vedere i dati aggiornati.");
-                } catch (err) {
-                    await dialog.error(err);
-                }
+                await runRestore(row);
             },
             "click .backup-download": (e, value, row) => {
                 const a = document.createElement("a");
@@ -693,6 +688,61 @@ function initBackupTable(attempt = 0) {
     return true;
 }
 
+/**
+ * Ripristino a blocchi con dialog di avanzamento: il server esegue
+ * CHUNK statement per richiesta e risponde con total/executed/done.
+ * ESC disabilitato mentre il ripristino è in corso.
+ */
+async function runRestore(row) {
+    const d = document.createElement("dialog");
+    d.className = "fb-dialog";
+    d.innerHTML = `
+        <div class="fb-dialog-header"><h3 class="fb-dialog-title">Ripristino database</h3></div>
+        <div class="fb-dialog-body">
+            <p class="fb-muted" style="margin-top:0">Backup: <code>${escapeHtml(row.name)}</code></p>
+            <div class="fb-clean-progress"><div class="fb-clean-progress-bar" data-field="bar"></div></div>
+            <div data-field="status">Ripristino in corso…</div>
+            <div class="fb-form-actions" data-field="foot" hidden>
+                <button type="button" class="fb-btn fb-btn-primary" data-action="reload">Ricarica pagina</button>
+                <button type="button" class="fb-btn fb-btn-secondary" data-action="close">Chiudi</button>
+            </div>
+        </div>`;
+    document.body.appendChild(d);
+    const blockCancel = (ev) => ev.preventDefault();
+    d.addEventListener("cancel", blockCancel);
+    d.showModal();
+
+    const bar = d.querySelector('[data-field="bar"]');
+    const status = d.querySelector('[data-field="status"]');
+    const foot = d.querySelector('[data-field="foot"]');
+    d.querySelector('[data-action="close"]').addEventListener("click", () => d.close());
+    d.querySelector('[data-action="reload"]').addEventListener("click", () => location.reload());
+    d.addEventListener("close", () => d.remove(), { once: true });
+
+    const CHUNK = 200;
+    let offset = 0;
+    let total = 0;
+    try {
+        for (;;) {
+            const res = await FetchHelper.post(`${window.FB.baseUrl}api/settings/backups/${encodeURIComponent(row.name)}/restore`, { offset, limit: CHUNK });
+            total = Number(res.total || 0);
+            offset += Number(res.executed || 0);
+            bar.style.width = total > 0 ? `${Math.round((offset / total) * 100)}%` : "100%";
+            status.textContent = `Ripristino in corso… ${offset}/${total} statement eseguiti`;
+            if (res.done || offset >= total) {
+                break;
+            }
+        }
+        status.innerHTML = `<strong>Ripristino completato.</strong> ${total} statement eseguiti. Ricarica la pagina per vedere i dati aggiornati.`;
+        bar.style.width = "100%";
+    } catch (err) {
+        bar.style.background = "#dc2626";
+        status.innerHTML = `<strong>Errore</strong> dopo ${offset}${total ? "/" + total : ""} statement: ${escapeHtml(err?.message || String(err))}<br><span class="fb-muted">Il database potrebbe essere parzialmente ripristinato.</span>`;
+    }
+    d.removeEventListener("cancel", blockCancel);
+    foot.hidden = false;
+}
+
 async function refreshBackups() {
     const $table = window.$("#backups-table");
     try {
@@ -705,7 +755,81 @@ async function refreshBackups() {
     }
 }
 
+/**
+ * Pulizia tabelle non usate: elenca le tabelle non fb_* (escluse
+ * migrations), chiede conferma e le elimina una alla volta con
+ * dialog di avanzamento. La whitelist è ricalcolata lato server.
+ */
+async function cleanUnusedTables() {
+    let tables = [];
+    try {
+        const res = await FetchHelper.get(`${window.FB.baseUrl}api/settings/backups/unused-tables`);
+        tables = res.tables || [];
+    } catch (err) {
+        await dialog.error(err);
+        return;
+    }
+    if (tables.length === 0) {
+        toast.showToastSuccess("Nessuna tabella da eliminare: il database è pulito.");
+        return;
+    }
+    const preview = tables.slice(0, 15).map(escapeHtml).join(", ");
+    const extra = tables.length > 15 ? ` …e altre ${tables.length - 15}` : "";
+    const ok = await dialog.confirm(
+        `Verranno eliminate definitivamente <strong>${tables.length}</strong> tabelle:<br><span class="fb-muted">${preview}${extra}</span><br><br><strong>L'operazione non è annullabile.</strong>`,
+        "Pulisci tabelle non usate"
+    );
+    if (!ok) {
+        return;
+    }
+
+    const d = document.createElement("dialog");
+    d.className = "fb-dialog";
+    d.innerHTML = `
+        <div class="fb-dialog-header"><h3 class="fb-dialog-title">Pulizia tabelle non usate</h3></div>
+        <div class="fb-dialog-body">
+            <div class="fb-clean-progress"><div class="fb-clean-progress-bar" data-field="bar"></div></div>
+            <div data-field="status">Inizio…</div>
+            <div class="fb-form-actions" data-field="foot" hidden>
+                <button type="button" class="fb-btn fb-btn-primary" data-action="close">Chiudi</button>
+            </div>
+        </div>`;
+    document.body.appendChild(d);
+    d.showModal();
+
+    const bar = d.querySelector('[data-field="bar"]');
+    const status = d.querySelector('[data-field="status"]');
+    const foot = d.querySelector('[data-field="foot"]');
+    d.querySelector('[data-action="close"]').addEventListener("click", () => d.close());
+    d.addEventListener("close", () => d.remove(), { once: true });
+
+    let done = 0;
+    const errors = [];
+    for (const name of tables) {
+        status.textContent = `Eliminazione ${name}… (${done + 1}/${tables.length})`;
+        try {
+            await FetchHelper.post(`${window.FB.baseUrl}api/settings/backups/drop-table`, { table: name });
+        } catch (err) {
+            errors.push(`${name}: ${err?.message || err}`);
+        }
+        done++;
+        bar.style.width = `${Math.round((done / tables.length) * 100)}%`;
+    }
+    status.innerHTML = errors.length
+        ? `Completato con errori: eliminate ${done - errors.length}/${tables.length} tabelle.<br><span class="fb-muted">${errors.map(escapeHtml).join("<br>")}</span>`
+        : `Fatto: eliminate tutte le ${done} tabelle non usate.`;
+    foot.hidden = false;
+}
+
 function initBackups() {
+    const cleanBtn = document.querySelector('[data-action="clean-tables"]');
+    if (cleanBtn && cleanBtn.dataset.bound !== "1") {
+        cleanBtn.dataset.bound = "1";
+        cleanBtn.addEventListener("click", () => {
+            cleanUnusedTables().catch(async (err) => dialog.error(err));
+        });
+    }
+
     const btn = document.querySelector('[data-action="backup-create"]');
     if (btn && btn.dataset.bound !== "1") {
         btn.dataset.bound = "1";

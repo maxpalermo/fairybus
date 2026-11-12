@@ -123,7 +123,7 @@ class Maintenance extends AdminController
         $this->syncTask($id, $validation['task']);
         $this->registerKm($id, (int) ($validation['maintenance']['id_vehicle'] ?? 0), (int) ($validation['maintenance']['km'] ?? 0), $validation['maintenance']['date'] ?? null);
 
-        return $this->jsonResponse(['success' => true]);
+        return $this->jsonResponse(['success' => true, 'synced' => $this->propagateToDocument($id)]);
     }
 
     public function delete(int $id): ResponseInterface
@@ -133,7 +133,8 @@ class Maintenance extends AdminController
         }
 
         $model = new \FairyBus\Models\FbMaintenanceModel();
-        if ($model->find($id) === null) {
+        $mnt = $model->find($id);
+        if ($mnt === null) {
             return $this->jsonResponse(['success' => false, 'error' => 'Manutenzione non trovata.'], 404);
         }
 
@@ -148,12 +149,26 @@ class Maintenance extends AdminController
             }
         }
 
+        // se la scheda era collegata a un riepilogo, elimina anche le righe
+        // copiate nel documento (la scheda e' la fonte: scompare lei, spariscono)
+        $docRowsRemoved = 0;
+        if (!empty($mnt['id_document'])) {
+            $docRowsRemoved = $db->table('fb_document_detail')
+                ->where('id_document', (int) $mnt['id_document'])
+                ->where('id_maintenance', $id)
+                ->countAllResults();
+            $db->table('fb_document_detail')
+                ->where('id_document', (int) $mnt['id_document'])
+                ->where('id_maintenance', $id)
+                ->delete();
+        }
+
         $db->table('fb_maintenance_detail')->where('id_maintenance', $id)->delete();
         $db->table('fb_maintenance_task')->where('id_maintenance', $id)->delete();
         $db->table('fb_maintenance_invoice')->where('id_maintenance', $id)->delete();
         $model->delete($id);
 
-        return $this->jsonResponse(['success' => true]);
+        return $this->jsonResponse(['success' => true, 'doc_rows_removed' => $docRowsRemoved]);
     }
 
     /* ---------- Dettagli (ricambi usati: stock -) ---------- */
@@ -412,7 +427,7 @@ class Maintenance extends AdminController
             }
         }
 
-        return $this->jsonResponse(['success' => true, 'detail' => $row]);
+        return $this->jsonResponse(['success' => true, 'detail' => $row, 'synced' => $this->propagateToDocument($id)]);
     }
 
     /**
@@ -474,7 +489,7 @@ class Maintenance extends AdminController
             (new \FairyBus\Models\FbStockModel())->loadStock((int) ($detail['id_product'] ?? 0), (float) $detail['quantity']);
         }
 
-        return $this->jsonResponse(['success' => true]);
+        return $this->jsonResponse(['success' => true, 'synced' => $this->propagateToDocument((int) ($detail['id_maintenance'] ?? 0))]);
     }
 
     /* ---------- Fatture collegate ---------- */
@@ -592,6 +607,33 @@ class Maintenance extends AdminController
     }
 
     /* ---------- Helpers ---------- */
+
+    /**
+     * Se la scheda e' collegata a un riepilogo, riallinea le righe copiate
+     * nel documento (le righe sono uno snapshot: la scheda e' la fonte).
+     * Restituisce ['document' => id, 'rows' => n] oppure null se la scheda
+     * non e' collegata (o il documento non e' piu' un riepilogo valido).
+     *
+     * @return array{document: int, rows: int}|null
+     */
+    private function propagateToDocument(int $idMaintenance): ?array
+    {
+        $db = \Config\Database::connect();
+        $idDocument = (int) ($db->table('fb_maintenance')->select('id_document')->where('id_maintenance', $idMaintenance)->get()->getRow('id_document') ?? 0);
+        if ($idDocument <= 0) {
+            return null;
+        }
+
+        $document = (new \FairyBus\Models\FbDocumentModel())->find($idDocument);
+        if ($document === null || empty($document['id_customer'])) {
+            return null;
+        }
+
+        $defaultVat = (float) ((new \FairyBus\Models\FbConfigurationModel())->get('default_tax_rate')['value'] ?? 0);
+        $rows = (new \FairyBus\Models\FbDocumentDetailModel())->resyncMaintenanceLines($idDocument, $idMaintenance, (int) ($document['type'] ?? 0), $defaultVat);
+
+        return ['document' => $idDocument, 'rows' => $rows];
+    }
 
     /**
      * Upsert del task generale della manutenzione (id_maintenance_detail = 0):

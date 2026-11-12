@@ -1,5 +1,6 @@
 import FetchHelper from "../core/FetchHelper.js";
 import DialogHelper from "../core/DialogHelper.js";
+import { fmtMoney } from "../core/format.js?v=2";
 import Toast from "../core/Toast.js";
 import tableSelectManager from "../components/TableSelectManager.js";
 import PrintHelper from "../components/PrintHelper.js";
@@ -263,7 +264,7 @@ function formatAliasCount(value) {
 }
 
 function formatPrice(value) {
-    return Number(value || 0).toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + "\u00A0€";
+    return fmtMoney(value);
 }
 
 function formatLastBuy(value, row) {
@@ -446,7 +447,7 @@ async function openProductForm(product = null) {
         const vat = Number(form.querySelector('[name="tax_rate"]').value || 0);
         const buy = Number(form.querySelector('[name="wholesale_price"]').value || 0);
         const sell = Number(form.querySelector('[name="price"]').value || 0);
-        const fmt = (v) => `${v.toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\u00A0€`;
+        const fmt = fmtMoney;
         preview.innerHTML = `
             <span class="fb-pp-label">Prezzi IVA ${vat.toLocaleString("it-IT", { maximumFractionDigits: 2 })}% inclusa</span>
             <span class="fb-pp-chip fb-pp-buy"><span class="fb-pp-name">Acquisto</span> ${fmt(buy * (1 + vat / 100))}</span>
@@ -892,7 +893,7 @@ function openDuplicateSkuDialog(row) {
             ${viewItem("Nome", row.name)}
             ${viewItem("Marca", row.brand_name)}
             ${viewItem("Categoria", row.category_name)}
-            ${viewItem("Prezzo vendita", row.price !== null && row.price !== undefined ? `${Number(row.price).toLocaleString("it-IT", { minimumFractionDigits: 2 })} €` : null)}
+            ${viewItem("Prezzo vendita", row.price !== null && row.price !== undefined ? `${fmtMoney(row.price)}` : null)}
             ${viewItem("Giacenza", row.quantity !== null && row.quantity !== undefined ? Number(row.quantity).toLocaleString("it-IT") : null)}
             ${viewItem("Stato", Number(row.active) === 1 ? "Attivo" : "Non attivo")}
         </dl>

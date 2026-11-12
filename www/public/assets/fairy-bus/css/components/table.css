@@ -64,6 +64,111 @@
     box-shadow: 0 0 0 1px var(--fb-ring);
 }
 
+/* Wizard ricerca guidata: icona "sliders" dentro i campi filtro */
+.bootstrap-table .table thead .filter-control {
+    position: relative;
+}
+.bootstrap-table .table thead .filter-control input {
+    padding-right: 1.4rem;
+}
+.fb-fw-btn {
+    position: absolute;
+    right: 0.25rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 1rem;
+    height: 1rem;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: var(--fb-muted-foreground);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.65;
+    z-index: 2;
+}
+.fb-fw-btn:hover {
+    opacity: 1;
+    color: var(--fb-foreground);
+}
+
+/* Popover del wizard */
+.fb-fw-pop {
+    display: none;
+    position: fixed;
+    z-index: 1100;
+    width: 15rem;
+    padding: 0.625rem;
+    background: var(--fb-card);
+    border: 1px solid var(--fb-border);
+    border-radius: var(--fb-radius);
+    box-shadow: 0 10px 25px rgb(0 0 0 / 0.18);
+    font-size: 0.8125rem;
+}
+.fb-fw-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.45rem;
+    font-weight: 600;
+}
+.fb-fw-close {
+    border: none;
+    background: none;
+    padding: 0.125rem;
+    cursor: pointer;
+    color: var(--fb-muted-foreground);
+    display: flex;
+}
+.fb-fw-close:hover {
+    color: var(--fb-foreground);
+}
+.fb-fw-pop .fb-fw-op,
+.fb-fw-pop .fb-fw-fields input {
+    height: 1.875rem;
+    font-size: 0.8125rem;
+    padding: 0.2rem 0.45rem;
+}
+.fb-fw-op {
+    width: 100%;
+    margin-bottom: 0.4rem;
+}
+.fb-fw-fields {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-bottom: 0.4rem;
+}
+.fb-fw-fields input {
+    width: 100%;
+    min-width: 0;
+}
+.fb-fw-sep {
+    color: var(--fb-muted-foreground);
+    flex-shrink: 0;
+}
+.fb-fw-code {
+    display: block;
+    min-height: 1.35rem;
+    padding: 0.15rem 0.4rem;
+    margin-bottom: 0.5rem;
+    background: var(--fb-muted);
+    border-radius: 0.25rem;
+    color: var(--fb-muted-foreground);
+    font-size: 0.75rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.fb-fw-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.4rem;
+}
+
 /* Select ricercabile dei filtri colonna (table-filter-select.js) */
 .fb-tfs-input {
     width: 100%;

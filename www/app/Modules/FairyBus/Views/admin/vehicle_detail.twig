@@ -78,7 +78,7 @@
                         <span class="fb-stat-chip-label">Pezzi di ricambio</span>
                     </div>
                     <div class="fb-stat-chip fb-stat-success">
-                        <span class="fb-stat-chip-value" id="rep-stat-total">0,00 €</span>
+                        <span class="fb-stat-chip-value" id="rep-stat-total">0,00 EUR</span>
                         <span class="fb-stat-chip-label">Totale speso</span>
                     </div>
                 </div>
@@ -103,5 +103,5 @@
     <script>
         window.FB.idVehicle = {{ id_vehicle|json_encode|raw }};
     </script>
-    <script type="module" src="{{ asset('fairy-bus/js/pages/vehicle_detail.js') }}?v=13"></script>
+    <script type="module" src="{{ asset('fairy-bus/js/pages/vehicle_detail.js') }}?v=16"></script>
 {% endblock %}

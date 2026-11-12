@@ -196,6 +196,228 @@
         actions.insertBefore(btn, firstIcon || null);
     }
 
+    /* ---------- Wizard ricerca guidata (popover) ----------
+     * Icona "sliders" dentro ogni campo filtro input: apre un popover con
+     * select operatore + valore/i (datepicker per date, number per numeri)
+     * e anteprima live del codice. Applica scrivendo il codice nel campo
+     * e simulando Invio — la pipeline di filtro resta invariata.
+     */
+    const WIZ_ICON = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>';
+    const WIZ_OPS = [
+        ["", "contiene"],
+        ["%>", "inizia con"],
+        ["%/", "finisce con"],
+        ["=", "uguale a"],
+        [">", "maggiore di"],
+        ["<", "minore di"],
+        ["<>", "diverso da"],
+        ["<->", "compreso tra (inclusi)"],
+    ];
+
+    // Tipo colonna dai dati reali (fino a 15 righe), fallback sul nome campo.
+    function wizDetectType(th) {
+        const field = th.getAttribute("data-field") || "";
+        const table = th.closest(".bootstrap-table")?.querySelector("table");
+        if (table && field && window.$ && window.$.fn.bootstrapTable) {
+            const rows = window.$(table).bootstrapTable("getData") || [];
+            for (const r of rows.slice(0, 15)) {
+                const v = r[field];
+                if (v === null || v === undefined || v === "") {
+                    continue;
+                }
+                const s = String(v);
+                if (/^\d{4}-\d{2}-\d{2}/.test(s) || /^\d{1,2}[\/.-]\d{1,2}[\/.-]\d{2,4}/.test(s)) {
+                    return "date";
+                }
+                return isNaN(Number(s)) ? "text" : "number";
+            }
+        }
+        if (/date|data|scad/i.test(field)) {
+            return "date";
+        }
+        if (/count|total|amount|price|qty|km|lit|id_/i.test(field)) {
+            return "number";
+        }
+        return "text";
+    }
+
+    // Riporta il codice sintassi a operatore + valori (per riempire il wizard).
+    function wizParseCode(raw) {
+        const s = String(raw || "").trim();
+        if (s.startsWith("<->")) {
+            const [a, b] = s.slice(3).split(",");
+            return { op: "<->", v1: (a || "").trim(), v2: (b || "").trim() };
+        }
+        const m = s.match(/^(%>|%\/|<>|=|>|<)(.*)$/);
+        return m ? { op: m[1], v1: m[2].trim() } : { op: "", v1: s };
+    }
+
+    const wizItToIso = (s) => {
+        const m = String(s || "").trim().match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})/);
+        if (m) {
+            return `${m[3].length === 2 ? "20" + m[3] : m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`;
+        }
+        const i = String(s || "").match(/^(\d{4}-\d{2}-\d{2})/);
+        return i ? i[1] : s;
+    };
+    const wizIsoToIt = (s) => {
+        const m = String(s || "").trim().match(/^(\d{4})-(\d{2})-(\d{2})/);
+        return m ? `${m[3]}/${m[2]}/${m[1]}` : s;
+    };
+
+    function wizBuildCode(op, v1, v2, type) {
+        const cvt = (s) => (type === "date" ? wizIsoToIt(s) : String(s || "").trim());
+        const a = cvt(v1);
+        const b = cvt(v2);
+        if (op === "<->") {
+            if (a && b) {
+                return `<->${a},${b}`;
+            }
+            return a ? `>${a}` : "";
+        }
+        return a ? `${op}${a}` : "";
+    }
+
+    let wizPop = null;
+    let wizInput = null;
+
+    function closeFilterWizard() {
+        if (wizPop) {
+            wizPop.style.display = "none";
+        }
+        wizInput = null;
+    }
+
+    function openFilterWizard(th, input) {
+        const field = th.getAttribute("data-field") || "";
+        const type = wizDetectType(th);
+        const thead = th.closest("thead");
+        const colTitle = thead?.querySelector(`tr:first-child th[data-field="${field}"] .th-inner`)?.textContent.trim() || field || "colonna";
+
+        if (!wizPop) {
+            wizPop = document.createElement("div");
+            wizPop.className = "fb-fw-pop";
+            wizPop.innerHTML = `
+                <div class="fb-fw-head">
+                    <span class="fb-fw-title"></span>
+                    <button type="button" class="fb-fw-close" aria-label="Chiudi">
+                        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+                <select class="fb-form-input fb-fw-op" data-no-search>${WIZ_OPS.map(([v, l]) => `<option value="${v}">${l}</option>`).join("")}</select>
+                <div class="fb-fw-fields">
+                    <input class="fb-form-input fb-fw-v1">
+                    <span class="fb-fw-sep">÷</span>
+                    <input class="fb-form-input fb-fw-v2">
+                </div>
+                <code class="fb-fw-code" title="Codice filtro generato"></code>
+                <div class="fb-fw-actions">
+                    <button type="button" class="fb-btn fb-btn-secondary fb-btn-sm fb-fw-clear">Pulisci</button>
+                    <button type="button" class="fb-btn fb-btn-primary fb-btn-sm fb-fw-apply">Applica</button>
+                </div>`;
+            document.body.appendChild(wizPop);
+
+            const opSel = wizPop.querySelector(".fb-fw-op");
+            const v1 = wizPop.querySelector(".fb-fw-v1");
+            const v2 = wizPop.querySelector(".fb-fw-v2");
+            const code = wizPop.querySelector(".fb-fw-code");
+
+            const refresh = () => {
+                const range = opSel.value === "<->";
+                wizPop.querySelector(".fb-fw-sep").style.display = range ? "" : "none";
+                v2.style.display = range ? "" : "none";
+                const c = wizBuildCode(opSel.value, v1.value, v2.value, wizPop._type);
+                code.textContent = c || "(vuoto)";
+                return c;
+            };
+            wizPop._refresh = refresh;
+
+            const apply = () => {
+                if (wizInput) {
+                    wizInput.value = refresh();
+                    window.$(wizInput).trigger(window.$.Event("keyup", { keyCode: 13 }));
+                }
+                closeFilterWizard();
+            };
+
+            opSel.addEventListener("change", refresh);
+            [v1, v2].forEach((el) => {
+                el.addEventListener("input", refresh);
+                el.addEventListener("keydown", (e) => {
+                    if (e.key === "Enter") {
+                        e.preventDefault();
+                        apply();
+                    } else if (e.key === "Escape") {
+                        closeFilterWizard();
+                    }
+                });
+            });
+            wizPop.querySelector(".fb-fw-apply").addEventListener("click", apply);
+            wizPop.querySelector(".fb-fw-clear").addEventListener("click", () => {
+                if (wizInput) {
+                    wizInput.value = "";
+                    window.$(wizInput).trigger(window.$.Event("keyup", { keyCode: 13 }));
+                }
+                closeFilterWizard();
+            });
+            wizPop.querySelector(".fb-fw-close").addEventListener("click", closeFilterWizard);
+            document.addEventListener("mousedown", (e) => {
+                if (wizPop.style.display !== "none" && !wizPop.contains(e.target) && !e.target.closest(".fb-fw-btn")) {
+                    closeFilterWizard();
+                }
+            });
+            document.addEventListener("keydown", (e) => {
+                if (e.key === "Escape") {
+                    closeFilterWizard();
+                }
+            });
+            window.addEventListener("resize", closeFilterWizard);
+            // Chiudi allo scroll di pagina, ma ignora gli scroll dentro il
+            // popover (es. dropdown select convertiti in SearchableSelect).
+            window.addEventListener(
+                "scroll",
+                (e) => {
+                    if (wizPop.style.display !== "none" && !wizPop.contains(e.target)) {
+                        closeFilterWizard();
+                    }
+                },
+                true,
+            );
+        }
+
+        const sameTarget = wizInput === input && wizPop.style.display !== "none";
+        closeFilterWizard();
+        if (sameTarget) {
+            return; // click sull'icona = toggle
+        }
+        wizInput = input;
+        wizPop._type = type;
+        wizPop.querySelector(".fb-fw-title").textContent = `Filtra: ${colTitle}`;
+
+        const parsed = wizParseCode(input.value);
+        const opSel = wizPop.querySelector(".fb-fw-op");
+        const v1 = wizPop.querySelector(".fb-fw-v1");
+        const v2 = wizPop.querySelector(".fb-fw-v2");
+        opSel.value = parsed.op;
+        const inputType = type === "date" ? "date" : type === "number" ? "number" : "text";
+        [v1, v2].forEach((el) => {
+            el.type = inputType;
+            if (inputType === "number") {
+                el.step = "any";
+            }
+        });
+        const toField = (s) => (type === "date" ? wizItToIso(s) : s);
+        v1.value = toField(parsed.v1) || "";
+        v2.value = toField(parsed.v2) || "";
+        wizPop._refresh();
+
+        wizPop.style.display = "block";
+        const r = input.getBoundingClientRect();
+        wizPop.style.top = `${r.bottom + 4}px`;
+        wizPop.style.left = `${Math.max(8, Math.min(r.left, window.innerWidth - wizPop.offsetWidth - 8))}px`;
+        v1.focus();
+    }
+
     function injectFilterHelp() {
         document.querySelectorAll(".bootstrap-table").forEach((wrap) => {
             if (!wrap.querySelector(".filter-control input")) {
@@ -204,6 +426,20 @@
             wrap.querySelectorAll(".filter-control input").forEach((input) => {
                 if (!input.title) {
                     input.title = INPUT_TITLE;
+                }
+                const th = input.closest(".filter-control");
+                if (th && !th.querySelector(".fb-fw-btn")) {
+                    const btn = document.createElement("button");
+                    btn.type = "button";
+                    btn.className = "fb-fw-btn";
+                    btn.title = "Ricerca guidata";
+                    btn.innerHTML = WIZ_ICON;
+                    btn.addEventListener("click", (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        openFilterWizard(th, input);
+                    });
+                    th.appendChild(btn);
                 }
             });
             const toolbar = wrap.querySelector(".fixed-table-toolbar");

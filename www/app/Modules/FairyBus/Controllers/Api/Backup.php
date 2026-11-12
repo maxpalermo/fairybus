@@ -72,8 +72,8 @@ class Backup extends AdminController
         if ($file === null || !$file->isValid()) {
             return $this->jsonResponse(['success' => false, 'error' => 'File non caricato o non valido.'], 422);
         }
-        if (strtolower((string) $file->getClientExtension()) !== 'zip') {
-            return $this->jsonResponse(['success' => false, 'error' => 'Il file deve essere un archivio ZIP.'], 422);
+        if (!in_array(strtolower((string) $file->getClientExtension()), ['zip', 'sql'], true)) {
+            return $this->jsonResponse(['success' => false, 'error' => 'Il file deve essere un dump .sql o un archivio .zip.'], 422);
         }
 
         try {
@@ -106,9 +106,12 @@ class Backup extends AdminController
         }
 
         try {
-            $statements = DbBackup::restore($name);
+            // restore a blocchi: il frontend itera fino a done=true
+            $offset = max(0, (int) $this->request->getPost('offset'));
+            $limit = max(0, (int) $this->request->getPost('limit'));
+            $result = DbBackup::restore($name, $offset, $limit);
 
-            return $this->jsonResponse(['success' => true, 'statements' => $statements]);
+            return $this->jsonResponse(['success' => true] + $result);
         } catch (Throwable $e) {
             return $this->jsonResponse(['success' => false, 'error' => $e->getMessage()], 500);
         }
@@ -125,5 +128,67 @@ class Backup extends AdminController
         }
 
         return $this->jsonResponse(['success' => true]);
+    }
+
+    /**
+     * Tabelle che non appartengono all'applicazione (non fb_* e non
+     * migrations, solo BASE TABLE): candidate alla pulizia post-import.
+     */
+    public function unusedTables(): ResponseInterface
+    {
+        if ($denied = $this->requirePermission('*')) {
+            return $denied;
+        }
+
+        try {
+            return $this->jsonResponse(['success' => true, 'tables' => self::unusedTableNames()]);
+        } catch (Throwable $e) {
+            return $this->jsonResponse(['success' => false, 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Elimina UNA tabella non usata: il frontend itera sulla lista per
+     * mostrare il progresso. Il nome deve essere nella whitelist
+     * ricalcolata server-side — mai fidarsi del client.
+     */
+    public function dropTable(): ResponseInterface
+    {
+        if ($denied = $this->requirePermission('*')) {
+            return $denied;
+        }
+
+        $table = (string) $this->request->getPost('table');
+        if (!in_array($table, self::unusedTableNames(), true)) {
+            return $this->jsonResponse(['success' => false, 'error' => "Tabella '{$table}' non eliminabile."], 422);
+        }
+
+        try {
+            $db = \Config\Database::connect();
+            $db->query('SET FOREIGN_KEY_CHECKS = 0');
+            $db->query('DROP TABLE `' . str_replace('`', '', $table) . '`');
+            $db->query('SET FOREIGN_KEY_CHECKS = 1');
+
+            return $this->jsonResponse(['success' => true, 'table' => $table]);
+        } catch (Throwable $e) {
+            return $this->jsonResponse(['success' => false, 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * @return list<string>
+     */
+    private static function unusedTableNames(): array
+    {
+        $names = [];
+        foreach (\Config\Database::connect()->query("SHOW FULL TABLES WHERE Table_type = 'BASE TABLE'")->getResultArray() as $row) {
+            $name = (string) array_values($row)[0];
+            if ($name !== 'migrations' && !str_starts_with($name, 'fb_')) {
+                $names[] = $name;
+            }
+        }
+        sort($names);
+
+        return $names;
     }
 }

@@ -149,4 +149,21 @@ class FbDocumentDetailModel extends Model
 
         return $copied;
     }
+
+    /**
+     * Ri-allinea le righe documento copiate da una scheda manutenzione dopo
+     * che la scheda e' stata modificata (ricambi/manodopera aggiunti, rimossi
+     * o aggiornati): cancella le righe originate dalla scheda e le ricopia.
+     * Le righe documento restano uno snapshot fedele della scheda.
+     *
+     * @return int numero di righe riscritte
+     */
+    public function resyncMaintenanceLines(int $idDocument, int $idMaintenance, int $docType, float $defaultVat): int
+    {
+        $this->where('id_document', $idDocument)
+            ->where('id_maintenance', $idMaintenance)
+            ->delete();
+
+        return $this->importMaintenanceLines($idDocument, $idMaintenance, $docType, $defaultVat);
+    }
 }

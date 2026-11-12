@@ -71,6 +71,11 @@ class Twig
                 'value' => $security->getHash(),
             ];
         }));
+
+        // Formattazione valuta unificata: "1 234,56 EUR" (spazio migliaia);
+        // |eur4 = variante a 4 decimali per prezzi unitari di precisione
+        $twig->addFilter(new \Twig\TwigFilter('eur', static fn($v) => number_format((float) ($v ?? 0), 2, ',', ' ') . ' EUR'));
+        $twig->addFilter(new \Twig\TwigFilter('eur4', static fn($v) => number_format((float) ($v ?? 0), 4, ',', ' ') . ' EUR'));
     }
 
     public static function render(string $template, array $data = []): string

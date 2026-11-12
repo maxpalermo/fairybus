@@ -124,35 +124,23 @@ class DbBackup
     }
 
     /**
-     * Importa un archivio ZIP caricato dall'esterno. Il file deve contenere
-     * un dump valido (backup.sql). Se il nome originale e' gia' conforme al
-     * pattern fb-backup-YYYYMMDD-HHMMSS.zip viene mantenuto, altrimenti si
-     * usa il timestamp di upload. Restituisce il nome del file salvato.
+     * Importa un backup caricato dall'esterno: accetta un file .sql oppure
+     * un archivio .zip contenente un dump SQL qualsiasi (backup.sql se
+     * presente, altrimenti la prima entry *.sql). Il contenuto viene
+     * normalizzato in fb-backup-*.zip con backup.sql, cosi' storico,
+     * download e restore restano uniformi. Restituisce il nome salvato.
      */
     public static function import(string $sourcePath, string $clientName): string
     {
-        if (!class_exists(\ZipArchive::class)) {
-            throw new RuntimeException('Estensione PHP "zip" non disponibile.');
+        $sql = self::extractSql($sourcePath, $clientName);
+        if (trim($sql) === '' || !preg_match('/(CREATE|DROP|ALTER|INSERT\s+INTO)\s/i', $sql)) {
+            throw new RuntimeException('Il file caricato non contiene un dump SQL valido.');
         }
-
-        $zip = new \ZipArchive();
-        if ($zip->open($sourcePath) !== true) {
-            throw new RuntimeException('Il file caricato non e\' un archivio ZIP valido.');
-        }
-        $sql = $zip->getFromName(self::SQL_NAME);
-        $zip->close();
-        if ($sql === false || trim($sql) === '') {
-            throw new RuntimeException('L\'archivio non contiene un dump di backup valido (' . self::SQL_NAME . ' mancante).');
-        }
-        self::assertDumpTables($sql);
 
         $dir = self::dir();
         $base = basename($clientName);
-        if (preg_match('/^' . preg_quote(self::PREFIX, '/') . '\d{8}-\d{6}\.zip$/', $base)) {
+        if (preg_match('/^' . preg_quote(self::PREFIX, '/') . '\d{8}-\d{6}\.zip$/', $base) && !is_file($dir . DIRECTORY_SEPARATOR . $base)) {
             $name = $base;
-            if (is_file($dir . DIRECTORY_SEPARATOR . $name)) {
-                throw new RuntimeException('Un backup con questo nome esiste gia\': ' . $name);
-            }
         } else {
             // nome generato: scorre in avanti fino al primo timestamp libero
             $ts = time();
@@ -163,9 +151,12 @@ class DbBackup
         }
         $path = $dir . DIRECTORY_SEPARATOR . $name;
 
-        if (!@rename($sourcePath, $path) && !@copy($sourcePath, $path)) {
-            throw new RuntimeException('Impossibile salvare il file di backup caricato.');
+        $zip = new \ZipArchive();
+        if ($zip->open($path, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== true) {
+            throw new RuntimeException('Impossibile salvare il backup importato.');
         }
+        $zip->addFromString(self::SQL_NAME, $sql);
+        $zip->close();
         @chmod($path, 0o644);
 
         // la data mostrata nello storico riflette il timestamp nel nome file
@@ -175,6 +166,46 @@ class DbBackup
         }
 
         return $name;
+    }
+
+    /**
+     * Contenuto SQL dal file caricato: testo grezzo per .sql, estrazione
+     * per .zip (backup.sql se presente, altrimenti la prima entry *.sql).
+     */
+    private static function extractSql(string $sourcePath, string $clientName): string
+    {
+        if (strtolower(pathinfo($clientName, PATHINFO_EXTENSION)) !== 'zip') {
+            $sql = @file_get_contents($sourcePath);
+            if ($sql === false) {
+                throw new RuntimeException('Impossibile leggere il file caricato.');
+            }
+
+            return $sql;
+        }
+
+        if (!class_exists(\ZipArchive::class)) {
+            throw new RuntimeException('Estensione PHP "zip" non disponibile.');
+        }
+        $zip = new \ZipArchive();
+        if ($zip->open($sourcePath) !== true) {
+            throw new RuntimeException('Il file caricato non e\' un archivio ZIP valido.');
+        }
+        $sql = $zip->getFromName(self::SQL_NAME);
+        if ($sql === false) {
+            for ($i = 0; $i < $zip->numFiles; $i++) {
+                $entry = (string) $zip->getNameIndex($i);
+                if (strtolower(pathinfo($entry, PATHINFO_EXTENSION)) === 'sql') {
+                    $sql = $zip->getFromIndex($i);
+                    break;
+                }
+            }
+        }
+        $zip->close();
+        if ($sql === false) {
+            throw new RuntimeException('L\'archivio non contiene alcun file .sql.');
+        }
+
+        return $sql;
     }
 
     /**
@@ -191,10 +222,46 @@ class DbBackup
     }
 
     /**
-     * Ripristina il database dall'archivio ZIP. Restituisce il numero di
-     * statement eseguiti.
+     * Ripristina il database dall'archivio ZIP a blocchi di statement
+     * (offset/limit alimentano il dialog di avanzamento; $limit <= 0 = tutto).
+     *
+     * @return array{total: int, executed: int, done: bool}
      */
-    public static function restore(string $name): int
+    public static function restore(string $name, int $offset = 0, int $limit = 0): array
+    {
+        $statements = self::loadStatements($name);
+        $total = count($statements);
+        $offset = max(0, $offset);
+        $slice = $limit > 0 ? array_slice($statements, $offset, $limit) : array_slice($statements, $offset);
+
+        $db = \Config\Database::connect();
+        $db->query('SET FOREIGN_KEY_CHECKS=0');
+
+        $executed = 0;
+        try {
+            foreach ($slice as $statement) {
+                $db->query($statement);
+                $executed++;
+            }
+        } finally {
+            $db->query('SET FOREIGN_KEY_CHECKS=1');
+        }
+
+        return [
+            'total' => $total,
+            'executed' => $executed,
+            'done' => ($offset + $executed) >= $total,
+        ];
+    }
+
+    /**
+     * Statement SQL del backup splittati e ripuliti. Ogni statement del dump
+     * termina con ";\n"; i valori escapati non contengono mai un newline
+     * grezzo, quindi lo split e' sicuro.
+     *
+     * @return list<string>
+     */
+    private static function loadStatements(string $name): array
     {
         $path = self::path($name);
         if ($path === null) {
@@ -214,53 +281,16 @@ class DbBackup
             throw new RuntimeException('Il backup non contiene un dump SQL valido.');
         }
 
-        $db = \Config\Database::connect();
-        $db->query('SET FOREIGN_KEY_CHECKS=0');
-
-        $executed = 0;
-        try {
-            // ogni statement del dump termina con ";\n"; i valori escapati non
-            // contengono mai un newline grezzo, quindi lo split e' sicuro
-            foreach (explode(";\n", $sql) as $statement) {
-                $statement = trim($statement);
-                if ($statement === '' || str_starts_with($statement, '--')) {
-                    continue;
-                }
-                $db->query($statement);
-                $executed++;
+        $statements = [];
+        foreach (explode(";\n", $sql) as $statement) {
+            $statement = trim($statement);
+            if ($statement === '' || str_starts_with($statement, '--')) {
+                continue;
             }
-        } finally {
-            $db->query('SET FOREIGN_KEY_CHECKS=1');
+            $statements[] = $statement;
         }
 
-        return $executed;
-    }
-
-    /**
-     * Verifica che il dump appartenga a questa applicazione: estrae i nomi
-     * delle tabelle dai DROP/CREATE TABLE e richiede che almeno la meta'
-     * corrisponda allo schema corrente (minimo 5 tabelle riconosciute).
-     */
-    private static function assertDumpTables(string $sql): void
-    {
-        preg_match_all('/DROP TABLE IF EXISTS `([^`]+)`/i', $sql, $m);
-        if (empty($m[1])) {
-            preg_match_all('/CREATE TABLE(?: IF NOT EXISTS)? `([^`]+)`/i', $sql, $m);
-        }
-        $dumpTables = array_values(array_unique($m[1] ?? []));
-        if ($dumpTables === []) {
-            throw new RuntimeException('Il dump non contiene tabelle: non e\' un backup riconoscibile.');
-        }
-
-        $dbTables = \Config\Database::connect()->listTables();
-        $known = array_intersect($dumpTables, $dbTables);
-        if (count($known) < 5 || count($known) * 2 < count($dumpTables)) {
-            throw new RuntimeException(sprintf(
-                'Il backup non sembra appartenere a questa applicazione: riconosciute %d tabelle su %d.',
-                count($known),
-                count($dumpTables)
-            ));
-        }
+        return $statements;
     }
 
     /**

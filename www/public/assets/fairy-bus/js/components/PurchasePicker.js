@@ -9,6 +9,7 @@
  * Usato in documents.js (carichi) e maintenance.js (ricambi).
  */
 import FetchHelper from "../core/FetchHelper.js";
+import { fmtMoney } from "../core/format.js?v=2";
 
 function escapeHtml(text) {
     const div = document.createElement("div");
@@ -50,7 +51,7 @@ export function openPurchasePicker(purchasesData, onPick, onClose = null) {
                 .map(
                     (l, i) => `
                 <tr data-lot-idx="${i}">
-                    <td class="num price">${Number(l.price || 0).toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €</td>
+                    <td class="num price">${fmtMoney(l.price)}</td>
                     <td class="num"><strong>${Number(l.qty || 0).toLocaleString("it-IT", { maximumFractionDigits: 3 })}</strong></td>
                     <td class="sup">${escapeHtml(l.supplier_name || "—")}</td>
                     <td class="nowrap">${fmtDate(l.date)}</td>
@@ -84,7 +85,7 @@ export function openPurchasePicker(purchasesData, onPick, onClose = null) {
                     <td class="nowrap">${fmtDate(r.date)}</td>
                     <td>${escapeHtml(r.doc_number || "—")}</td>
                     <td class="num">${Number(r.quantity || 0).toLocaleString("it-IT")}</td>
-                    <td class="num price">${Number(r.price || 0).toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €</td>
+                    <td class="num price">${fmtMoney(r.price)}</td>
                     <td class="num">${Number(r.discount || 0).toLocaleString("it-IT")}%</td>
                     <td class="num">${Number(r.vat_rate || 0).toLocaleString("it-IT")}%</td>
                     <td class="num"><button type="button" class="fb-btn fb-btn-sm fb-btn-select" data-pick="${i}">Seleziona</button></td>

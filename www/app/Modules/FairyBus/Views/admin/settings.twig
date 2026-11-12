@@ -18,7 +18,7 @@
 {% extends "admin/layout.twig" %}
 
 {% block page_styles %}
-    <link rel="stylesheet" href="{{ asset('fairy-bus/css/pages/settings.css') }}?v=7">
+    <link rel="stylesheet" href="{{ asset('fairy-bus/css/pages/settings.css') }}?v=8">
 {% endblock %}
 
 {% block content %}
@@ -163,7 +163,7 @@
                     <p class="fb-import-card-help">Valori globali applicati in tutta l'applicazione. Il costo orario viene usato come default per la manodopera nei ricambi delle manutenzioni.</p>
                     <form class="fb-form" id="hourly-cost-form" style="max-width: 28rem;">
                         <div class="fb-form-group">
-                            <label class="fb-form-label" for="hourly_cost">Costo orario manodopera (€/h)</label>
+                            <label class="fb-form-label" for="hourly_cost">Costo orario manodopera (EUR/h)</label>
                             <input type="number" id="hourly_cost" name="hourly_cost" class="fb-form-input" min="0" step="0.01" value="{{ hourly_cost }}" placeholder="0.00">
                         </div>
                         <div class="fb-form-actions" style="justify-content: flex-start;">
@@ -311,16 +311,27 @@
                 </div>
 
                 <div class="fb-import-card">
+                    <h3 class="fb-import-card-title">Pulizia database</h3>
+                    <p class="fb-import-card-help">Elimina le tabelle che non appartengono all'applicazione — vengono mantenute solo <code>fb_*</code> e <code>migrations</code> (ad esempio i residui delle importazioni legacy). <strong>L'operazione non è annullabile:</strong> eseguire prima un backup.</p>
+                    <div class="fb-form-actions" style="justify-content: flex-start;">
+                        <button type="button" class="fb-btn fb-btn-danger-solid" data-action="clean-tables">
+                            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                            Pulisci tabelle non usate
+                        </button>
+                    </div>
+                </div>
+
+                <div class="fb-import-card">
                     <div class="fb-import-card-header">
                         <div>
                             <h3 class="fb-import-card-title">Storico backup</h3>
-                            <p class="fb-import-card-help">Elenco degli archivi presenti. <strong>Ripristina</strong> sovrascrive il database corrente con il contenuto del backup. <strong>Carica backup</strong> aggiunge all'elenco un archivio ZIP creato altrove — viene accettato solo se contiene un dump con le tabelle di questa applicazione.</p>
+                            <p class="fb-import-card-help">Elenco degli archivi presenti. <strong>Ripristina</strong> sovrascrive il database corrente con il contenuto del backup. <strong>Carica backup</strong> aggiunge all'elenco un backup creato altrove — sono accettati file <code>.sql</code> e archivi <code>.zip</code> contenenti un dump SQL qualsiasi.</p>
                         </div>
                         <button type="button" class="fb-btn fb-btn-info-solid fb-btn-lg" data-action="backup-upload">
                             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
                             Carica backup
                         </button>
-                        <input type="file" id="backup-upload-file" accept=".zip,application/zip,application/x-zip-compressed" hidden>
+                        <input type="file" id="backup-upload-file" accept=".zip,.sql,application/zip,application/x-zip-compressed,text/plain,application/sql" hidden>
                     </div>
                     <table id="backups-table" class="fb-table">
                         <thead>
@@ -443,6 +454,6 @@
 {% endblock %}
 
 {% block page_scripts %}
-    <script type="module" src="{{ asset('fairy-bus/js/pages/settings.js') }}?v=13"></script>
+    <script type="module" src="{{ asset('fairy-bus/js/pages/settings.js') }}?v=15"></script>
     <script type="module" src="{{ asset('fairy-bus/js/pages/settings-menu.js') }}?v=2"></script>
 {% endblock %}

@@ -8,6 +8,7 @@
  */
 import FetchHelper from "../core/FetchHelper.js";
 import DialogHelper from "../core/DialogHelper.js";
+import { fmtMoney, fmtMoney4 } from "../core/format.js?v=2";
 import PrintHelper from "../components/PrintHelper.js";
 
 const dialog = new DialogHelper();
@@ -32,10 +33,6 @@ function fmtDate(value) {
 
 function fmtLiters(value) {
     return `${Number(value || 0).toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} l`;
-}
-
-function fmtMoney(value) {
-    return `${Number(value || 0).toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\u00A0€`;
 }
 
 function directionBadge(value) {
@@ -184,7 +181,7 @@ function renderCharts(charts) {
     renderLineChart(
         document.getElementById("chart-costs"),
         charts.cost_monthly.map((r) => r.ym),
-        [{ name: "Costo (€)", color: COLORS.cost, values: charts.cost_monthly.map((r) => r.cost) }],
+        [{ name: "Costo (EUR)", color: COLORS.cost, values: charts.cost_monthly.map((r) => r.cost) }],
     );
 
     renderLineChart(
@@ -223,7 +220,7 @@ function initStatsTable() {
             { field: "fuel_type_name", title: "Carburante", sortable: true, formatter: (v) => escapeHtml(v || "—"), filterControl: "select", filterData: "var:fbStatsFuelOptions", searchFormatter: false },
             { field: "direction", title: "Operazione", sortable: true, align: "center", formatter: directionBadge, filterControl: "select", filterData: "var:fbStatsDirectionOptions", searchFormatter: false },
             { field: "liters", title: "Litri", sortable: true, align: "right", formatter: fmtLiters, filterControl: "input", filterCustomSearch: window.fbFilterSearch },
-            { field: "price_per_liter", title: "€/l", sortable: true, align: "right", formatter: (v) => `${Number(v || 0).toLocaleString("it-IT", { minimumFractionDigits: 4 })}`, filterControl: "input", filterCustomSearch: window.fbFilterSearch },
+            { field: "price_per_liter", title: "EUR/l", sortable: true, align: "right", formatter: (v) => fmtMoney4(v), filterControl: "input", filterCustomSearch: window.fbFilterSearch },
             { field: "cost", title: "Costo", align: "right", formatter: (v, row) => fmtMoney(Number(row.liters || 0) * Number(row.price_per_liter || 0)) },
             { field: "km_at_refuel", title: "Km", sortable: true, align: "right", formatter: (v) => Number(v || 0).toLocaleString("it-IT"), filterControl: "input", filterCustomSearch: window.fbFilterSearch },
             {

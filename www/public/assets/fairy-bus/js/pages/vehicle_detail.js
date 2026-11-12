@@ -1,5 +1,6 @@
 import FetchHelper from "../core/FetchHelper.js";
 import DialogHelper from "../core/DialogHelper.js";
+import { fmtMoney } from "../core/format.js?v=2";
 
 const dialog = new DialogHelper();
 const idVehicle = window.FB.idVehicle;
@@ -25,11 +26,6 @@ function fmtKm(value) {
 function fmtQty(value) {
     const n = Number(value) || 0;
     return n.toLocaleString("it-IT", { minimumFractionDigits: 0, maximumFractionDigits: 3 });
-}
-
-function fmtMoney(value) {
-    const n = Number(value) || 0;
-    return `${n.toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
 }
 
 function vatLabel(row) {
@@ -306,7 +302,7 @@ function initRepairsTable() {
             { field: "discount", title: "Sconto", sortable: true, align: "right", formatter: (v) => `${Math.abs(Number(v || 0))}%` },
             { field: "importo", title: "Importo", sortable: true, align: "right", formatter: (v, r) => fmtMoney(lineTotals(r).importo) },
             { field: "labor_hours", title: "Ore", sortable: true, align: "right", formatter: (v) => (v !== null && v !== undefined ? fmtQty(Math.abs(Number(v))) : "—") },
-            { field: "labor_price_per_hour", title: "€/h", sortable: true, align: "right", formatter: (v) => (v !== null && v !== undefined ? fmtMoney(v) : "—") },
+            { field: "labor_price_per_hour", title: "EUR/h", sortable: true, align: "right", formatter: (v) => (v !== null && v !== undefined ? fmtMoney(v) : "—") },
             { field: "labor_manpower", title: "Manodopera", sortable: true, align: "right", formatter: (v) => (v !== null && v !== undefined ? fmtMoney(Math.abs(Number(v))) : "—") },
             { field: "vat_rate", title: "I.v.a.", sortable: true, formatter: (v, r) => vatLabel(r) },
             { field: "totale", title: "Totale", sortable: true, align: "right", formatter: (v, r) => `<span class="fb-line-total">${fmtMoney(lineTotals(r).totale)}</span>` },

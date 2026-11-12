@@ -61,6 +61,9 @@ class FbDocumentModel extends Model
     {
         $builder = $this->db->table('fb_document d')
             ->select('d.*, s.company AS supplier_name, c.company AS customer_name, i.number AS invoice_number, t.name AS type_name, v.plate AS vehicle_plate')
+            ->select('(SELECT COUNT(*) FROM fb_maintenance m WHERE m.id_document = d.id_document) AS mnt_count', false)
+            ->select('(SELECT ROUND(COALESCE(SUM(ABS(dd.quantity) * dd.price * (1 - COALESCE(dd.discount, 0) / 100)), 0), 2) FROM fb_document_detail dd WHERE dd.id_document = d.id_document) AS total_amount', false)
+            ->select('(SELECT ROUND(COALESCE(SUM(ABS(dd.quantity) * dd.price * (1 - COALESCE(dd.discount, 0) / 100) * (1 + COALESCE(dd.vat_rate, 0) / 100)), 0), 2) FROM fb_document_detail dd WHERE dd.id_document = d.id_document) AS total_amount_vat', false)
             ->join('fb_supplier s', 's.id_supplier = d.id_supplier', 'left')
             ->join('fb_customer c', 'c.id_customer = d.id_customer', 'left')
             ->join('fb_invoice i', 'i.id_invoice = d.id_invoice', 'left')

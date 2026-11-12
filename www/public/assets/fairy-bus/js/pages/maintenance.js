@@ -1,12 +1,22 @@
 import FetchHelper from "../core/FetchHelper.js";
 import DialogHelper from "../core/DialogHelper.js";
+import Toast from "../core/Toast.js";
+import { fmtMoney } from "../core/format.js?v=2";
 import PrintHelper from "../components/PrintHelper.js";
 import SearchableSelect from "../components/SearchableSelect.js?v=5";
 import TableSelect from "../components/TableSelect.js?v=2";
-import { openPurchasePicker, loadProductPurchases } from "../components/PurchasePicker.js?v=1";
+import { openPurchasePicker, loadProductPurchases } from "../components/PurchasePicker.js?v=4";
 import { viewItem } from "../components/ViewGrid.js";
 
 const dialog = new DialogHelper();
+const toast = new Toast();
+
+// feedback quando la modifica di una scheda collegata riallinea il riepilogo
+const toastIfSynced = (res) => {
+    if (res && res.synced && Number(res.synced.rows) > 0) {
+        toast.showToastSuccess(`Riepilogo aggiornato: ${res.synced.rows} righe riallineate.`);
+    }
+};
 let vehiclesCache = [];
 let productsCache = [];
 let lotsCache = [];
@@ -37,10 +47,6 @@ function fmtDate(value) {
     }
     const d = new Date(String(value).replace(" ", "T"));
     return isNaN(d) ? escapeHtml(value) : d.toLocaleDateString("it-IT");
-}
-
-function fmtMoney(value) {
-    return `${Number(value || 0).toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\u00A0€`;
 }
 
 function fmtQty(value) {
@@ -128,11 +134,15 @@ window.maintenanceActionsEvents = {
     },
     "click [data-action=delete-maintenance]": async function (ev, value, row) {
         ev.stopPropagation();
-        if (!(await dialog.confirm(`Eliminare la manutenzione del ${fmtDate(row.date)} su ${escapeHtml(row.vehicle_plate || "veicolo")}? I ricambi manuali rientrano in giacenza.`, "Conferma"))) {
+        const linkedWarn = row.id_document ? " La scheda è collegata a un riepilogo: le righe copiate verranno rimosse." : "";
+        if (!(await dialog.confirm(`Eliminare la manutenzione del ${fmtDate(row.date)} su ${escapeHtml(row.vehicle_plate || "veicolo")}? I ricambi manuali rientrano in giacenza.${linkedWarn}`, "Conferma"))) {
             return;
         }
         try {
-            await FetchHelper.post(`${window.FB.baseUrl}api/maintenance/${row.id_maintenance}/delete`, {});
+            const res = await FetchHelper.post(`${window.FB.baseUrl}api/maintenance/${row.id_maintenance}/delete`, {});
+            if (Number(res?.doc_rows_removed) > 0) {
+                toast.showToastSuccess(`Rimossa anche dal riepilogo (${res.doc_rows_removed} righe).`);
+            }
             refreshTable();
         } catch (err) {
             await dialog.error(err);
@@ -426,7 +436,7 @@ function buildLotItems() {
                 .join(" ")
                 .toLowerCase();
             const price = Number(p.lot_price ?? 0);
-            return { value: String(p.id_product), label: `${p.label} · €\u00A0${price.toFixed(2)}`, search, data: p };
+            return { value: String(p.id_product), label: `${p.label} · ${fmtMoney(price)}`, search, data: p };
         });
 }
 
@@ -748,7 +758,7 @@ async function openMaintenanceForm(row = null) {
                       title: "Prezzo acq.",
                       width: "6rem",
                       align: "right",
-                      render: (item) => `<span class="fb-ts-price">€\u00A0${Number(item.data.lot_price ?? 0).toFixed(2)}</span>`,
+                      render: (item) => `<span class="fb-ts-price">${fmtMoney(item.data.lot_price ?? 0)}</span>`,
                   },
               ]
             : []),
@@ -946,6 +956,7 @@ async function openMaintenanceForm(row = null) {
         const url = currentId ? `${window.FB.baseUrl}api/maintenance/${currentId}/update` : `${window.FB.baseUrl}api/maintenance`;
         try {
             const res = await FetchHelper.post(url, data);
+            toastIfSynced(res);
             refreshTable();
             if (currentId) {
                 d.close();
@@ -982,7 +993,8 @@ async function openMaintenanceForm(row = null) {
             return;
         }
         try {
-            await FetchHelper.post(`${window.FB.baseUrl}api/maintenance/${idMaintenance}/details`, data);
+            const res = await FetchHelper.post(`${window.FB.baseUrl}api/maintenance/${idMaintenance}/details`, data);
+            toastIfSynced(res);
             // Scarico locale: la giacenza del picker si aggiorna subito
             adjustStockCaches(Number(data.id_product), -Math.abs(Number(data.quantity || 0)), Number(data.price || 0));
             refreshPickerItems();
@@ -1021,7 +1033,8 @@ async function openMaintenanceForm(row = null) {
             return;
         }
         try {
-            await FetchHelper.post(`${window.FB.baseUrl}api/maintenance/details/${btn.dataset.id}/delete`, {});
+            const res = await FetchHelper.post(`${window.FB.baseUrl}api/maintenance/details/${btn.dataset.id}/delete`, {});
+            toastIfSynced(res);
             // Rientro locale: ripristina la giacenza del picker (lotto stesso prezzo)
             const detail = lastDetailsRows.find((dd) => String(dd.id_maintenance_detail) === String(btn.dataset.id));
             if (detail) {
@@ -1132,7 +1145,7 @@ async function openMaintenanceView(row) {
                         <tr>
                             <th>Codice</th><th>Articolo</th><th class="num">Q.tà</th>
                             <th class="num">Prezzo</th><th class="num">Sconto</th><th class="num">Importo</th>
-                            <th class="num">Ore</th><th class="num">€/h</th><th class="num">Manodopera</th>
+                            <th class="num">Ore</th><th class="num">EUR/h</th><th class="num">Manodopera</th>
                             <th>I.v.a.</th><th class="num">Totale</th>
                         </tr>
                     </thead>

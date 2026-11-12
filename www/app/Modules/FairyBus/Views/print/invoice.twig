@@ -79,11 +79,11 @@
                         <td class="num">{{ row.quantity|number_format(3, ',', '.')|trim('0', 'right')|trim(',', 'right') ?: '0' }}</td>
                         <td>{{ row.sku|default('—') }}</td>
                         <td>{{ row.product_name|default('—') }}</td>
-                        <td class="num">&nbsp;{{ row.price|number_format(2, ',', '.') }}</td>
+                        <td class="num">&nbsp;{{ row.price|eur }}</td>
                         <td class="num">{{ row.discount|default(0)|abs|number_format(0) }}%</td>
-                        <td class="num">&nbsp;{{ importo|number_format(2, ',', '.') }}</td>
+                        <td class="num">&nbsp;{{ importo|eur }}</td>
                         <td>{{ row.vat_code is not empty ? (row.vat_code|number_format(2, ',', '.') ~ '%') : (row.vat_rate is not null ? row.vat_rate|number_format(2, ',', '.') ~ '%' : '—') }}</td>
-                        <td class="num">&nbsp;{{ rowTotal|number_format(2, ',', '.') }}</td>
+                        <td class="num">&nbsp;{{ rowTotal|eur }}</td>
                     </tr>
                 {% else %}
                     <tr><td colspan="8" class="center muted">Nessun movimento.</td></tr>
@@ -94,7 +94,7 @@
                 <tfoot>
                     <tr>
                         <td colspan="7" class="muted" style="text-align: right; border-top: 1.5pt solid #18181b;">Totale DDT</td>
-                        <td class="num" style="border-top: 1.5pt solid #18181b;"><strong>&nbsp;{{ docTotal|number_format(2, ',', '.') }}</strong></td>
+                        <td class="num" style="border-top: 1.5pt solid #18181b;"><strong>&nbsp;{{ docTotal|eur }}</strong></td>
                     </tr>
                 </tfoot>
             {% endif %}
@@ -131,11 +131,11 @@
                         <td class="num">{{ row.quantity|number_format(3, ',', '.')|trim('0', 'right')|trim(',', 'right') ?: '0' }}</td>
                         <td>{{ row.sku|default('—') }}</td>
                         <td>{{ row.product_name|default('—') }}</td>
-                        <td class="num">&nbsp;{{ row.price|number_format(2, ',', '.') }}</td>
+                        <td class="num">&nbsp;{{ row.price|eur }}</td>
                         <td class="num">{{ row.discount|default(0)|abs|number_format(0) }}%</td>
-                        <td class="num">&nbsp;{{ importo|number_format(2, ',', '.') }}</td>
+                        <td class="num">&nbsp;{{ importo|eur }}</td>
                         <td>{{ row.vat_rate is not null ? row.vat_rate|number_format(2, ',', '.') ~ '%' : '—' }}</td>
-                        <td class="num">&nbsp;{{ rowTotal|number_format(2, ',', '.') }}</td>
+                        <td class="num">&nbsp;{{ rowTotal|eur }}</td>
                     </tr>
                 {% else %}
                     <tr><td colspan="8" class="center muted">Nessun movimento.</td></tr>
@@ -146,7 +146,7 @@
                 <tfoot>
                     <tr>
                         <td colspan="7" class="muted" style="text-align: right; border-top: 1.5pt solid #18181b;">Totale scheda</td>
-                        <td class="num" style="border-top: 1.5pt solid #18181b;"><strong>&nbsp;{{ docTotal|number_format(2, ',', '.') }}</strong></td>
+                        <td class="num" style="border-top: 1.5pt solid #18181b;"><strong>&nbsp;{{ docTotal|eur }}</strong></td>
                     </tr>
                 </tfoot>
             {% endif %}
@@ -158,7 +158,7 @@
             <tbody>
                 <tr>
                     <td class="muted"><strong>Totale fattura</strong></td>
-                    <td class="num" style="width: 15%;"><strong>&nbsp;{{ grandTotal|number_format(2, ',', '.') }}</strong></td>
+                    <td class="num" style="width: 15%;"><strong>&nbsp;{{ grandTotal|eur }}</strong></td>
                 </tr>
             </tbody>
         </table>

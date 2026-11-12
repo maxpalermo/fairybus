@@ -108,11 +108,11 @@
                             <td class="num">{{ qty|number_format(3, ',', '.')|trim('0', 'right')|trim(',', 'right') ?: '0' }}</td>
                             <td>{{ row.sku|default('—') }}</td>
                             <td>{{ row.product_name|default('—') }}</td>
-                            <td class="num">{{ row.price|number_format(2, ',', '.') }}</td>
+                            <td class="num">{{ row.price|eur }}</td>
                             <td class="num">{{ row.discount|default(0)|abs|number_format(0) }}%</td>
-                            <td class="num">{{ importo|number_format(2, ',', '.') }}</td>
+                            <td class="num">{{ importo|eur }}</td>
                             <td>{% if row.vat_rate is not null or row.vat_code is not null %}{{ (row.vat_rate ?? row.vat_code)|number_format(2, ',', '.') }}%{% else %}—{% endif %}</td>
-                            <td class="num">{{ rowTotal|number_format(2, ',', '.') }}</td>
+                            <td class="num">{{ rowTotal|eur }}</td>
                         </tr>
                     {% else %}
                         <tr><td colspan="{{ is_out ? 9 : 8 }}" class="center muted">Nessun movimento.</td></tr>
@@ -126,7 +126,7 @@
                             <td colspan="4"></td>
                             <td class="muted">Totale documento</td>
                             <td></td>
-                            <td class="num"><strong>{{ total|number_format(2, ',', '.') }}</strong></td>
+                            <td class="num"><strong>{{ total|eur }}</strong></td>
                         </tr>
                     </tfoot>
                 {% endif %}
@@ -154,9 +154,9 @@
                             <td>{{ row.sku }}</td>
                             <td>{{ row.product_name }}</td>
                             <td class="num">{{ row.qty|abs|number_format(3, ',', '.')|trim('0', 'right')|trim(',', 'right') ?: '0' }}</td>
-                            <td class="num">{{ (row.qty > 0 ? row.amount / row.qty : 0)|number_format(2, ',', '.') }}</td>
-                            <td class="num">{{ row.amount|number_format(2, ',', '.') }}</td>
-                            <td class="num">{{ row.total|number_format(2, ',', '.') }}</td>
+                            <td class="num">{{ (row.qty > 0 ? row.amount / row.qty : 0)|eur }}</td>
+                            <td class="num">{{ row.amount|eur }}</td>
+                            <td class="num">{{ row.total|eur }}</td>
                         </tr>
                     {% else %}
                         <tr><td colspan="6" class="center muted">Nessun articolo.</td></tr>
@@ -167,7 +167,7 @@
                         <tr>
                             <td colspan="4" style="border-top: 2px solid #18181b;"></td>
                             <td class="muted" style="border-top: 2px solid #18181b;">Totale generale</td>
-                            <td class="num" style="border-top: 2px solid #18181b;"><strong>{{ grand_total|number_format(2, ',', '.') }}</strong></td>
+                            <td class="num" style="border-top: 2px solid #18181b;"><strong>{{ grand_total|eur }}</strong></td>
                         </tr>
                     </tfoot>
                 {% endif %}

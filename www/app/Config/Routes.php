@@ -34,6 +34,8 @@ $routes->post('api/settings/document-types/(:num)/delete', '\FairyBus\Controller
 $routes->get('api/settings/backups', '\FairyBus\Controllers\Api\Backup::list');
 $routes->post('api/settings/backups/create', '\FairyBus\Controllers\Api\Backup::create');
 $routes->post('api/settings/backups/upload', '\FairyBus\Controllers\Api\Backup::upload');
+$routes->get('api/settings/backups/unused-tables', '\FairyBus\Controllers\Api\Backup::unusedTables');
+$routes->post('api/settings/backups/drop-table', '\FairyBus\Controllers\Api\Backup::dropTable');
 $routes->get('api/settings/backups/(:segment)/download', '\FairyBus\Controllers\Api\Backup::download/$1');
 $routes->post('api/settings/backups/(:segment)/restore', '\FairyBus\Controllers\Api\Backup::restore/$1');
 $routes->post('api/settings/backups/(:segment)/delete', '\FairyBus\Controllers\Api\Backup::delete/$1');

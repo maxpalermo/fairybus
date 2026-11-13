@@ -1,6 +1,6 @@
 import FetchHelper from "../core/FetchHelper.js";
 import DialogHelper from "../core/DialogHelper.js";
-import { fmtMoney } from "../core/format.js?v=2";
+import { fmtMoney } from "../core/format.js?v=3";
 import Toast from "../core/Toast.js";
 import tableSelectManager from "../components/TableSelectManager.js";
 import PrintHelper from "../components/PrintHelper.js";

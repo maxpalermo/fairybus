@@ -1,7 +1,7 @@
 import FetchHelper from "../core/FetchHelper.js";
 import DialogHelper from "../core/DialogHelper.js";
 import Toast from "../core/Toast.js";
-import { fmtMoney, fmtMoney4 } from "../core/format.js?v=2";
+import { fmtMoney, fmtMoney4 } from "../core/format.js?v=3";
 import PrintHelper from "../components/PrintHelper.js";
 import RefuellingKpis from "../components/RefuellingKpis.js";
 import SearchableSelect from "../components/SearchableSelect.js?v=5";

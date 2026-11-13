@@ -1,6 +1,6 @@
 import FetchHelper from "../core/FetchHelper.js";
 import DialogHelper from "../core/DialogHelper.js";
-import { fmtMoney } from "../core/format.js?v=2";
+import { fmtMoney } from "../core/format.js?v=3";
 
 const dialog = new DialogHelper();
 const idVehicle = window.FB.idVehicle;

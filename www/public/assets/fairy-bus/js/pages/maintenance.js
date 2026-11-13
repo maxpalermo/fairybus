@@ -1,7 +1,7 @@
 import FetchHelper from "../core/FetchHelper.js";
 import DialogHelper from "../core/DialogHelper.js";
 import Toast from "../core/Toast.js";
-import { fmtMoney } from "../core/format.js?v=2";
+import { fmtMoney } from "../core/format.js?v=3";
 import PrintHelper from "../components/PrintHelper.js";
 import SearchableSelect from "../components/SearchableSelect.js?v=5";
 import TableSelect from "../components/TableSelect.js?v=2";
@@ -256,7 +256,7 @@ async function openDocumentDialog(idDocument) {
             return `
             <tr>
                 <td>${d.id_maintenance ? `Scheda ${d.id_maintenance} del ${fmtDate(d.maintenance_date)}` : "—"}</td>
-                <td class="num">${fmtQty(d.quantity)}</td>
+                <td class="num">${fmtQty(Math.abs(d.quantity))}</td>
                 <td>${escapeHtml(d.sku || (d.id_maintenance ? `sc. ${d.id_maintenance}` : "—"))}</td>
                 <td>${escapeHtml(d.product_name || d.note || "—")}</td>
                 <td class="num">${fmtMoney(d.price)}</td>
@@ -441,7 +441,7 @@ function buildLotItems() {
 }
 
 function detailTotals(detail) {
-    const qty = Number(detail.quantity || 0);
+    const qty = Math.abs(Number(detail.quantity || 0));
     const price = Number(detail.price || 0);
     const discount = Number(detail.discount || 0);
     const vat = detail.vat_rate !== null && detail.vat_rate !== undefined ? Number(detail.vat_rate) : 0;

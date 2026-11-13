@@ -191,21 +191,56 @@ class FbMaintenanceInvoiceModel extends Model
             'id_maintenance'
         );
         foreach ($ids as $idMaintenance) {
-            $exists = $db->table('fb_maintenance_invoice')
-                ->where('id_maintenance', (int) $idMaintenance)
-                ->where('id_invoice', $idInvoice)
-                ->countAllResults() > 0;
-            if (!$exists) {
-                $db->table('fb_maintenance_invoice')->insert([
-                    'id_maintenance' => (int) $idMaintenance,
-                    'id_invoice' => $idInvoice,
-                    'date_add' => date('Y-m-d H:i:s'),
-                ]);
-            }
+            self::linkMaintenance((int) $idMaintenance, $idInvoice);
         }
+    }
 
-        // riferimento diretto alla fattura sulla scheda (registrata)
-        $db->table('fb_maintenance')->where('id_document', $idDocument)->update(['id_invoice' => $idInvoice]);
+    /**
+     * Collega una singola scheda a una fattura: riga fb_maintenance_invoice
+     * (se mancante) + riferimento diretto fb_maintenance.id_invoice.
+     * Idempotente: chiamarla due volte non crea duplicati.
+     */
+    public static function linkMaintenance(int $idMaintenance, int $idInvoice): void
+    {
+        if ($idMaintenance <= 0 || $idInvoice <= 0) {
+            return;
+        }
+        $db = \Config\Database::connect();
+        $exists = $db->table('fb_maintenance_invoice')
+            ->where('id_maintenance', $idMaintenance)
+            ->where('id_invoice', $idInvoice)
+            ->countAllResults() > 0;
+        if (!$exists) {
+            $db->table('fb_maintenance_invoice')->insert([
+                'id_maintenance' => $idMaintenance,
+                'id_invoice' => $idInvoice,
+                'date_add' => date('Y-m-d H:i:s'),
+            ]);
+        }
+        $db->table('fb_maintenance')->where('id_maintenance', $idMaintenance)->update(['id_invoice' => $idInvoice]);
+    }
+
+    /**
+     * Scollega una singola scheda da una fattura: rimuove la riga di join e
+     * azzera il riferimento diretto solo se non restano altri link fattura.
+     */
+    public static function unlinkMaintenance(int $idMaintenance, int $idInvoice): void
+    {
+        if ($idMaintenance <= 0 || $idInvoice <= 0) {
+            return;
+        }
+        $db = \Config\Database::connect();
+        $db->table('fb_maintenance_invoice')
+            ->where('id_maintenance', $idMaintenance)
+            ->where('id_invoice', $idInvoice)
+            ->delete();
+        $remaining = $db->table('fb_maintenance_invoice')->where('id_maintenance', $idMaintenance)->countAllResults();
+        if ($remaining === 0) {
+            $db->table('fb_maintenance')
+                ->where('id_maintenance', $idMaintenance)
+                ->where('id_invoice', $idInvoice)
+                ->update(['id_invoice' => null]);
+        }
     }
 
     /**

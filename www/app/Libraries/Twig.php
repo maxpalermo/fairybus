@@ -74,8 +74,9 @@ class Twig
 
         // Formattazione valuta unificata: "1 234,56 EUR" (spazio migliaia);
         // |eur4 = variante a 4 decimali per prezzi unitari di precisione
-        $twig->addFilter(new \Twig\TwigFilter('eur', static fn($v) => number_format((float) ($v ?? 0), 2, ',', ' ') . ' EUR'));
-        $twig->addFilter(new \Twig\TwigFilter('eur4', static fn($v) => number_format((float) ($v ?? 0), 4, ',', ' ') . ' EUR'));
+        // gli spazi sono non-breaking (N) cosi' importo e "EUR" non vanno mai a capo
+        $twig->addFilter(new \Twig\TwigFilter('eur', static fn($v) => str_replace(' ', "\u{00A0}", number_format((float) ($v ?? 0), 2, ',', ' ') . ' EUR')));
+        $twig->addFilter(new \Twig\TwigFilter('eur4', static fn($v) => str_replace(' ', "\u{00A0}", number_format((float) ($v ?? 0), 4, ',', ' ') . ' EUR')));
     }
 
     public static function render(string $template, array $data = []): string

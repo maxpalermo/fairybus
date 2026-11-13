@@ -255,11 +255,20 @@ class Documents extends AdminController
         $toRemove = array_diff($current, $wanted);
         $toAdd = array_diff($wanted, $current);
 
+        // se il riepilogo e' gia' associato a una fattura, il link si propaga
+        // alle schede che entrano e si rimuove da quelle che escono
+        $idInvoice = (int) ($document['id_invoice'] ?? 0);
+
         if ($toRemove !== []) {
             $db->table('fb_document_detail')
                 ->where('id_document', $id)
                 ->whereIn('id_maintenance', array_values($toRemove))
                 ->delete();
+            if ($idInvoice > 0) {
+                foreach ($toRemove as $idMaintenance) {
+                    \FairyBus\Models\FbMaintenanceInvoiceModel::unlinkMaintenance((int) $idMaintenance, $idInvoice);
+                }
+            }
             $db->table('fb_maintenance')
                 ->whereIn('id_maintenance', array_values($toRemove))
                 ->set('id_document', null)
@@ -279,12 +288,21 @@ class Documents extends AdminController
             if (!empty($mnt['id_document'])) {
                 return $this->jsonResponse(['success' => false, 'error' => "La manutenzione #{$idMaintenance} è già associata a un altro scarico."], 422);
             }
-            $invoiced = $db->table('fb_maintenance_invoice')->where('id_maintenance', $idMaintenance)->countAllResults() > 0;
+            // fatturata "altrove" = link verso una fattura diversa da quella del documento
+            $invoiced = (!empty($mnt['id_invoice']) && (int) $mnt['id_invoice'] !== $idInvoice)
+                || $db->table('fb_maintenance_invoice')
+                    ->where('id_maintenance', $idMaintenance)
+                    ->where('id_invoice !=', $idInvoice)
+                    ->countAllResults() > 0;
             if ($invoiced) {
-                return $this->jsonResponse(['success' => false, 'error' => "La manutenzione #{$idMaintenance} è già associata a una fattura."], 422);
+                return $this->jsonResponse(['success' => false, 'error' => "La manutenzione #{$idMaintenance} è già associata a un'altra fattura."], 422);
             }
 
             $db->table('fb_maintenance')->where('id_maintenance', $idMaintenance)->update(['id_document' => $id]);
+            // il riepilogo e' gia' fatturato: la scheda eredita il collegamento
+            if ($idInvoice > 0) {
+                \FairyBus\Models\FbMaintenanceInvoiceModel::linkMaintenance((int) $idMaintenance, $idInvoice);
+            }
             $linked++;
 
             // ricambi + manodopera della scheda -> righe documento (lo stock

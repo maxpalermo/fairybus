@@ -9,7 +9,7 @@
  * Usato in documents.js (carichi) e maintenance.js (ricambi).
  */
 import FetchHelper from "../core/FetchHelper.js";
-import { fmtMoney } from "../core/format.js?v=2";
+import { fmtMoney } from "../core/format.js?v=3";
 
 function escapeHtml(text) {
     const div = document.createElement("div");

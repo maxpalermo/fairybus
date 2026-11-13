@@ -1,6 +1,6 @@
 import FetchHelper from "../core/FetchHelper.js";
 import DialogHelper from "../core/DialogHelper.js";
-import { fmtMoney } from "../core/format.js?v=2";
+import { fmtMoney } from "../core/format.js?v=3";
 import PrintHelper from "../components/PrintHelper.js";
 import TableSelect from "../components/TableSelect.js?v=2";
 import SearchableSelect from "../components/SearchableSelect.js?v=5";
@@ -168,7 +168,7 @@ async function initDocumentsTable() {
                       { field: "id_document", title: "ID", sortable: true, align: "right", filterControl: "input", filterCustomSearch: window.fbFilterSearch },
                       { field: "number", title: "Numero", sortable: true, formatter: (v) => (v ? escapeHtml(v) : "—"), filterControl: "input", filterCustomSearch: window.fbFilterSearch },
                       { field: "date", title: "Data", sortable: true, formatter: (v) => fmtDate(v), filterControl: "input", filterCustomSearch: window.fbFilterSearch },
-                      { field: "vehicle_plate", title: "Targa", sortable: true, formatter: (v) => escapeHtml(v || "—"), filterControl: "select", filterData: "var:fbPlateOptions" },
+                      { field: "vehicle_plate", title: "Targa", sortable: true, formatter: (v) => escapeHtml(v || "—"), searchFormatter: false, filterControl: "select", filterData: "var:fbPlateOptions" },
                       { field: "supplier_name", title: "Cliente", sortable: true, formatter: (v, row) => partnerName(row), filterControl: "input", filterCustomSearch: window.fbFilterSearch },
                       { field: "mnt_count", title: "Schede", sortable: true, align: "right", formatter: (v) => Number(v || 0).toLocaleString("it-IT"), filterControl: "input", filterCustomSearch: window.fbFilterSearch },
                       { field: "total_amount", title: "Totale importo", sortable: true, align: "right", formatter: (v) => fmtMoney(v), filterControl: "input", filterCustomSearch: window.fbFilterSearch },
@@ -270,7 +270,7 @@ function buildProductItems() {
 }
 
 function detailTotals(detail) {
-    const qty = Number(detail.quantity || 0);
+    const qty = Math.abs(Number(detail.quantity || 0));
     const price = Number(detail.price || 0);
     const discount = Number(detail.discount || 0);
     const vat = detail.vat_rate !== null && detail.vat_rate !== undefined ? Number(detail.vat_rate) : 0;
@@ -299,7 +299,7 @@ function aggregateDetailLines(lines) {
             groups.set(key, { ...d, quantity: 0, importo: 0, totale: 0 });
         }
         const g = groups.get(key);
-        g.quantity = Number(g.quantity || 0) + Number(d.quantity || 0);
+        g.quantity = Number(g.quantity || 0) + Math.abs(Number(d.quantity || 0));
         g.importo += t.importo;
         g.totale += t.totale;
     }
@@ -307,7 +307,7 @@ function aggregateDetailLines(lines) {
 }
 
 const aggRowHtml = (g) => `
-    <td class="num">${fmtQty(g.quantity)}</td>
+    <td class="num">${fmtQty(Math.abs(g.quantity))}</td>
     <td>${escapeHtml(g.sku || "—")}</td>
     <td>${escapeHtml(g.product_name || g.note || "—")}</td>
     <td class="num">${fmtMoney(g.price)}</td>
@@ -347,12 +347,12 @@ function renderSchedaGroups(form, groups, schedaCount) {
         g.lines.forEach((d, i) => {
             const t = detailTotals(d);
             total += t.totale;
-            qty += Number(d.quantity || 0);
+            qty += Math.abs(Number(d.quantity || 0));
             rowCount++;
             const tr = document.createElement("tr");
             tr.innerHTML = `
                 ${i === 0 ? `<td rowspan="${g.lines.length}">${escapeHtml(g.label)}</td>` : ""}
-                <td class="num">${fmtQty(d.quantity)}</td>
+                <td class="num">${fmtQty(Math.abs(d.quantity))}</td>
                 <td>${escapeHtml(d.product_name || d.note || "—")}</td>
                 <td class="num">${fmtMoney(d.price)}</td>
                 <td class="num">${Math.abs(Number(d.discount || 0))}%</td>
@@ -450,12 +450,12 @@ function renderDetails(form, details) {
         for (const d of details) {
             const t = detailTotals(d);
             total += t.totale;
-            qty += Number(d.quantity || 0);
+            qty += Math.abs(Number(d.quantity || 0));
             const tr = document.createElement("tr");
             const priceCell = `<div class="fb-price-edit"><input type="number" class="fb-price-input" step="0.01" min="0" value="${Number(d.price || 0).toFixed(2)}" data-id="${d.id_document_detail}"><button type="button" class="fb-btn-icon fb-btn-icon-success" title="Salva prezzo" data-action="upd-price" data-id="${d.id_document_detail}">${ICONS.check}</button></div>`;
             const actionCell = d.id_maintenance ? `<span class="fb-mnt-badge" title="Riga copiata dalla scheda manutenzione #${d.id_maintenance}: si rimuove dalla scheda Manutenzioni">sc.&nbsp;${d.id_maintenance}</span>` : `<button type="button" class="fb-btn fb-btn-secondary fb-btn-sm" data-action="del-detail" data-id="${d.id_document_detail}">✕</button>`;
             tr.innerHTML = `
-                <td class="num">${fmtQty(d.quantity)}</td>
+                <td class="num">${fmtQty(Math.abs(d.quantity))}</td>
                 <td>${escapeHtml(d.sku || (d.id_maintenance ? `sc. ${d.id_maintenance}` : "—"))}</td>
                 <td>${escapeHtml(d.product_name || d.note || "—")}</td>
                 <td class="num">${priceCell}</td>
@@ -1127,7 +1127,7 @@ async function openDocumentView(row) {
             return `
             <tr>
                 ${isOut ? `<td>${schedaCell(d)}</td>` : ""}
-                <td class="num">${fmtQty(d.quantity)}</td>
+                <td class="num">${fmtQty(Math.abs(d.quantity))}</td>
                 <td>${escapeHtml(d.sku || "—")}</td>
                 <td>${escapeHtml(d.product_name || "—")}</td>
                 <td class="num">${fmtMoney(d.price)}</td>

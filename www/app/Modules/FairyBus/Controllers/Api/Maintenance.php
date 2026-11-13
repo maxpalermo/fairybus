@@ -588,12 +588,22 @@ class Maintenance extends AdminController
         }
 
         $db = \Config\Database::connect();
-        $invoiced = $db->table('fb_maintenance_invoice')->where('id_maintenance', $id)->countAllResults() > 0;
+        // fatturata "altrove" = link verso una fattura diversa da quella del riepilogo
+        $idInvoiceDoc = (int) ($document['id_invoice'] ?? 0);
+        $invoiced = (!empty($mnt['id_invoice']) && (int) $mnt['id_invoice'] !== $idInvoiceDoc)
+            || $db->table('fb_maintenance_invoice')
+                ->where('id_maintenance', $id)
+                ->where('id_invoice !=', $idInvoiceDoc)
+                ->countAllResults() > 0;
         if ($invoiced) {
-            return $this->jsonResponse(['success' => false, 'error' => 'La scheda è già associata a una fattura.'], 422);
+            return $this->jsonResponse(['success' => false, 'error' => 'La scheda è già associata a un\'altra fattura.'], 422);
         }
 
         $db->table('fb_maintenance')->where('id_maintenance', $id)->update(['id_document' => $idDocument]);
+        // il riepilogo e' gia' fatturato: la scheda eredita il collegamento
+        if ($idInvoiceDoc > 0) {
+            \FairyBus\Models\FbMaintenanceInvoiceModel::linkMaintenance($id, $idInvoiceDoc);
+        }
 
         // il riepilogo eredita la targa della scheda se non ne ha una
         if ((int) ($document['id_vehicle'] ?? 0) <= 0 && (int) ($mnt['id_vehicle'] ?? 0) > 0) {

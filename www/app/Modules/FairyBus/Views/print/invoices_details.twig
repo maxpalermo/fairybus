@@ -59,8 +59,8 @@
         </table>
 
         {% for doc in invoice.documents %}
-            <h3 style="margin: 10pt 0 4pt;">DDT {{ doc.number|default(doc.id_document) }} del {{ doc.date ? doc.date|date('d/m/Y') : '—' }}</h3>
-            {% include 'print/partials/detail_table.twig' with {rows: doc.details, total_label: 'Totale DDT'} %}
+            <h3 style="margin: 10pt 0 4pt;">{{ doc.id_customer ? 'Riepilogo' : 'DDT' }} {{ doc.number|default(doc.id_document) }} del {{ doc.date ? doc.date|date('d/m/Y') : '—' }}</h3>
+            {% include 'print/partials/detail_table.twig' with {rows: doc.details, total_label: 'Totale ' ~ (doc.id_customer ? 'riepilogo' : 'DDT')} %}
         {% endfor %}
 
         {% for mnt in invoice.maintenances|default([]) %}

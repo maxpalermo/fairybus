@@ -36,6 +36,12 @@ class DbBackup
     private const SQL_NAME = 'backup.sql';
     private const INSERT_CHUNK = 200;
 
+    /**
+     * Archivio demo fisso: non compare nello storico (non matcha PREFIX),
+     * non e' eliminabile/scaricabile, serve solo al ripristino.
+     */
+    public const DEMO_NAME = 'fb-demo.zip';
+
     public static function dir(): string
     {
         $dir = rtrim(WRITEPATH, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'backups';
@@ -115,12 +121,62 @@ class DbBackup
 
     public static function delete(string $name): bool
     {
+        if ($name === self::DEMO_NAME) {
+            return false; // il backup demo non e' eliminabile
+        }
         $path = self::path($name);
         if ($path === null) {
             return false;
         }
 
         return @unlink($path);
+    }
+
+    /**
+     * Modalita' demo: flag in fb_configuration.demo_mode (value='1').
+     * La riga non e' esposta in alcuna interfaccia: i config si scrivono
+     * solo via endpoint con nomi hardcoded, quindi si disattiva solo dal
+     * database (es. phpMyAdmin: value=0). In demo lo storico backup e'
+     * disabilitato e resta attivo solo il ripristino di fb-demo.zip.
+     */
+    public static function isDemoMode(): bool
+    {
+        static $demo = null;
+        if ($demo === null) {
+            try {
+                $row = \Config\Database::connect()
+                    ->table('fb_configuration')
+                    ->select('value')
+                    ->where('name', 'demo_mode')
+                    ->get()
+                    ->getRowArray();
+                $demo = ($row['value'] ?? '0') === '1';
+            } catch (\Throwable $e) {
+                $demo = false;
+            }
+        }
+
+        return $demo;
+    }
+
+    /**
+     * Info sull'archivio demo (sezione dedicata nello storico): null se assente.
+     *
+     * @return array{name: string, size: int, created_at: string, mtime: int}|null
+     */
+    public static function demoInfo(): ?array
+    {
+        $path = self::dir() . DIRECTORY_SEPARATOR . self::DEMO_NAME;
+        if (!is_file($path)) {
+            return null;
+        }
+
+        return [
+            'name' => self::DEMO_NAME,
+            'size' => (int) filesize($path),
+            'created_at' => date('Y-m-d H:i:s', (int) filemtime($path)),
+            'mtime' => (int) filemtime($path),
+        ];
     }
 
     /**
@@ -213,7 +269,8 @@ class DbBackup
      */
     public static function path(string $name): ?string
     {
-        if (!preg_match('/^' . preg_quote(self::PREFIX, '/') . '\d{8}-\d{6}\.zip$/', $name)) {
+        $valid = $name === self::DEMO_NAME || preg_match('/^' . preg_quote(self::PREFIX, '/') . '\d{8}-\d{6}\.zip$/', $name);
+        if (!$valid) {
             return null;
         }
         $path = self::dir() . DIRECTORY_SEPARATOR . $name;

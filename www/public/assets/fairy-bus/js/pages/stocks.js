@@ -1,6 +1,6 @@
 import FetchHelper from "../core/FetchHelper.js";
 import DialogHelper from "../core/DialogHelper.js";
-import { fmtMoney, fmtMoney4 } from "../core/format.js?v=2";
+import { fmtMoney, fmtMoney4 } from "../core/format.js?v=3";
 import PrintHelper from "../components/PrintHelper.js";
 
 const dialog = new DialogHelper();

@@ -124,14 +124,8 @@
             </div>
 
             <div class="fb-tab-panel" data-panel="ddt" role="tabpanel">
-                <div data-kind-group="supplier">
-                    <p class="fb-muted" data-field="ddt-hint">Seleziona un fornitore per vedere i DDT disponibili.</p>
-                    <div data-field="ddt-list"></div>
-                </div>
-                <div data-kind-group="customer" hidden>
-                    <p class="fb-muted" data-field="mnt-hint">Seleziona cliente e automezzo per vedere le schede manutenzione da fatturare.</p>
-                    <div class="fb-mnt-list" data-field="mnt-list"></div>
-                </div>
+                <p class="fb-muted" data-field="ddt-hint">Seleziona un fornitore per vedere i DDT disponibili.</p>
+                <div data-field="ddt-list"></div>
             </div>
 
             <div class="fb-form-actions">
@@ -143,5 +137,5 @@
 {% endblock %}
 
 {% block page_scripts %}
-    <script type="module" src="{{ asset('fairy-bus/js/pages/invoices.js?v=14') }}"></script>
+    <script type="module" src="{{ asset('fairy-bus/js/pages/invoices.js?v=17') }}"></script>
 {% endblock %}

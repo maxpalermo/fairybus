@@ -41,16 +41,42 @@ class Backup extends AdminController
         }
 
         try {
-            return $this->jsonResponse(['success' => true, 'rows' => DbBackup::list()]);
+            return $this->jsonResponse([
+                'success' => true,
+                'rows' => DbBackup::list(),
+                'demo' => DbBackup::demoInfo(),
+                'demo_mode' => DbBackup::isDemoMode(),
+            ]);
         } catch (Throwable $e) {
             return $this->jsonResponse(['success' => false, 'error' => $e->getMessage()], 500);
         }
+    }
+
+    /**
+     * In modalita' demo (fb_configuration.demo_mode=1) la gestione dei
+     * backup e' disabilitata: resta attivo solo il ripristino di
+     * fb-demo.zip. Il flag non e' raggiungibile dall'app, si azzera solo
+     * dal database (es. phpMyAdmin).
+     */
+    private function demoBlocked(): ?ResponseInterface
+    {
+        if (!DbBackup::isDemoMode()) {
+            return null;
+        }
+
+        return $this->jsonResponse([
+            'success' => false,
+            'error' => 'Modalità demo attiva: gestione backup disabilitata. È disponibile solo il ripristino dei dati dimostrativi.',
+        ], 403);
     }
 
     public function create(): ResponseInterface
     {
         if ($denied = $this->requirePermission('*')) {
             return $denied;
+        }
+        if ($blocked = $this->demoBlocked()) {
+            return $blocked;
         }
 
         try {
@@ -66,6 +92,9 @@ class Backup extends AdminController
     {
         if ($denied = $this->requirePermission('*')) {
             return $denied;
+        }
+        if ($blocked = $this->demoBlocked()) {
+            return $blocked;
         }
 
         $file = $this->request->getFile('backup');
@@ -90,7 +119,13 @@ class Backup extends AdminController
         if ($denied = $this->requirePermission('*')) {
             return $denied;
         }
+        if ($blocked = $this->demoBlocked()) {
+            return $blocked;
+        }
 
+        if ($name === DbBackup::DEMO_NAME) {
+            return $this->jsonResponse(['success' => false, 'error' => 'Il backup demo serve solo al ripristino.'], 403);
+        }
         $path = DbBackup::path($name);
         if ($path === null) {
             return $this->jsonResponse(['success' => false, 'error' => 'Backup non trovato.'], 404);
@@ -103,6 +138,13 @@ class Backup extends AdminController
     {
         if ($denied = $this->requirePermission('*')) {
             return $denied;
+        }
+        // in demo l'unico archivio ripristinabile e' fb-demo.zip
+        if (DbBackup::isDemoMode() && $name !== DbBackup::DEMO_NAME) {
+            return $this->jsonResponse([
+                'success' => false,
+                'error' => 'Modalità demo attiva: è ripristinabile solo il backup demo.',
+            ], 403);
         }
 
         try {
@@ -122,6 +164,9 @@ class Backup extends AdminController
         if ($denied = $this->requirePermission('*')) {
             return $denied;
         }
+        if ($blocked = $this->demoBlocked()) {
+            return $blocked;
+        }
 
         if (!DbBackup::delete($name)) {
             return $this->jsonResponse(['success' => false, 'error' => 'Backup non trovato o non eliminabile.'], 404);
@@ -138,6 +183,9 @@ class Backup extends AdminController
     {
         if ($denied = $this->requirePermission('*')) {
             return $denied;
+        }
+        if ($blocked = $this->demoBlocked()) {
+            return $blocked;
         }
 
         try {
@@ -156,6 +204,9 @@ class Backup extends AdminController
     {
         if ($denied = $this->requirePermission('*')) {
             return $denied;
+        }
+        if ($blocked = $this->demoBlocked()) {
+            return $blocked;
         }
 
         $table = (string) $this->request->getPost('table');

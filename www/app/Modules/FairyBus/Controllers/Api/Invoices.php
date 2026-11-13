@@ -74,7 +74,10 @@ class Invoices extends AdminController
         $id = (int) $model->insert($validation + ['date_add' => date('Y-m-d H:i:s')]);
 
         $this->syncDocuments($id, $this->documentIdsFromPost(), (int) ($validation['id_supplier'] ?? 0), (int) ($validation['id_customer'] ?? 0));
-        $this->syncMaintenances($id, $this->maintenanceIdsFromPost());
+        // maintenance_ids e' opzionale: se assente i link scheda esistenti restano
+        if ($this->request->getPost('maintenance_ids') !== null) {
+            $this->syncMaintenances($id, $this->maintenanceIdsFromPost());
+        }
 
         return $this->jsonResponse(['success' => true, 'id' => $id]);
     }
@@ -98,7 +101,9 @@ class Invoices extends AdminController
         $model->update($id, $validation + ['date_upd' => date('Y-m-d H:i:s')]);
 
         $this->syncDocuments($id, $this->documentIdsFromPost(), (int) ($validation['id_supplier'] ?? 0), (int) ($validation['id_customer'] ?? 0));
-        $this->syncMaintenances($id, $this->maintenanceIdsFromPost());
+        if ($this->request->getPost('maintenance_ids') !== null) {
+            $this->syncMaintenances($id, $this->maintenanceIdsFromPost());
+        }
 
         return $this->jsonResponse(['success' => true]);
     }

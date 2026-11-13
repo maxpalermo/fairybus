@@ -54,7 +54,7 @@
 
     {% set grandTotal = 0 %}
     {% for doc in invoice.documents %}
-        <h3 style="margin: 10pt 0 4pt;">DDT {{ doc.number|default(doc.id_document) }} del {{ doc.date ? doc.date|date('d/m/Y') : '—' }}</h3>
+        <h3 style="margin: 10pt 0 4pt;">{{ doc.id_customer ? 'Riepilogo' : 'DDT' }} {{ doc.number|default(doc.id_document) }} del {{ doc.date ? doc.date|date('d/m/Y') : '—' }}</h3>
         <table class="data">
             <thead>
                 <tr>
@@ -71,12 +71,12 @@
             <tbody>
                 {% set docTotal = 0 %}
                 {% for row in doc.details %}
-                    {% set importo = row.quantity * row.price * (1 - (row.discount|default(0)|abs) / 100) %}
+                    {% set importo = row.quantity|abs * row.price * (1 - (row.discount|default(0)|abs) / 100) %}
                     {% set vat = row.vat_rate is not null ? row.vat_rate : 0 %}
                     {% set rowTotal = importo * (1 + vat / 100) %}
                     {% set docTotal = docTotal + rowTotal %}
                     <tr>
-                        <td class="num">{{ row.quantity|number_format(3, ',', '.')|trim('0', 'right')|trim(',', 'right') ?: '0' }}</td>
+                        <td class="num">{{ row.quantity|abs|number_format(3, ',', '.')|trim('0', 'right')|trim(',', 'right') ?: '0' }}</td>
                         <td>{{ row.sku|default('—') }}</td>
                         <td>{{ row.product_name|default('—') }}</td>
                         <td class="num">&nbsp;{{ row.price|eur }}</td>
@@ -93,7 +93,7 @@
             {% if doc.details|length > 0 %}
                 <tfoot>
                     <tr>
-                        <td colspan="7" class="muted" style="text-align: right; border-top: 1.5pt solid #18181b;">Totale DDT</td>
+                        <td colspan="7" class="muted" style="text-align: right; border-top: 1.5pt solid #18181b;">Totale {{ doc.id_customer ? 'riepilogo' : 'DDT' }}</td>
                         <td class="num" style="border-top: 1.5pt solid #18181b;"><strong>&nbsp;{{ docTotal|eur }}</strong></td>
                     </tr>
                 </tfoot>
@@ -101,7 +101,7 @@
         </table>
     {% else %}
         {% if not invoice.id_customer or invoice.maintenances|length == 0 %}
-            <p class="muted">Nessun DDT collegato.</p>
+            <p class="muted">{{ invoice.id_customer ? 'Nessun riepilogo collegato.' : 'Nessun DDT collegato.' }}</p>
         {% endif %}
     {% endfor %}
 
@@ -123,12 +123,12 @@
             <tbody>
                 {% set docTotal = 0 %}
                 {% for row in mnt.details %}
-                    {% set importo = row.quantity * row.price * (1 - (row.discount|default(0)|abs) / 100) %}
+                    {% set importo = row.quantity|abs * row.price * (1 - (row.discount|default(0)|abs) / 100) %}
                     {% set vat = row.vat_rate is not null ? row.vat_rate : 0 %}
                     {% set rowTotal = importo * (1 + vat / 100) %}
                     {% set docTotal = docTotal + rowTotal %}
                     <tr>
-                        <td class="num">{{ row.quantity|number_format(3, ',', '.')|trim('0', 'right')|trim(',', 'right') ?: '0' }}</td>
+                        <td class="num">{{ row.quantity|abs|number_format(3, ',', '.')|trim('0', 'right')|trim(',', 'right') ?: '0' }}</td>
                         <td>{{ row.sku|default('—') }}</td>
                         <td>{{ row.product_name|default('—') }}</td>
                         <td class="num">&nbsp;{{ row.price|eur }}</td>
@@ -166,5 +166,5 @@
 {% endblock %}
 
 {% block footer %}
-    <span>{{ app_name|default('Fairy Bus') }} — {{ title|default('Fattura') }} — DDT: {{ invoice.documents|length }}</span>
+    <span>{{ app_name|default('Fairy Bus') }} — {{ title|default('Fattura') }} — {{ invoice.id_customer ? 'Riepiloghi' : 'DDT' }}: {{ invoice.documents|length }}</span>
 {% endblock %}

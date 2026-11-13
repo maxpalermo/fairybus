@@ -7,7 +7,8 @@ const formatEur = (value, decimals) =>
     `${Number(value || 0)
         // useGrouping "always": it-IT usa "min2" (nessun separatore sotto 10.000)
         .toLocaleString("it-IT", { minimumFractionDigits: decimals, maximumFractionDigits: decimals, useGrouping: "always" })
-        .replace(/\./g, " ")} EUR`;
+        // spazi non-breaking: importo e "EUR" non vanno mai a capo
+        .replace(/\./g, "\u00A0")}\u00A0EUR`;
 
 /** Standard: 1 894,78 EUR */
 export function fmtMoney(value) {

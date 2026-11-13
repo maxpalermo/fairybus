@@ -18,7 +18,7 @@
 {% extends "admin/layout.twig" %}
 
 {% block page_styles %}
-    <link rel="stylesheet" href="{{ asset('fairy-bus/css/pages/settings.css') }}?v=8">
+    <link rel="stylesheet" href="{{ asset('fairy-bus/css/pages/settings.css') }}?v=12">
 {% endblock %}
 
 {% block content %}
@@ -290,38 +290,26 @@
 
         <div class="fb-tab-panel" id="panel-backup" role="tabpanel" aria-labelledby="tab-backup">
             <div class="fb-import-sections">
-                <div class="fb-import-card">
-                    <h3 class="fb-import-card-title">Backup del database</h3>
-                    <p class="fb-import-card-help">Crea un archivio ZIP con il dump completo del database (tabelle e dati). I file sono conservati nell'area dati dell'applicazione e sono ripristinabili o scaricabili dalla tabella dello storico.</p>
-                    <div class="fb-form-actions" style="justify-content: flex-start;">
-                        <button type="button" class="fb-btn fb-btn-primary" data-action="backup-create">
-                            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                            Crea backup ora
-                        </button>
-                    </div>
+                <div class="fb-backup-toolbar" data-backup-ui>
+                    <button type="button" class="fb-btn fb-btn-primary" data-action="backup-create" title="Crea un archivio ZIP con il dump completo del database">
+                        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                        Crea backup
+                    </button>
+                    <button type="button" class="fb-btn fb-btn-info-solid" data-action="backup-upload" title="Carica un backup .sql o .zip creato altrove per poterlo ripristinare">
+                        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+                        Ripristina backup
+                    </button>
+                    <button type="button" class="fb-btn fb-btn-danger-solid" data-action="clean-tables" title="Elimina le tabelle che non appartengono all'applicazione (vengono mantenute solo fb_* e migrations)">
+                        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                        Pulisci tabelle
+                    </button>
+                    <a href="/pma/" target="_blank" rel="noopener" class="fb-btn fb-btn-secondary" title="Apri phpMyAdmin in una nuova scheda">
+                        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                        PhpMyAdmin
+                    </a>
                 </div>
 
-                <div class="fb-import-card">
-                    <h3 class="fb-import-card-title">Backup automatico (cron)</h3>
-                    <p class="fb-import-card-help">Per schedulare un backup periodico aggiungi al cron del server il comando seguente — con <code>--keep N</code> vengono conservati solo gli ultimi N archivi:</p>
-                    <div class="fb-backup-cron">
-                        <code>php spark fb:backup --keep 14</code>
-                        <span class="fb-muted">nell'ambiente Docker: <code>docker exec -u www-data fairy-bus php spark fb:backup --keep 14</code></span>
-                    </div>
-                </div>
-
-                <div class="fb-import-card">
-                    <h3 class="fb-import-card-title">Pulizia database</h3>
-                    <p class="fb-import-card-help">Elimina le tabelle che non appartengono all'applicazione — vengono mantenute solo <code>fb_*</code> e <code>migrations</code> (ad esempio i residui delle importazioni legacy). <strong>L'operazione non è annullabile:</strong> eseguire prima un backup.</p>
-                    <div class="fb-form-actions" style="justify-content: flex-start;">
-                        <button type="button" class="fb-btn fb-btn-danger-solid" data-action="clean-tables">
-                            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                            Pulisci tabelle non usate
-                        </button>
-                    </div>
-                </div>
-
-                <div class="fb-import-card">
+                <div class="fb-import-card" data-backup-ui>
                     <div class="fb-import-card-header">
                         <div>
                             <h3 class="fb-import-card-title">Storico backup</h3>
@@ -333,6 +321,11 @@
                         </button>
                         <input type="file" id="backup-upload-file" accept=".zip,.sql,application/zip,application/x-zip-compressed,text/plain,application/sql" hidden>
                     </div>
+                    <div class="fb-backup-cron">
+                        <p class="fb-import-card-help" style="margin: 0 0 0.4rem;">Backup automatico: per schedulare un backup periodico aggiungi al cron del server il comando seguente — con <code>--keep N</code> vengono conservati solo gli ultimi N archivi:</p>
+                        <code>php spark fb:backup --keep 14</code>
+                        <span class="fb-muted">nell'ambiente Docker: <code>docker exec -u www-data fairy-bus php spark fb:backup --keep 14</code></span>
+                    </div>
                     <table id="backups-table" class="fb-table">
                         <thead>
                             <tr>
@@ -343,6 +336,27 @@
                             </tr>
                         </thead>
                     </table>
+                </div>
+
+                <div class="fb-import-card">
+                    <h3 class="fb-import-card-title">Backup demo</h3>
+                    <p class="fb-demo-mode-note" data-field="demo-notice" hidden>
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                        Modalità demo attiva: lo storico backup è disabilitato, è disponibile solo il ripristino dei dati dimostrativi.
+                    </p>
+                    <p class="fb-import-card-help">Archivio fisso con i dati dimostrativi: riporta l'applicazione allo stato iniziale della demo. Il file non può essere modificato, scaricato né eliminato — è utilizzabile solo per il ripristino.</p>
+                    <div class="fb-demo-backup" data-field="demo-backup" hidden>
+                        <span class="fb-demo-backup-file">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+                            <code>fb-demo.zip</code>
+                            <span class="fb-muted" data-field="demo-meta"></span>
+                        </span>
+                        <button type="button" class="fb-btn fb-btn-warning-solid" data-action="demo-restore">
+                            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+                            Ripristina demo
+                        </button>
+                    </div>
+                    <p class="fb-muted" data-field="demo-empty" hidden>Nessun backup demo presente.</p>
                 </div>
             </div>
         </div>
@@ -454,6 +468,6 @@
 {% endblock %}
 
 {% block page_scripts %}
-    <script type="module" src="{{ asset('fairy-bus/js/pages/settings.js') }}?v=15"></script>
+    <script type="module" src="{{ asset('fairy-bus/js/pages/settings.js') }}?v=18"></script>
     <script type="module" src="{{ asset('fairy-bus/js/pages/settings-menu.js') }}?v=2"></script>
 {% endblock %}

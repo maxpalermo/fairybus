@@ -750,8 +750,35 @@ async function refreshBackups() {
         if ($table.length && $table.data("bootstrap.table")) {
             $table.bootstrapTable("load", res.rows || []);
         }
+        renderDemoBackup(res.demo, !!res.demo_mode);
     } catch (err) {
         await dialog.error(err);
+    }
+}
+
+// Sezione "Backup demo": archivio fisso, solo ripristino (niente download/delete).
+// In modalita' demo (demo_mode) toolbar e storico vengono nascosti: resta
+// visibile solo questa sezione.
+function renderDemoBackup(demo, demoMode) {
+    document.querySelectorAll("[data-backup-ui]").forEach((el) => {
+        el.hidden = !!demoMode;
+    });
+    const notice = document.querySelector('[data-field="demo-notice"]');
+    if (notice) {
+        notice.hidden = !demoMode;
+    }
+    const box = document.querySelector('[data-field="demo-backup"]');
+    const empty = document.querySelector('[data-field="demo-empty"]');
+    if (!box || !empty) {
+        return;
+    }
+    box.hidden = !demo;
+    empty.hidden = !!demo;
+    if (demo) {
+        const meta = box.querySelector('[data-field="demo-meta"]');
+        if (meta) {
+            meta.textContent = `· ${demo.created_at} · ${fmtBackupSize(demo.size)}`;
+        }
     }
 }
 
@@ -830,6 +857,16 @@ function initBackups() {
         });
     }
 
+    const demoBtn = document.querySelector('[data-action="demo-restore"]');
+    if (demoBtn && demoBtn.dataset.bound !== "1") {
+        demoBtn.dataset.bound = "1";
+        demoBtn.addEventListener("click", async () => {
+            const ok = await dialog.confirm("Ripristinare lo stato iniziale della demo?<br><strong>Il database corrente verrà completamente sovrascritto con i dati dimostrativi.</strong> L'operazione non è annullabile.", "Ripristina demo");
+            if (!ok) return;
+            await runRestore({ name: "fb-demo.zip" });
+        });
+    }
+
     const btn = document.querySelector('[data-action="backup-create"]');
     if (btn && btn.dataset.bound !== "1") {
         btn.dataset.bound = "1";
@@ -853,12 +890,12 @@ function initBackups() {
         });
     }
 
-    const uploadBtn = document.querySelector('[data-action="backup-upload"]');
+    const uploadBtns = document.querySelectorAll('[data-action="backup-upload"]');
     const fileInput = document.getElementById("backup-upload-file");
-    if (uploadBtn && fileInput && uploadBtn.dataset.bound !== "1") {
-        uploadBtn.dataset.bound = "1";
+    if (uploadBtns.length && fileInput && fileInput.dataset.bound !== "1") {
+        fileInput.dataset.bound = "1";
 
-        uploadBtn.addEventListener("click", () => fileInput.click());
+        uploadBtns.forEach((uploadBtn) => uploadBtn.addEventListener("click", () => fileInput.click()));
         fileInput.addEventListener("change", async () => {
             const file = fileInput.files && fileInput.files[0];
             fileInput.value = "";
@@ -870,7 +907,7 @@ function initBackups() {
                 formData.append(window.FB.csrf.name, window.FB.csrf.value);
             }
 
-            uploadBtn.disabled = true;
+            uploadBtns.forEach((b) => (b.disabled = true));
             try {
                 const res = await FetchHelper.postMultipart(`${window.FB.baseUrl}api/settings/backups/upload`, formData);
                 toast.showToastSuccess(`Backup caricato: ${res.name}`);
@@ -880,7 +917,7 @@ function initBackups() {
             } catch (err) {
                 await dialog.error(err);
             } finally {
-                uploadBtn.disabled = false;
+                uploadBtns.forEach((b) => (b.disabled = false));
             }
         });
     }
